@@ -1,0 +1,2 @@
+// Native bindings are explicit at the executable root, never the runtime facade.
+c_sources = ["../native/filesystem.c", "../test_support/filesystem_fixture.c"];

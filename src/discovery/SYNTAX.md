@@ -1,9 +1,12 @@
 # Test declaration scanning (E2.S2)
 
 `discover(manifest, inventory)` consumes a successful source inventory and scans
-`*_test.goose` files in `test/` and `integration/`. Source files and other helpers
-are excluded. Mirror auditing, empty-suite policy, generation and CLI integration
-belong to later stories. The syntax layer needs no native adapter.
+`*_test.goose` files in `test/` and `integration/`. Source files are excluded.
+Other `.goose` files in either test root are rejected;
+helpers belong in `test_support/`. Every discovered suite must contain at least one
+valid test (disabled cases count). [MIRRORS.md](MIRRORS.md) documents full-project
+validation. Generation and CLI integration belong to later stories. The syntax
+layer needs no native adapter.
 
 ## Authoring subset
 

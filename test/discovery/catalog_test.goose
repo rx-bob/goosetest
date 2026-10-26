@@ -55,7 +55,6 @@ fn test_inventory_selection() {
     add_file(inventory, "src/code.goose", "this is not a test suite", discovery::RootKind.Source);
     add_file(inventory, "test/code_test.goose", "namespace code; fn test_code(t: goosetest::Test&) {}",
         discovery::RootKind.Unit);
-    add_file(inventory, "test/helper.goose", "not a suite", discovery::RootKind.Unit);
     inventory.complete = true;
     syntax_support::with_manifest() {
         manifest =>
@@ -93,4 +92,41 @@ fn add_file(inventory: discovery::Inventory&, path: u8[:], source: u8[:], kind: 
             source: source_span,
             kind: kind
         });
+}
+
+fn test_strict_suite_files() {
+    for path in["test/helper.goose", "integration/helper.goose", "test/_test.goose"] {
+        var files: discovery::SourceFile[>..] = [];
+        var paths: u8[>..] = [];
+        var sources: u8[>..] = [];
+        var errors: u8[>..] = [];
+        var inventory = discovery::new_inventory(files, paths, sources, errors);
+        add_file(inventory, path, "namespace helper;", discovery::RootKind.Unit);
+        inventory.complete = true;
+        syntax_support::with_manifest() {
+            manifest =>
+            discovery::discover(manifest, inventory);
+            assert(discovery::manifest_status(manifest) == 2);
+            assert(manifest.error.issue == discovery::SyntaxIssue.BadTestFilename);
+            assert(manifest.error_path == path);
+        }
+    }
+}
+
+fn test_disabled_suite_is_nonempty() {
+    var files: discovery::SourceFile[>..] = [];
+    var paths: u8[>..] = [];
+    var sources: u8[>..] = [];
+    var errors: u8[>..] = [];
+    var inventory = discovery::new_inventory(files, paths, sources, errors);
+    add_file(inventory, "integration/disabled_test.goose",
+        "namespace disabled;\n// @Disabled(\"pending\")\nfn test_pending(t: goosetest::Test&) {}",
+        discovery::RootKind.Integration);
+    inventory.complete = true;
+    syntax_support::with_manifest() {
+        manifest =>
+        discovery::discover(manifest, inventory);
+        assert(discovery::manifest_status(manifest) == 0);
+        assert(manifest.cases.len == 1 && manifest.cases[0].disabled);
+    }
 }

@@ -6,8 +6,9 @@ and optional `integration/`. An absent integration directory is valid; only
 errors, invalid import segments, special files, and symlinks are errors.
 
 This layer provides inventory and source bytes. Declaration parsing and owned
-metadata manifests are described in [SYNTAX.md](SYNTAX.md) (E2.S2). Mirror auditing
-and the CLI command follow in E2.S3–E2.S4. `main.build` wires the
+metadata manifests are described in [SYNTAX.md](SYNTAX.md) (E2.S2). Complete mirror
+auditing and project validation are described in
+[MIRRORS.md](MIRRORS.md) (E2.S3). The CLI follows in E2.S4. `main.build` wires the
 filesystem adapter for the forthcoming CLI root. The test executable has its own
 sidecar today. The public assertion facade `goosetest.goose` imports no discovery
 or native filesystem code and has no native sidecar.

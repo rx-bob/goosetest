@@ -4,6 +4,15 @@ namespace discovery;
 import src.discovery.model;
 
 fn issue_message(issue: SyntaxIssue) -> const u8[:] {
+    if issue == SyntaxIssue.BadTestFilename {
+        return "expected named *_test.goose suite; move helpers to test_support/";
+    }
+    if issue == SyntaxIssue.EmptySuite {
+        return "test suite requires at least one valid test declaration";
+    }
+    if issue == SyntaxIssue.NoCases {
+        return "no test cases discovered in test/ or integration/";
+    }
     let lexical_message_text = lexical_message(issue);
     if lexical_message_text.len > 0 {
         return lexical_message_text;

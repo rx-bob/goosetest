@@ -32,6 +32,8 @@ fn main() {
     catalog_test::test_empty_manifest();
     syntax_errors_test::test_location_diagnostic();
     catalog_test::test_inventory_selection();
+    catalog_test::test_strict_suite_files();
+    catalog_test::test_disabled_suite_is_nonempty();
     manifest_test::test_case_and_suite_limits();
     manifest_test::test_byte_limits();
     manifest_test::test_text_limits();

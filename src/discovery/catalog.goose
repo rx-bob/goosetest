@@ -23,8 +23,19 @@ fn discover(manifest: Manifest&, inventory: Inventory&) {
     for file,
     index in inventory.files {
         let path = path_text(inventory, file.path);
-        if file.kind != RootKind.Source && path.len >= 11 && path[path.len - 11..] == "_test.goose" {
+        if file.kind != RootKind.Source {
+            if !test_filename(path) {
+                syntax_fail(manifest, path, SourceLocation {
+                    }, SyntaxIssue.BadTestFilename);
+                return;
+            }
             parse_file(manifest, path, source_text(inventory, file), file.kind, index);
+            if manifest.error.issue == SyntaxIssue.None {
+                let suite = manifest.suites[manifest.suites.len - 1];
+                if suite.case_count == 0 {
+                    syntax_fail(manifest, path, suite.namespace_location, SyntaxIssue.EmptySuite);
+                }
+            }
         }
         if manifest.error.issue != SyntaxIssue.None {
             return;

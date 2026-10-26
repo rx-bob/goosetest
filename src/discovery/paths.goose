@@ -85,3 +85,11 @@ fn record_path(inventory: Inventory&, path: u8[:], depth: i64) -> Span {
     inventory.visited_entries += 1;
     return span;
 }
+
+// Both test roots admit only named suites; helpers belong outside these roots.
+fn test_filename(path: u8[:]) -> bool {
+    if path.len <= 11 || path[path.len - 11..] != "_test.goose" {
+        return false;
+    }
+    return path[path.len - 12] != '/';
+}

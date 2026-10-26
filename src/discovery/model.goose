@@ -130,6 +130,9 @@ enum SyntaxIssue {
     Suites,
     TotalBytes,
     Cases,
+    BadTestFilename,
+    EmptySuite,
+    NoCases,
 }
 
 fn new_inventory(
