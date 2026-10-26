@@ -1,0 +1,6 @@
+package probe: later case executed
+FAIL test_addition
+expected: <999> actual: <42>
+PASS test_subtraction
+PASS test_zero_identity
+Cases: 2 passed, 1 failed, 0 skipped, 0 errors

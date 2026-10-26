@@ -1,0 +1,23 @@
+// Negative replacement used only in a disposable copy of examples/basic.
+namespace calculator_test;
+
+import goosetest;
+
+import std;
+
+import src.calculator;
+
+fn test_addition(t: goosetest::Test&) {
+    t.assert_eq(999, calculator::add(20, 22));
+    abort("hard assertion did not stop its test");
+}
+
+fn test_subtraction(t: goosetest::Test&) {
+    t.assert_eq(38, calculator::subtract(40, 2));
+}
+
+fn test_zero_identity(t: goosetest::Test&) {
+    t.assert_eq(7, calculator::add(7, 0));
+    t.assert_eq( - 7, calculator::add( - 7, 0));
+    print("package probe: later case executed");
+}
