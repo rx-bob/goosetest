@@ -1,0 +1,7 @@
+// Deferred assertion instantiation must still reject a missing recovery boundary.
+import goosetest from "./package";
+
+fn main() {
+    var t = goosetest::Test {};
+    t.assert_true(true);
+}

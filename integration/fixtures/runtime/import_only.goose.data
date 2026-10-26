@@ -1,0 +1,7 @@
+// A consumer may import the package without calling any assertion vocabulary.
+import goosetest from "./package";
+
+fn main() {
+    var t = goosetest::Test {};
+    assert(goosetest::case_status(t) == 0);
+}
