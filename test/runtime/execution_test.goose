@@ -2,26 +2,28 @@
 namespace execution_test;
 
 import goosetest;
+import goosetest.test_support.runtime;
 
 fn test_hard_stop() {
-    var t = goosetest::Test {
-    };
-    var reached = false;
-    goosetest::run_case(t) {
-        hard_helper(t);
-        reached = true;
+    runtime_support::with_test() {
+        t =>
+        var reached = false;
+        goosetest::execute_case(t) {
+            hard_helper(t);
+            reached = true;
+        }
+        assert( !reached);
+        assert(t.assertions == 1);
+        assert(t.failures == 1);
+        assert(goosetest::case_status(t) == 1);
+        goosetest::execute_case(t) {
+            t.assert_true(true);
+            reached = true;
+        }
+        assert(reached);
+        assert(t.failures == 0);
+        assert(goosetest::case_status(t) == 0);
     }
-    assert( !reached);
-    assert(t.assertions == 1);
-    assert(t.failures == 1);
-    assert(goosetest::case_status(t) == 1);
-    goosetest::run_case(t) {
-        t.assert_true(true);
-        reached = true;
-    }
-    assert(reached);
-    assert(t.failures == 0);
-    assert(goosetest::case_status(t) == 0);
 }
 
 fn hard_helper(t: goosetest::Test&) {
@@ -30,34 +32,36 @@ fn hard_helper(t: goosetest::Test&) {
 }
 
 fn test_soft_failures() {
-    var t = goosetest::Test {
-    };
-    var reached = false;
-    var failed_cases = 0;
-    goosetest::run_case(t) {
-        t.check_eq(10, 20, "first");
-        t.check_eq(30, 40, "second");
-        t.check_eq(50, 50);
-        reached = true;
+    runtime_support::with_test() {
+        t =>
+        var reached = false;
+        var failed_cases = 0;
+        goosetest::execute_case(t) {
+            t.check_eq(10, 20, "first");
+            t.check_eq(30, 40, "second");
+            t.check_eq(50, 50);
+            reached = true;
+        }
+        failed_cases += goosetest::case_status(t);
+        assert(reached);
+        assert(t.assertions == 3);
+        assert(t.failures == 2);
+        assert(failed_cases == 1);
+        let expected = "first: expected: <10> actual: <20>\nsecond: expected: <30> actual: <40>\n";
+        assert(goosetest::case_diagnostics(t) == expected);
     }
-    failed_cases += goosetest::case_status(t);
-    assert(reached);
-    assert(t.assertions == 3);
-    assert(t.failures == 2);
-    assert(failed_cases == 1);
-    let expected = "first: expected: <10> actual: <20>\nsecond: expected: <30> actual: <40>\n";
-    assert(t.diagnostics == expected);
 }
 
 fn test_soft_then_hard() {
-    var t = goosetest::Test {
-    };
-    goosetest::run_case(t) {
-        t.check_eq(1, 2);
-        t.assert_false(true);
-        t.check_eq(3, 4);
+    runtime_support::with_test() {
+        t =>
+        goosetest::execute_case(t) {
+            t.check_eq(1, 2);
+            t.assert_false(true);
+            t.check_eq(3, 4);
+        }
+        assert(t.assertions == 2);
+        assert(t.failures == 2);
+        assert(goosetest::case_status(t) == 1);
     }
-    assert(t.assertions == 2);
-    assert(t.failures == 2);
-    assert(goosetest::case_status(t) == 1);
 }

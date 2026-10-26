@@ -4,6 +4,7 @@
 import src.runtime.assertions;
 import src.runtime.context;
 import src.runtime.execution;
+import src.runtime.results;
 
 fn fail<C>(t: C&, message: u8[:]) {
     goosetest::fail(t, message);

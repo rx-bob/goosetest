@@ -2,6 +2,11 @@
 import goosetest from "./package";
 
 fn main() {
-    var t = goosetest::Test {};
+    var cases: goosetest::CaseResult[>..] = [];
+    var failures: goosetest::Failure[>..] = [];
+    var diagnostics: u8[>..] = [];
+    var metadata: u8[>..] = [];
+    var results = goosetest::new_results(cases, failures, diagnostics, metadata);
+    var t = goosetest::Test { results: results, .. };
     t.assert_true(true);
 }
