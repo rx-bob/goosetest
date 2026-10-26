@@ -1,0 +1,28 @@
+// Representative authoring, including lexical decoys.
+namespace sample_test;
+import goosetest;
+struct Fixture { value: i64 = 0 }
+fn before_all() {}
+fn after_all(t: goosetest::Test&) {}
+fn before_each(f: Fixture&) {}
+fn after_each(t: goosetest::Test&, f: Fixture&) {}
+/* outer /* fn test_comment(t: goosetest::Test&) {} */ done */
+// @DisplayName("quoted \"label\" \x41\t\\")
+// Ordinary documentation stays in the attached block.
+// @Disabled("pending\nclock")
+inline
+fn test_fixture(
+    t: goosetest::Test&,
+    f: Fixture&,
+) {
+    let text = "fn test_string() { \"escaped\" }";
+    let raw = """
+        fn test_raw(t: goosetest::Test&) {}
+        // @Tag("not metadata")
+        """;
+    let character = '}';
+    fn test_nested(t: goosetest::Test&) {}
+}
+fn test_plain(t: goosetest::Test&) {
+    // @Unknown("inside a body is an ordinary comment")
+}

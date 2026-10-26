@@ -5,8 +5,9 @@ and optional `integration/`. An absent integration directory is valid; only
 `ENOENT` counts as absence. Missing required roots, non-directory roots, permission
 errors, invalid import segments, special files, and symlinks are errors.
 
-This story provides inventory and source bytes, not declaration parsing, mirror
-auditing, or a CLI command. Those follow in E2.S2–E2.S4. `main.build` wires the
+This layer provides inventory and source bytes. Declaration parsing and owned
+metadata manifests are described in [SYNTAX.md](SYNTAX.md) (E2.S2). Mirror auditing
+and the CLI command follow in E2.S3–E2.S4. `main.build` wires the
 filesystem adapter for the forthcoming CLI root. The test executable has its own
 sidecar today. The public assertion facade `goosetest.goose` imports no discovery
 or native filesystem code and has no native sidecar.

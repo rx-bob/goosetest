@@ -59,6 +59,79 @@ struct Inventory {
     complete: bool = false,
 }
 
+// Syntax limits are independent of filesystem budgets and also apply to direct source inputs.
+struct SyntaxLimits {
+    max_file_bytes: i64 = 1048576,
+    max_total_bytes: i64 = 67108864,
+    max_tokens: i64 = 262144,
+    max_nesting: i64 = 128,
+    max_suites: i64 = 4096,
+    max_cases: i64 = 65536,
+    max_text_bytes: i64 = 8388608,
+}
+struct SourceLocation {
+    line: i64 = 1,
+    column: i64 = 1
+}
+struct ScanError {
+    issue: SyntaxIssue = SyntaxIssue.None,
+    location: SourceLocation = SourceLocation {
+    }
+}
+
+enum SyntaxIssue {
+    None,
+    FileBytes,
+    Tokens,
+    Nesting,
+    UnclosedDelimiter,
+    UnmatchedDelimiter,
+    MismatchedDelimiter,
+    CommentNesting,
+    UnterminatedComment,
+    UnterminatedRaw,
+    CharacterWidth,
+    QuotedNewline,
+    UnterminatedQuote,
+    UnterminatedEscape,
+    HexEscape,
+    UnknownEscape,
+    AnnotationLine,
+    MalformedAnnotation,
+    UnknownAnnotation,
+    AnnotationArgument,
+    DuplicateAnnotation,
+    EmptyDisabled,
+    AnnotationModifiers,
+    OrphanAnnotation,
+    UnexpectedToken,
+    Identifier,
+    ParameterType,
+    ParameterCount,
+    OpeningDelimiter,
+    FunctionBody,
+    DanglingModifier,
+    NamespaceOrder,
+    DuplicateNamespace,
+    DuplicateFixture,
+    FixtureShape,
+    ParameterList,
+    FunctionModifiers,
+    TestSignature,
+    HookSignature,
+    DuplicateHook,
+    MissingNamespace,
+    MissingFixture,
+    InvalidSyntaxLimits,
+    TextBytes,
+    IncompleteInventory,
+    DuplicateCase,
+    SuiteCollision,
+    Suites,
+    TotalBytes,
+    Cases,
+}
+
 fn new_inventory(
     files: SourceFile[>..]&, paths: u8[>..]&, sources: u8[>..]&, error_path: u8[>..]&, limits: Limits = Limits {
     }
