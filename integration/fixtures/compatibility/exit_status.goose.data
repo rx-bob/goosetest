@@ -1,0 +1,4 @@
+// Positive process-status probe; the parent must observe status 7.
+fn main() {
+    exit(7);
+}

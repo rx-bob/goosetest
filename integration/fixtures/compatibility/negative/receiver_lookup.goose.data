@@ -1,0 +1,15 @@
+// Invalid: this baseline does not search the receiver type's namespace.
+namespace receiver_lookup;
+
+struct Value {
+    number: i64,
+}
+
+fn read_number(value: Value) -> i64 {
+    return value.number;
+}
+
+fn ::main() {
+    let value = receiver_lookup::Value { number: 1 };
+    assert(value.read_number() == 1);
+}

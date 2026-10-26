@@ -1,0 +1,9 @@
+// Invalid: shrinking storage would invalidate the still-live reference.
+namespace shrink_borrow;
+
+fn ::main() {
+    var bytes: u8[>..] = [];
+    let first .= bytes.push('a');
+    bytes.clear();
+    assert(first == 'a');
+}

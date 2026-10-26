@@ -1,0 +1,5 @@
+// Valid compiler input that the installed formatter misdiagnoses as G011.
+namespace bridge_reproducer;
+
+fn ::main() {
+}

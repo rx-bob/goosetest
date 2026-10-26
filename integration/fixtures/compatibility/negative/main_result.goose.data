@@ -1,0 +1,4 @@
+// Invalid: the pinned entry point cannot return a process status.
+fn main() -> i32 {
+    return 7;
+}

@@ -1,0 +1,10 @@
+// Invalid: const-generic input cannot write through a literal specialization.
+namespace const_mutation;
+
+fn mutate(bytes: u8[:]) {
+    bytes[0] = 'x';
+}
+
+fn ::main() {
+    const_mutation::mutate("literal");
+}

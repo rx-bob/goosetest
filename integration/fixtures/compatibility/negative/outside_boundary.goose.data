@@ -1,0 +1,9 @@
+// Invalid: a hard assertion has no run_case ancestor, even on its passing path.
+namespace outside_boundary;
+
+import goosetest from "./contract";
+
+fn ::main() {
+    var t = goosetest::Test {};
+    t.assert_eq(1, 1);
+}

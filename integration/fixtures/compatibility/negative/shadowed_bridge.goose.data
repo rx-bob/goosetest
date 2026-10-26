@@ -1,0 +1,20 @@
+// Invalid: the user namespace hides the complete global assert_eq overload set.
+namespace shadowed_bridge;
+
+import goosetest from "./contract";
+import goosetest.src.execution;
+
+fn assert_eq(value: i64) {
+    assert(value == 1);
+}
+
+fn test_shadow(t: goosetest::Test&) {
+    t.assert_eq(1, 1);
+}
+
+fn ::main() {
+    var t = goosetest::Test {};
+    goosetest::run_case(t) {
+        shadowed_bridge::test_shadow(t);
+    }
+}

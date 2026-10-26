@@ -1,0 +1,27 @@
+[format]
+indent_width = 4
+final_newline = true
+
+[lint]
+max_line_length = 120
+max_file_lines = 500
+max_function_parameters = 6
+max_function_returns = 3
+# max_function_lines = 70 # Required by style guide; unsupported by installed goosefmt.
+indentation = true
+spacing = true
+one_statement_per_line = true
+line_length = true
+final_newline = true
+naming = true
+signature_size = true
+file_length = true
+# import_order = true # Required by style guide; unsupported by installed goosefmt.
+# redundant_condition_parens = true # Required by style guide; unsupported by installed goosefmt.
+# function_length = true # Required by style guide; unsupported by installed goosefmt.
+# extern_const_slice = true # Required by style guide; unsupported by installed goosefmt.
+# const_global_naming = true # Required by style guide; unsupported by installed goosefmt.
+# reference_bind_push = true # Required by style guide; unsupported by installed goosefmt.
+# split_compound_assert = true # Required by style guide; unsupported by installed goosefmt.
+# bounded_control_flow = true # Required by style guide; unsupported by installed goosefmt.
+# strict_safety = false # Required by style guide; unsupported by installed goosefmt.
