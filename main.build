@@ -1,2 +1,2 @@
 // CLI filesystem/process boundaries; the importable assertion package has no native sidecar.
-c_sources = ["native/filesystem.c", "native/process.c"];
+c_sources = ["native/filesystem.c", "native/process.c", "native/staging.c"];

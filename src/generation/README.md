@@ -132,3 +132,9 @@ original-source failure attribution, and 350 exact ordered case visits across tw
 dispatch levels. Emitted source passes goosefmt and explicit file/function/column
 checks before compilation, without a formatting pass. Disposable consumers and
 compiler caches are cleaned even if an assertion fails.
+
+E3.S3 adds generated `completion.goose`: when invoked with the reserved
+`--goosetest-completion` argument, it writes `goosetest_generated/completion`
+only after execution and reporting finish. The CLI validates this record against
+the child status to reject premature exits. Ordinary direct example invocation
+without that argument remains unchanged. See [CLI execution](../CLI.md).

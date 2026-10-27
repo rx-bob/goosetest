@@ -1,4 +1,4 @@
-// Read-only command dispatch shares complete project validation with future execution.
+// All commands validate the complete project before listing or executing tests.
 namespace cli;
 
 import os;
@@ -11,6 +11,7 @@ import src.discovery.files;
 import src.discovery.manifest;
 import src.discovery.mirror;
 import src.discovery.model;
+import src.execution.command;
 
 fn run(options: arguments::Options&) -> i32 {
     if options.error.len > 0 {
@@ -32,10 +33,10 @@ fn run(options: arguments::Options&) -> i32 {
         incomplete();
         return 2;
     }
-    return inspect(options.command, inventory);
+    return inspect(options, inventory);
 }
 
-fn inspect(command: arguments::Command, inventory: discovery::Inventory&) -> i32 {
+fn inspect(options: arguments::Options&, inventory: discovery::Inventory&) -> i32 {
     var records: discovery::MirrorRecord[>..] = [];
     var audit = discovery::new_mirror_audit(records);
     var suites: discovery::Suite[>..] = [];
@@ -59,7 +60,10 @@ fn inspect(command: arguments::Command, inventory: discovery::Inventory&) -> i32
         incomplete();
         return 2;
     }
-    if command == arguments::Command.List {
+    if options.command == arguments::Command.Test {
+        return command::run(options, manifest, audit);
+    }
+    if options.command == arguments::Command.List {
         list_cases(manifest);
     }
     else {

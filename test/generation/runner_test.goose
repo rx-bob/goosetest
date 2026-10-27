@@ -16,7 +16,7 @@ fn test_deterministic_and_limits() {
             generation_support::with_output() {
                 first =>
                 generation::generate(first, manifest, audit);
-                assert(generation::status(first) == 0 && first.modules.len == 3);
+                assert(generation::status(first) == 0 && first.modules.len == 4);
                 generation_support::with_output() {
                     second =>
                     generation::generate(second, manifest, audit);

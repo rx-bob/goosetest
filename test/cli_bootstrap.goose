@@ -11,6 +11,9 @@ fn main() {
     arguments_test::test_defaults();
     arguments_test::test_invalid();
     arguments_test::test_help_and_limit();
+    arguments_test::test_execution_options();
+    arguments_test::test_execution_defaults();
+    arguments_test::test_execution_invalid();
     cli_test::test_output();
     print("cli unit tests passed");
 }

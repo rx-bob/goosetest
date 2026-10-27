@@ -1,4 +1,4 @@
-// Process entry preserves CLI status; discovery never compiles or runs project code.
+// Process entry preserves validation, build, and execution status.
 import os;
 
 import src.arguments;

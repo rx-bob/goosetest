@@ -41,6 +41,7 @@ fn generate(output: Output&, manifest: discovery::Manifest&, audit: discovery::M
     }
     emit_runner(output, manifest, level);
     add_module(output, "report.goose", embed_file("report.goose.data"));
+    add_module(output, "completion.goose", embed_file("completion.goose.data"));
     output.complete = output.error.len == 0;
 }
 
@@ -82,7 +83,14 @@ fn emit_runner(output: Output&, manifest: discovery::Manifest&, level: i64) {
     let child = child_module(level, 0);
     out.append("// Generated entry behind the authored package root.\n");
     out.append("namespace goosetest_generated;\n\nimport goosetest;\n\n");
-    format(out, "import goosetest_generated.", child, ";\nimport goosetest_generated.report;\n\n");
+    if level > 0 {
+        out.append("import goosetest_generated.completion;\n");
+    }
+    format(out, "import goosetest_generated.", child, ";\n");
+    if level == 0 {
+        out.append("import goosetest_generated.completion;\n");
+    }
+    out.append("import goosetest_generated.report;\n\n");
     out.append("fn run_all() -> i32 {\n    var cases: goosetest::CaseResult[>..] = [];\n");
     out.append("    var failures: goosetest::Failure[>..] = [];\n    var diagnostics: u8[>..] = [];\n");
     out.append("    var metadata: u8[>..] = [];\n    let limits = goosetest::Limits {\n");
@@ -91,7 +99,7 @@ fn emit_runner(output: Output&, manifest: discovery::Manifest&, level: i64) {
     out.append("    var results = goosetest::new_results(cases, failures, diagnostics, metadata, limits);\n");
     out.append("    var t = goosetest::Test {\n        results: results,\n        ..\n    };\n");
     format(out, "    goosetest_generated_", child, "::run(t);\n    goosetest_generated_report::report(results);\n");
-    out.append("    return goosetest::run_status(results);\n}\n");
+    out.append("    return goosetest_generated_completion::finish(goosetest::run_status(results));\n}\n");
     add_module(output, "runner.goose", out);
 }
 

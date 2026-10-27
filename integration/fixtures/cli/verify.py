@@ -65,7 +65,7 @@ with tempfile.TemporaryDirectory(prefix="goosetest-cli-") as temporary:
           b'Unit mirrors: 1 matched, 0 missing, 0 orphaned; 0 bad test filenames\n'
           b'Integration suites: 1\n', work)
     assert snapshot(project) == before
-    for args in ([], ["test"], ["list", "--filter", "a"], ["list", "--project"],
+    for args in ([], ["unknown"], ["list", "--filter", "a"], ["list", "--project"],
                  ["list", "--project", ""], ["list", "extra"], ["list", "check-mirror"],
                  ["list", "--project", ".", "--project", "."], ["--help", "--bad"]):
         run(args, work, 2, b"Usage:")
