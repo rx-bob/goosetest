@@ -4,6 +4,7 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 
 
@@ -98,8 +99,9 @@ def main():
         scratch = work / 'scratch'
         scratch.mkdir()
         env = dict(os.environ, GOOSE_HOME=str(work / 'cache'), TMPDIR=str(scratch))
-        cli = work / 'goosetest'
-        run(['goose', 'build', '--debug', REPO / 'main.goose', '-o', cli], env)
+        cli = Path(sys.argv[1]).resolve() if len(sys.argv) == 2 else work / 'goosetest'
+        if len(sys.argv) == 1:
+            run(['goose', 'build', '--debug', REPO / 'main.goose', '-o', cli], env)
         run([cli, 'check-mirror', '--project', REPO], env)
         actual = listed(run([cli, 'list', '--project', REPO], env))
         assert sorted(actual) == sorted(expected), (actual, sorted(expected))

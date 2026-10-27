@@ -6,9 +6,11 @@ Run from the repository root with the pinned Goose compiler and Python 3:
 goose run scripts/verify.goose
 ```
 
-Alternatively, run `python3 integration/fixtures/self_host/verify.py` directly.
-The Goose entry point invokes that same independent verifier with a finite
-one-hour deadline and preserves its process status.
+The Goose entry point now runs self-host checks plus the full
+[failure-contract matrix](../README.md), with a finite one-hour deadline, and
+preserves its process status. To run only self-host checks, invoke
+`python3 integration/fixtures/self_host/verify.py` directly; an optional CLI path
+reuses an already built CLI.
 
 The verifier builds the CLI into a temporary directory, then runs the repository's
 strict mirror audit, lists every case, and executes the generated test runner.

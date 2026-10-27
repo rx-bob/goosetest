@@ -5,7 +5,7 @@ import goosetest.src.platform.process;
 import os;
 
 fn main() {
-    let result = process::run(["python3", "integration/fixtures/self_host/verify.py"], ".", process::Limits {
+    let result = process::run(["python3", "integration/fixtures/verify.py"], ".", process::Limits {
             deadline_ms: 3600000,
             grace_ms: 1000
         });

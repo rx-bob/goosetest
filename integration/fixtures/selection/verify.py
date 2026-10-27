@@ -104,12 +104,19 @@ fn test_flow(t: goosetest::Test&) { print("EVENT INTEGRATION"); t.assert_true(tr
     selected_b = run(extra=('--filter', '::test_later'))
     assert events(selected_b) == ['EVENT B SETUP', 'EVENT B BODY', 'EVENT B CLEANUP']
     assert b'4 filtered' in selected_b.stdout
+    # Hard assertion returns in cold bodies retain their required runtime ancestry.
+    write(body='t.assert_true(false); t.fail("filtered hard return"); print("NEVER FILTERED");')
+    cold = run(extra=('--filter', '::test_later'))
+    assert events(cold) == ['EVENT B SETUP', 'EVENT B BODY', 'EVENT B CLEANUP']
+    assert b'NEVER FILTERED' not in cold.stdout and b'4 filtered' in cold.stdout
     # Unselected sources, constructors and hooks still compile in their recovery ancestry.
     invalid_changes = [
         ('test/b_test.goose', 't.assert_true(true);', 'unknown_filtered_body();'),
         ('test/a_test.goose', 'return 7;', 'return "wrong fixture value";'),
         ('test/a_test.goose', 'print("EVENT A EACH SETUP");', 'unknown_filtered_each();'),
         ('test/a_test.goose', 'print("EVENT A SETUP");', 'unknown_filtered_suite();'),
+        ('test/a_test.goose', 'print("EVENT A EACH CLEANUP");', 'unknown_filtered_each_cleanup();'),
+        ('test/a_test.goose', 'print("EVENT A CLEANUP");', 'unknown_filtered_suite_cleanup();'),
     ]
     for filename, old, new in invalid_changes:
         write()
@@ -118,6 +125,9 @@ fn test_flow(t: goosetest::Test&) { print("EVENT INTEGRATION"); t.assert_true(tr
         selected = '::test_first' if filename.startswith('test/b') else '::test_later'
         result = run(extra=('--filter', selected), status=2, contains=b'compilation')
         assert events(result) == []
+        if new.startswith('unknown_'):
+            assert new.split('(')[0].encode() in result.stderr, result.stderr
+        assert not (project / 'goosetest_generated/tests').exists()
     write()
     path = project / 'test/b_test.goose'
     path.write_text(b.replace('t: goosetest::Test&', 't: i64'))

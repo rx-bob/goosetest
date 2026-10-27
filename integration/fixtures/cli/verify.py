@@ -74,19 +74,25 @@ with tempfile.TemporaryDirectory(prefix="goosetest-cli-") as temporary:
     run(["list", "--project", "nonexistent"], work, 2, b"cannot open project")
     (project / "src/a.goose").rename(project / "src/renamed.goose")
     before = snapshot(project)
-    for command in ("list", "check-mirror"):
+    for command in ("list", "check-mirror", "test"):
         result = run([command], project, 2, b"MISSING TEST  src/renamed.goose")
         assert b"ORPHAN TEST  test/a_test.goose" in result.stderr
     assert snapshot(project) == before
     (project / "src/renamed.goose").rename(project / "src/a.goose")
     for content, error in (("namespace a;", b"requires at least one valid test"),
                            ('namespace a;\n// @Tag("x")\nfn test_a(t: goosetest::Test&) {}',
-                            b"unsupported annotation")):
+                            b"unsupported annotation"),
+                           ('namespace a;\n// @DisplayName(42)\nfn test_a(t: goosetest::Test&) {}',
+                            b"annotation requires one quoted string argument"),
+                           ('namespace a;\n// @Disabled("")\nfn test_a(t: goosetest::Test&) {}',
+                            b"disabled reason must not be empty")):
         (project / "test/a_test.goose").write_text(content)
         before = snapshot(project)
-        for command in ("list", "check-mirror"):
+        for command in ("list", "check-mirror", "test"):
             run([command], project, 2, error)
         assert snapshot(project) == before
+        assert not (project / "executed").exists()
+        assert not (project / "goosetest_generated").exists()
     (project / "test/a_test.goose").rename(project / "test/helper.goose")
     run(["list"], project, 2, b"BAD TEST NAME  test/helper.goose")
     (project / "test/helper.goose").rename(project / "test/a_test.goose")
@@ -99,7 +105,12 @@ with tempfile.TemporaryDirectory(prefix="goosetest-cli-") as temporary:
     finally:
         unreadable.chmod(0o644)
     unreadable.write_bytes(b"x" * 1048577)
-    run(["check-mirror"], project, 2, b"max_file_bytes exceeded")
+    before = snapshot(project)
+    for command in ("check-mirror", "test"):
+        run([command], project, 2, b"max_file_bytes exceeded")
+    assert snapshot(project) == before
+    assert not (project / "executed").exists()
+    assert not (project / "goosetest_generated").exists()
     # Missing roots and empty projects fail; the real example passes from another cwd.
     empty = work / "empty"
     empty.mkdir()

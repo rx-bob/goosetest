@@ -135,15 +135,40 @@ with tempfile.TemporaryDirectory(prefix="goosetest-artifacts-") as tmp:
     assert (repeated / "goosetest_root.goose").read_bytes() == authored
 
     compiler = work / "slow compiler"
-    compiler.write_text('#!/bin/sh\nprintf started > compiler-started\nsleep 30\n')
-    compiler.chmod(0o755)
+    fixture = Path(__file__).resolve().parents[1] / "execution/process_tree.c"
+    compiler_source = work / "compiler.c"
+    compiler_source.write_text('#include "' + str(fixture) + '"\n'
+                               'int main(void) { gt_pipeline_wait(); return 0; }\n')
+    subprocess.run(["clang", "-std=c11", "-Wall", "-Wextra", "-Werror", str(compiler_source),
+                    "-o", str(compiler)], check=True, timeout=30)
+
+    def owned_tree():
+        ready = concurrent / "owned-pids"
+        if not ready.exists():
+            return []
+        values = ready.read_text().split()
+        return [int(value) for value in values] if len(values) == 2 else []
+
+    def stopped(pid, allow_zombie=False):
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            return True
+        if not allow_zombie:
+            return False
+        state = subprocess.run(["/bin/ps", "-p", str(pid), "-o", "stat="],
+                               capture_output=True, text=True, timeout=3).stdout.strip()
+        return not state or state.startswith("Z")
     concurrent = project("concurrent")
     proc = subprocess.Popen([cli, "test", "--project", str(concurrent), "--compiler", str(compiler)],
                             cwd=work, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    pids = []
     try:
         until = time.monotonic() + 15
-        while not (concurrent / "compiler-started").exists():
-            assert time.monotonic() < until
+        while not pids:
+            pids = owned_tree()
+            assert proc.poll() is None, proc.communicate()
+            assert time.monotonic() < until, "compiler process tree never became ready"
             time.sleep(.02)
         before = snapshot(concurrent / "goosetest_generated")
         run(concurrent, 2, b"artifact")
@@ -151,10 +176,21 @@ with tempfile.TemporaryDirectory(prefix="goosetest-artifacts-") as tmp:
         proc.send_signal(signal.SIGINT)
         stdout, stderr = proc.communicate(timeout=10)
         assert proc.returncode == 130, (proc.returncode, stdout, stderr)
+        assert b"compilation failed;" in stderr and b"signal=2" in stderr, stderr
+        until = time.monotonic() + 5
+        while not all(stopped(pid, index > 0) for index, pid in enumerate(pids)) and time.monotonic() < until:
+            time.sleep(.02)
+        assert all(stopped(pid, index > 0) for index, pid in enumerate(pids)), pids
+        assert not (concurrent / "executed").exists(), "stale executable ran"
     finally:
         if proc.poll() is None:
-            proc.send_signal(signal.SIGTERM)
-            proc.communicate(timeout=10)
+            proc.kill()
+            proc.communicate(timeout=5)
+        for pid in pids or owned_tree():
+            try:
+                os.kill(pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
     # Cancellation releases ownership; every retry regenerates and rebuilds.
     run(concurrent, contains=b"1 passed")
     assert (concurrent / "executed").exists()
