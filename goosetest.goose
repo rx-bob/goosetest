@@ -2,6 +2,7 @@
 // Execution helpers and Test remain in the goosetest namespace.
 // C defers unused hard assertions; typed implementation helpers still require Test&.
 import src.runtime.assertions;
+import src.runtime.assertions_values;
 import src.runtime.context;
 import src.runtime.execution;
 import src.runtime.results;
@@ -28,4 +29,12 @@ fn assert_ne<T>(t: goosetest::Test&, unexpected: T, actual: T, message: u8[:] = 
 
 fn check_eq<T>(t: goosetest::Test&, expected: T, actual: T, message: u8[:] = "") {
     goosetest::check_eq(t, expected, actual, message);
+}
+
+fn assert_contains<C>(t: C&, expected_fragment: u8[:], actual_text: u8[:], message: u8[:] = "") {
+    goosetest::assert_contains(t, expected_fragment, actual_text, message);
+}
+
+fn assert_near<C>(t: C&, expected: f64, actual: f64, absolute_tolerance: f64, message: u8[:] = "") {
+    goosetest::assert_near(t, expected, actual, absolute_tolerance, message);
 }

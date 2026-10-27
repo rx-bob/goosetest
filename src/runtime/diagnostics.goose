@@ -5,6 +5,7 @@ import std;
 
 import src.runtime.context;
 import src.runtime.results;
+import src.runtime.value_format;
 
 fn failure_available(t: Test&) -> bool {
     assert(t.active);
@@ -69,22 +70,33 @@ fn can_format(t: Test&, message: u8[:], envelope_bytes: i64) -> bool {
 }
 
 fn record_equality<T>(t: Test&, expected: T, actual: T, message: u8[:]) -> bool {
-    if !can_format(t, message, "expected: <> actual: <>\n".len) {
-        return false;
-    }
-    var text: u8[>..] = [];
-    format_message(text, message);
-    format(text, "expected: <", expected, "> actual: <", actual, ">\n");
-    return commit_failure(t, text);
+    return record_comparison(t, expected, actual, message, "expected: <");
 }
 
 fn record_inequality<T>(t: Test&, unexpected: T, actual: T, message: u8[:]) -> bool {
-    if !can_format(t, message, "unexpected: <> actual: <>\n".len) {
+    return record_comparison(t, unexpected, actual, message, "unexpected: <");
+}
+
+fn record_comparison<T>(t: Test&, expected: T, actual: T, message: u8[:], label: u8[:]) -> bool {
+    let separator = "> actual: <";
+    let suffix = ">\n";
+    if !can_format(t, message, label.len + separator.len + suffix.len) {
         return false;
     }
+    let limit = t.results.limits.diagnostic_bytes - t.results.diagnostics.len;
     var text: u8[>..] = [];
     format_message(text, message);
-    format(text, "unexpected: <", unexpected, "> actual: <", actual, ">\n");
+    text.append(label);
+    if !value_format::append(text, expected, limit - separator.len - suffix.len) {
+        stop_run(t.results, TerminalError.DiagnosticLimit);
+        return false;
+    }
+    text.append(separator);
+    if !value_format::append(text, actual, limit - suffix.len) {
+        stop_run(t.results, TerminalError.DiagnosticLimit);
+        return false;
+    }
+    text.append(suffix);
     return commit_failure(t, text);
 }
 

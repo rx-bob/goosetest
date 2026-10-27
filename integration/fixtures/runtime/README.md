@@ -1,7 +1,7 @@
 # Bounded retained runtime (E1.S3)
 
 The package exposes `goosetest::Test`, a borrowed `Results` context, structured
-outcomes, and the same six assertion calls:
+outcomes, and expected-first assertion calls:
 
 | Call | Result on failure |
 | --- | --- |
@@ -11,6 +11,11 @@ outcomes, and the same six assertion calls:
 | `t.assert_eq(expected, actual, message = "")` | Record both values and stop case |
 | `t.assert_ne(unexpected, actual, message = "")` | Record equal values and stop case |
 | `t.check_eq(expected, actual, message = "")` | Record both values and continue |
+| `t.assert_contains(expected_fragment, actual_text, message = "")` | Require a byte substring and stop case |
+| `t.assert_near(expected, actual, absolute_tolerance, message = "")` | Require absolute proximity and stop case |
+
+See [assertion contracts](../../../src/runtime/ASSERTIONS.md) for float special
+values, diagnostic rendering bounds, and custom format-hook limits.
 
 ## Ownership and execution
 
@@ -114,11 +119,12 @@ as a static literal, independently of all arena budgets. Already committed cases
 failures, and bytes remain readable. `results.incomplete` and status 2 distinguish
 exhaustion from an ordinary failed assertion.
 
-Byte limits bound **retained arenas**. Goose's format hooks accept a growable byte
-builder, so values are formatted into temporary scratch before the final size
-check. This scratch, custom-hook allocations/work, and test allocations are not
-sandboxed by `Limits`. Passing assertions never invoke formatting. Runtime aborts
-remain fatal process failures, distinct from recoverable framework assertions.
+Byte limits bound retained arenas and direct string/collection rendering. Scalar
+formatting uses finite scratch; custom hooks and opaque/default struct formatting
+use temporary scratch whose work and allocations remain outside `Limits`. Only
+bounded bytes are appended after they return. Passing assertions never invoke
+formatting. Runtime aborts remain fatal process failures, distinct from recoverable
+framework assertions.
 
 ## Compiler constraints
 
