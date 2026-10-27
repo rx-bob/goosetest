@@ -83,6 +83,9 @@ fn run_suite_hook<F>(t: Test&, identity: CaseIdentity, phase: Phase, executable:
     t.results.totals.suite_assertions += t.assertions;
     if t.failures > 0 {
         t.results.totals.suite_failures += 1;
+        if t.results.fail_fast {
+            t.results.fail_fast_stop = true;
+        }
     }
     t.active = false;
     t.results.active = false;
@@ -114,6 +117,9 @@ fn finish_case(t: Test&) {
     if t.results.incomplete {
         result.outcome = Outcome.RunnerError;
     }
+    if t.results.fail_fast && result.outcome == Outcome.Failed {
+        t.results.fail_fast_stop = true;
+    }
     count_outcome(t.results.totals, result.outcome);
     t.results.totals.assertions += t.assertions;
     t.active = false;
@@ -127,4 +133,14 @@ fn skip_case(results: Results&, identity: CaseIdentity, reason: u8[:]) {
     }
     results.cases[index].outcome = Outcome.Skipped;
     count_outcome(results.totals, Outcome.Skipped);
+}
+
+// Selected executable cases stopped by policy are distinct from disabled/setup skips.
+fn not_run_case(results: Results&, identity: CaseIdentity, reason: u8[:] = "fail-fast") {
+    let index = reserve_case(results, identity, reason);
+    if index < 0 {
+        return;
+    }
+    results.cases[index].outcome = Outcome.NotRun;
+    count_outcome(results.totals, Outcome.NotRun);
 }

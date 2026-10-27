@@ -54,7 +54,7 @@ fn render<F>(results: goosetest::Results&, planned_cases: i64 = - 1) {
     if planned < 0 {
         planned = results.cases.len;
     }
-    let not_run = max(0, planned - indices.len);
+    let not_run = totals.not_run + max(0, planned - indices.len);
     standalone_hooks(results, suite_errors > 0) {
         text => F(text);
     }
@@ -65,6 +65,9 @@ fn render<F>(results: goosetest::Results&, planned_cases: i64 = - 1) {
     }
     if planned < results.cases.len {
         F("ERROR: planned case count is smaller than retained records; execution incomplete.\n");
+    } else if results.fail_fast_stop && !results.incomplete && !results.active
+        && totals.runner_errors == 0 && not_run > 0 && indices.len > 0 {
+        F("Execution stopped by fail-fast; remaining selected executable cases were not run.\n");
     } else if results.incomplete || results.active || totals.runner_errors > 0 || not_run > 0 || indices.len == 0 {
         F("ERROR: execution incomplete");
         let diagnostic = goosetest::terminal_diagnostic(results);

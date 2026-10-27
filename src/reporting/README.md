@@ -26,7 +26,7 @@ individual checks or extra failed cases. Case-associated suite-phase diagnostics
 from explicit harnesses remain renderable separately from ordinary phases.
 
 Passed/failed/skipped/error and assertion totals are derived from finalized case
-records, with the completed suite-hook assertion subtotal added. `not run` is selected count minus finalized record count; filtered count
+records, with the completed suite-hook assertion subtotal added. `not run` includes explicit NotRun records plus selected cases without a record; filtered count
 is reported separately and must not be included in selected count. A negative
 selected count defaults to the number of retained records, so explicit harnesses
 must pass the intended selected count to expose cases never reserved. Generated
@@ -35,7 +35,8 @@ is not shown as a finalized outcome. Active, empty, resource-error, missing-case
 or inconsistent-count reports explicitly say execution is incomplete.
 
 The reporter does not change exit policy: callers return `goosetest::run_status`;
-generated roots already do so. A summary is not a substitute for process status.
+generated roots already do so. Explicit fail-fast stops are named in the report
+and preserve ordinary failure status 1. A summary is not a substitute for process status.
 For example, stopped-after-failure runs may show not-run cases with status 1.
 Compiler stdout/stderr remains inherited; the `goosetest results` header separates
 framework output from compiler messages. Fatal process failures cannot render

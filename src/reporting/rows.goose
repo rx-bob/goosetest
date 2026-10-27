@@ -39,7 +39,7 @@ fn case_row<F>(results: goosetest::Results&, result: goosetest::CaseResult) {
         }
         F("\n");
     }
-    if result.outcome == goosetest::Outcome.Skipped {
+    if result.outcome == goosetest::Outcome.Skipped || result.outcome == goosetest::Outcome.NotRun {
         F("  reason: ");
         escape(goosetest::metadata_text(results, result.skip_reason)) {
             text => F(text);

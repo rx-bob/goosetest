@@ -11,6 +11,7 @@ import src.discovery.files;
 import src.discovery.manifest;
 import src.discovery.mirror;
 import src.discovery.model;
+import src.discovery.selection;
 import src.execution.command;
 
 fn run(options: arguments::Options&) -> i32 {
@@ -60,11 +61,19 @@ fn inspect(options: arguments::Options&, inventory: discovery::Inventory&) -> i3
         incomplete();
         return 2;
     }
+    let selected = selection::Options {
+        filter: options.filter,
+        suite: options.suite
+    };
+    if options.command != arguments::Command.CheckMirror && selection::count(manifest, selected) == 0 {
+        write_stderr("ERROR: selection matched zero cases; no tests executed.\n");
+        return 2;
+    }
     if options.command == arguments::Command.Test {
         return command::run(options, manifest, audit);
     }
     if options.command == arguments::Command.List {
-        list_cases(manifest);
+        list_cases(manifest, selected, options.filter_seen || options.suite_seen);
     }
     else {
         for record in audit.records {
@@ -75,8 +84,11 @@ fn inspect(options: arguments::Options&, inventory: discovery::Inventory&) -> i3
     return 0;
 }
 
-fn list_cases(manifest: discovery::Manifest&) {
+fn list_cases(manifest: discovery::Manifest&, selected: selection::Options, explicit: bool) {
     for entry in manifest.cases {
+        if !selection::matches(manifest, entry, selected) {
+            continue;
+        }
         write_stdout(cli_output::case_line(manifest, entry));
         if entry.has_display {
             write_stdout(str("      display: ", cli_output::escaped(discovery::manifest_text(manifest,
@@ -87,7 +99,11 @@ fn list_cases(manifest: discovery::Manifest&) {
                 entry.disabled_reason)), "\n"));
         }
     }
-    write_stdout(cli_output::case_summary(manifest));
+    if explicit {
+        write_stdout(cli_output::selection_summary(manifest, selected));
+    } else {
+        write_stdout(cli_output::case_summary(manifest));
+    }
 }
 
 fn incomplete() {

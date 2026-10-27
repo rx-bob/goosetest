@@ -20,6 +20,10 @@ fn run(t: goosetest::Test&) {
         display_name: display_name,
         declaration_line: 16,
     };
+    if t.results.fail_fast_stop {
+        goosetest::not_run_case(t.results, identity, "fail-fast");
+        return;
+    }
     goosetest::execute_case(t, identity) {
         calculator_test::test_zero_identity(t);
     }

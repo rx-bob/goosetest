@@ -6,11 +6,14 @@ import std;
 import src.discovery.manifest;
 import src.discovery.mirror;
 import src.discovery.paths;
+import src.discovery.selection;
 import src.generation.model;
 import src.generation.suites;
 import src.generation.validation;
 
-fn generate(output: Output&, manifest: discovery::Manifest&, audit: discovery::MirrorAudit&) {
+fn generate(output: Output&, manifest: discovery::Manifest&, audit: discovery::MirrorAudit&,
+    options: selection::Options = selection::Options {
+    }, fail_fast: bool = false) {
     assert( !output.complete && output.modules.len == 0);
     if discovery::manifest_status(manifest) != 0 || discovery::mirror_status(audit) != 0 || manifest.cases.len == 0 {
         fail(output, "", "generation requires a complete nonempty audited manifest");
@@ -20,7 +23,12 @@ fn generate(output: Output&, manifest: discovery::Manifest&, audit: discovery::M
     if output.error.len > 0 {
         return;
     }
-    emit_cases(output, manifest);
+    let selected = selection::count(manifest, options);
+    if selected == 0 {
+        fail(output, "", "selection matched no cases");
+        return;
+    }
+    emit_cases(output, manifest, options);
     if output.error.len > 0 {
         return;
     }
@@ -37,24 +45,25 @@ fn generate(output: Output&, manifest: discovery::Manifest&, audit: discovery::M
         count = next;
         level += 1;
     }
-    emit_runner(output, manifest, level);
+    emit_runner(output, manifest, level, selected, fail_fast);
     add_module(output, "report.goose", embed_file("report.goose.data"));
     add_module(output, "completion.goose", embed_file("completion.goose.data"));
     output.complete = output.error.len == 0;
 }
 
 // Each suite range is scanned once for executability and once for emission.
-fn emit_cases(output: Output&, manifest: discovery::Manifest&) {
+fn emit_cases(output: Output&, manifest: discovery::Manifest&, options: selection::Options) {
     for suite in manifest.suites {
         var executable = false;
         let end = suite.first_case + suite.case_count;
         for index in suite.first_case..end {
-            if !manifest.cases[index].disabled {
+            if !manifest.cases[index].disabled && selection::matches(manifest, manifest.cases[index], options) {
                 executable = true;
             }
         }
         for index in suite.first_case..end {
-            emit_case(output, manifest, index, executable);
+            let selected = selection::matches(manifest, manifest.cases[index], options);
+            emit_case(output, manifest, index, executable, selected);
             if output.error.len > 0 {
                 return;
             }
@@ -95,7 +104,7 @@ fn emit_dispatch(output: Output&, level: i64, group: i64, count: i64) {
     add_module(output, str(name, ".goose"), out);
 }
 
-fn emit_runner(output: Output&, manifest: discovery::Manifest&, level: i64) {
+fn emit_runner(output: Output&, manifest: discovery::Manifest&, level: i64, selected: i64, fail_fast: bool) {
     var out: u8[>..] = [];
     let child = child_module(level, 0);
     out.append("// Generated entry behind the authored package root.\n");
@@ -112,16 +121,19 @@ fn emit_runner(output: Output&, manifest: discovery::Manifest&, level: i64) {
     out.append("    var failures: goosetest::Failure[>..] = [];\n    var diagnostics: u8[>..] = [];\n");
     out.append("    var metadata: u8[>..] = [];\n    let limits = goosetest::Limits {\n");
     format(out, "        cases: ", manifest.cases.len, ",\n        metadata_bytes: ",
-        metadata_size(manifest), ",\n        ..\n    };\n");
+        metadata_size(manifest, fail_fast), ",\n        ..\n    };\n");
     out.append("    var results = goosetest::new_results(cases, failures, diagnostics, metadata, limits);\n");
+    if fail_fast {
+        out.append("    results.fail_fast = true;\n");
+    }
     out.append("    var t = goosetest::Test {\n        results: results,\n        ..\n    };\n");
     format(out, "    goosetest_generated_", child, "::run(t);\n");
-    format(out, "    goosetest_generated_report::report(results, ", manifest.cases.len, ");\n");
+    format(out, "    goosetest_generated_report::report(results, ", selected, ");\n");
     out.append("    return goosetest_generated_completion::finish(goosetest::run_status(results));\n}\n");
     add_module(output, "runner.goose", out);
 }
 
-fn metadata_size(manifest: discovery::Manifest&) -> i64 {
+fn metadata_size(manifest: discovery::Manifest&, fail_fast: bool = false) -> i64 {
     var total: i64 = 0;
     for entry in manifest.cases {
         let suite = manifest.suites[entry.suite_index];
@@ -130,6 +142,8 @@ fn metadata_size(manifest: discovery::Manifest&) -> i64 {
             total += entry.disabled_reason.length;
         } else if suite.before_all.present {
             total += "suite setup failed".len;
+        } else if fail_fast {
+            total += "fail-fast".len;
         }
     }
     for suite in manifest.suites {

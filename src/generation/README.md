@@ -143,3 +143,11 @@ E3.S3 adds generated `completion.goose`: when invoked with the reserved
 only after execution and reporting finish. The CLI validates this record against
 the child status to reject premature exits. Ordinary direct example invocation
 without that argument remains unchanged. See [CLI execution](../CLI.md).
+
+
+Selection options apply to stable IDs through the shared discovery selector.
+Generation still emits every case: excluded cases keep their normal call graph
+behind an unreachable branch and increment only the filtered count at runtime.
+Suite executability is computed from selected, non-disabled cases. Fail-fast
+preserves current-suite cleanup and records later executable cases as not run;
+selected count feeds the reporter. Empty selections are rejected explicitly.

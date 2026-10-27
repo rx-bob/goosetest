@@ -18,7 +18,7 @@ spaces are supported. Use `./` for paths beginning with `--`. Repeated options,
 extra commands/positionals, missing or empty project values, and unknown options
 fail with status 2 and usage text. `--help` alone or alongside valid arguments
 returns 0 without opening the project. Invalid arguments still fail with help
-present. Execution options are described below. Filters, exclusions and configuration files remain deferred.
+present. Execution and selection options are described below. There is no configuration file.
 
 All commands use the same complete [project validation](discovery/MIRRORS.md):
 filesystem scan, bidirectional unit audit, integration admission and declaration
@@ -120,7 +120,7 @@ CLI runs. Older snapshots without a marker must be moved aside explicitly; the C
 does not adopt them. Per-case fixtures and before_each/after_each hooks are
 supported, as are before_all/after_all suite hooks; see
 [lifecycle contracts](runtime/LIFECYCLE.md). Disabled cases compile without executing
-and report skips with their reasons; selection remains deferred.
+and report skips with their reasons. Selection and fail-fast are described below.
 
 Independent verification:
 
@@ -140,3 +140,47 @@ The generated runtime report starts with `goosetest results`, after compiler
 output. It includes declaration locations, stable IDs, display names, escaped
 phase diagnostics, and finalized-case totals. See [console reporting](reporting/README.md)
 for not-run/filtered accounting and the plain ASCII escaping contract.
+
+
+## Selection and fail-fast
+
+`--filter TEXT` is a literal, case-sensitive substring match against the complete
+stable ID (`path::namespace::function`); it is not a regular expression or a display
+label match. `--suite unit|integration|all` limits the test-root kind and defaults
+to `all`. Both options apply identically to `list` and `test`, after a complete
+layout/metadata audit. An empty filter matches all IDs. Filters are owned UTF-8/raw
+argument bytes bounded at 4096 bytes; characters such as `*`, `[` and `.` have
+no special matching syntax. A value beginning with `--` is still literal filter
+text when it follows `--filter`.
+
+```sh
+/tmp/goosetest list --project examples/basic --filter '::test_addition'
+/tmp/goosetest test --project examples/basic --suite unit --filter calculator
+/tmp/goosetest test --project examples/basic --fail-fast
+```
+
+An empty selection returns status 2 with `selection matched zero cases`, before
+writing artifacts or compiling. A nonempty disabled-only selection compiles and
+returns status 0 with skips and no hook/fixture side effects. Explicit selection
+listing reports selected executable/disabled counts and excluded count. Display
+labels never affect matching. `check-mirror` rejects selector flags and always
+audits the whole project; `--fail-fast` is accepted only by `test`.
+
+Execution always compiles every discovered test, including tests excluded by
+kind or filter. Excluded code and its relevant fixture/hook references remain
+in typechecked unreachable paths. Selection cannot hide missing mirrors,
+malformed metadata, unsupported syntax, or compiler errors. Excluded cases add
+to the filtered count and do not become skipped or consume case records.
+
+`--fail-fast` stops later executable case bodies after an ordinary case or suite
+hook failure. Current-case cleanup finishes first; current-suite cleanup still
+runs once, including after failed suite setup. A cleanup failure itself can
+trigger the stop. Future suites run no hooks. Later selected executable cases
+receive `NOT RUN` with reason `fail-fast`, distinct from filtered exclusions,
+explicit disabled skips, and current-suite `suite setup failed` skips. Disabled
+selected cases retain their skip reason even after a stop. Status remains 1;
+resource/process errors still return 2. Without the flag, ordinary failures do
+not prevent later cases or suites from running.
+
+The independent process matrix is
+`python3 integration/fixtures/selection/verify.py /tmp/goosetest`.

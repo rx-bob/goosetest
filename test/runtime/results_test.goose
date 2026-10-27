@@ -136,3 +136,15 @@ fn test_invalid_limits() {
         }
     }
 }
+
+fn test_not_run_without_failure() {
+    runtime_support::with_test() {
+        t =>
+        goosetest::not_run_case(t.results, goosetest::CaseIdentity {
+                ..
+            });
+        assert(t.results.totals.not_run == 1);
+        assert(t.results.totals.passed == 0 && t.results.totals.skipped == 0);
+        assert(goosetest::run_status(t.results) == 2);
+    }
+}

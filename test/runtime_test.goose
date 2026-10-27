@@ -30,6 +30,7 @@ fn main() {
     execution_test::test_suite_cleanup_and_next_suite();
     execution_test::test_suite_empty_selection();
     execution_test::test_suite_limit_cleanup();
+    execution_test::test_fail_fast_finalization();
     assertions_test::test_passing_values();
     assertions_test::test_boolean_failures();
     assertions_test::test_explicit_and_unequal_failures();
@@ -46,6 +47,7 @@ fn main() {
     results_test::test_zero_limits();
     results_test::test_skipped_only();
     results_test::test_invalid_limits();
+    results_test::test_not_run_without_failure();
     diagnostics_test::test_failure_limit();
     diagnostics_test::test_byte_limit();
     diagnostics_test::test_byte_boundary();

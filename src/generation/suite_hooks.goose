@@ -20,16 +20,18 @@ fn emit_suite_wrapper(out: u8[>..]&, manifest: discovery::Manifest&, index: i64,
         return;
     }
     if first {
-        out.append("    if t.results.incomplete {\n        return;\n    }\n");
-        out.append("    t.suite_active = true;\n    t.suite_ready = true;\n");
+        out.append("    t.suite_active = false;\n    t.suite_ready = true;\n");
+        out.append("    if !t.results.incomplete && !t.results.fail_fast_stop {\n");
+        out.append("        t.suite_active = true;\n");
         if suite.before_all.present {
-            out.append("    t.suite_ready = before_suite(t);\n");
+            out.append("        t.suite_ready = before_suite(t);\n");
         }
+        out.append("    }\n");
     }
-    out.append("    if !t.suite_active {\n        return;\n    }\n    run_selected(t);\n");
+    out.append("    run_selected(t);\n");
     if last {
         if suite.after_all.present {
-            out.append("    after_suite(t);\n");
+            out.append("    if t.suite_active {\n        after_suite(t);\n    }\n");
         }
         out.append("    t.suite_active = false;\n    t.suite_ready = true;\n");
     }

@@ -166,7 +166,8 @@ fn test_last(t: goosetest::Test&) {}
                 assert(find(first, "Phase.SuiteSetup") >= 0);
                 assert(find(first, "sample::after_all") < 0);
                 assert(find(middle, "before_suite") < 0 && find(middle, "after_suite") < 0);
-                assert(find(middle, "if !t.suite_active") < find(middle, "run_selected(t);"));
+                assert(find(middle, "run_selected(t);") >= 0);
+                assert(find(middle, "if !t.suite_active") < 0);
                 assert(find(last, "after_suite(t);") > find(last, "run_selected(t);"));
                 assert(find(last, "sample::after_all();") >= 0);
                 assert(find(last, "Phase.SuiteCleanup") >= 0);

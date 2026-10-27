@@ -4,6 +4,7 @@ namespace arguments_test;
 import std;
 
 import goosetest.src.arguments;
+import goosetest.src.discovery.selection;
 
 fn test_valid() {
     var project: u8[>..] = [];
@@ -32,7 +33,7 @@ fn test_defaults() {
 }
 
 fn test_invalid() {
-    invalid(["list", "--filter", "x"]);
+    invalid(["check-mirror", "--filter", "x"]);
     invalid(["test", "list"]);
     invalid(["list", "check-mirror"]);
     invalid(["list", "--project"]);
@@ -125,4 +126,73 @@ fn test_execution_invalid() {
         long_path.push('a');
     }
     invalid(["test", "--compiler", long_path]);
+}
+
+fn test_selection_options() {
+    var project: u8[>..] = [];
+    var options = arguments::new_options(project);
+    arguments::consume(options, "--filter");
+    temporary_filter(options);
+    arguments::consume(options, "--suite");
+    arguments::consume(options, "integration");
+    arguments::consume(options, "test");
+    arguments::consume(options, "--fail-fast");
+    arguments::finish(options);
+    assert(options.error.len == 0);
+    assert(options.filter == "test_[a]+.*");
+    assert(options.suite == selection::Suite.Integration);
+    assert(options.fail_fast);
+}
+
+fn temporary_filter(options: arguments::Options&) {
+    let value = str("test_", "[a]+.*");
+    arguments::consume(options, value);
+}
+
+fn test_selection_empty_and_defaults() {
+    var project: u8[>..] = [];
+    var options = arguments::new_options(project);
+    arguments::consume(options, "list");
+    arguments::consume(options, "--filter");
+    arguments::consume(options, "");
+    arguments::finish(options);
+    assert(options.error.len == 0 && options.filter.len == 0 && options.filter_seen);
+    assert(options.suite == selection::Suite.All && !options.fail_fast);
+    var other_project: u8[>..] = [];
+    var other = arguments::new_options(other_project);
+    arguments::consume(other, "list");
+    arguments::consume(other, "--filter");
+    arguments::consume(other, "--literal");
+    arguments::consume(other, "--suite");
+    arguments::consume(other, "unit");
+    arguments::finish(other);
+    assert(other.error.len == 0 && other.filter == "--literal");
+    assert(other.suite == selection::Suite.Unit);
+}
+
+fn test_selection_invalid() {
+    invalid(["list", "--filter"]);
+    invalid(["test", "--suite"]);
+    invalid(["test", "--suite", ""]);
+    invalid(["test", "--suite", "wrong"]);
+    invalid(["test", "--suite", "unit", "--suite", "all"]);
+    invalid(["list", "--filter", "x", "--filter", "y"]);
+    invalid(["list", "--fail-fast"]);
+    invalid(["test", "--fail-fast", "--fail-fast"]);
+    invalid(["check-mirror", "--suite", "all"]);
+    invalid(["--help", "--filter", "x"]);
+    invalid(["list", "--filter", "bad\0value"]);
+    var value: u8[>..] = [];
+    for index in 0..4096 {
+        value.push('x');
+    }
+    var project: u8[>..] = [];
+    var options = arguments::new_options(project);
+    arguments::consume(options, "list");
+    arguments::consume(options, "--filter");
+    arguments::consume(options, value);
+    arguments::finish(options);
+    assert(options.error.len == 0 && options.filter.len == 4096);
+    value.push('x');
+    invalid(["list", "--filter", value]);
 }

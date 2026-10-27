@@ -278,3 +278,31 @@ fn test_suite_limit_cleanup() {
         assert(goosetest::run_status(t.results) == 2);
     }
 }
+
+fn test_fail_fast_finalization() {
+    runtime_support::with_test() {
+        t =>
+        t.results.fail_fast = true;
+        var cleaned = false;
+        goosetest::execute_fixture(t) {
+            goosetest::run_phase(t, goosetest::Phase.Body) {
+                t.fail("body");
+            }
+            assert( !t.results.fail_fast_stop);
+            goosetest::run_phase(t, goosetest::Phase.Cleanup) {
+                cleaned = true;
+                t.check_eq(1, 2, "cleanup");
+            }
+        }
+        assert(cleaned && t.results.fail_fast_stop);
+        goosetest::not_run_case(t.results, suite_identity("test_later", 30));
+        assert(t.results.totals.not_run == 1 && t.results.totals.skipped == 0);
+        assert(t.results.totals.failed == 1 && t.results.failures.len == 2);
+        assert(t.results.cases[1].outcome == goosetest::Outcome.NotRun);
+        assert(goosetest::run_status(t.results) == 1);
+        goosetest::run_suite_hook(t, suite_identity("after_all", 40), goosetest::Phase.SuiteCleanup) {
+            t.assert_true(true);
+        }
+        assert(t.results.fail_fast_stop && goosetest::run_status(t.results) == 1);
+    }
+}

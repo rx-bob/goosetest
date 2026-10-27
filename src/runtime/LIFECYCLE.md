@@ -21,7 +21,7 @@ fn after_each(f: Fixture&) { }
 A hook needing assertions takes `t: goosetest::Test&` first, followed by
 `f: Fixture&`. Choose one form per hook name; duplicate forms are discovery
 errors. Hooks are optional. Suite hooks and disabled cases are described below;
-selection remains a separate story.
+selection and fail-fast follow the policy below.
 
 Setup, body and cleanup each execute inside their own `run_case` recovery
 boundary. Hard assertions stop only the current phase. Any setup failure,
@@ -86,7 +86,7 @@ reserve both hook identities and possible setup-skip reasons.
 `run_suite_hook(..., executable: false)` performs no callback, metadata allocation,
 or state reset. This establishes the no-executable-selection boundary for disabled
 and filtered suites. Generated all-disabled suites now enforce this boundary;
-filter selection arrives in E4.S4.
+filtered suites enforce the same boundary.
 
 Suite cleanup is attempted after framework resource exhaustion too, but exhausted
 storage cannot retain more diagnostics. A terminal resource error stops later
@@ -134,3 +134,19 @@ annotations, empty disabled reasons and malformed metadata fail discovery.
 ```sh
 python3 integration/fixtures/disabled/verify.py /tmp/goosetest
 ```
+
+
+## Selection and fail-fast
+
+The CLI audits and compiles the complete project before running the selected
+cases. Excluded tests retain unreachable typechecked wrappers but create no case
+or fixture; excluded-only suites run no hooks. Disabled selected cases remain
+explicit skips. See [CLI selection](../CLI.md) for the shared literal-ID selector.
+
+With fail-fast enabled, case finalization sets `fail_fast_stop` only after its
+cleanup returns. Failed suite hooks also set it. The current suite still runs
+its cleanup, and later executable cases become `NotRun` records with reason
+`fail-fast`. Current-suite setup-blocked cases remain skips, and disabled cases
+keep their explicit reason. The stop flag is never cleared by a later successful
+cleanup. Ordinary failure status 1 takes precedence over not-run count; not-run
+records without any failure cause status 2 rather than a false pass.

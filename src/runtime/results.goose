@@ -30,6 +30,7 @@ enum Outcome {
     Passed,
     Failed,
     Skipped,
+    NotRun,
     RunnerError
 }
 enum Phase {
@@ -63,6 +64,7 @@ struct CaseResult {
     failure_count: i64 = 0,
     diagnostics: Span = Span {
     },
+    // Omission reason for either Skipped or NotRun.
     skip_reason: Span = Span {
     },
 }
@@ -72,6 +74,7 @@ struct Totals {
     skipped: i64 = 0,
     runner_errors: i64 = 0,
     filtered: i64 = 0,
+    not_run: i64 = 0,
     assertions: i64 = 0,
     suite_assertions: i64 = 0,
     suite_failures: i64 = 0,
@@ -88,6 +91,8 @@ struct Results {
     incomplete: bool = false,
     active: bool = false,
     active_suite: bool = false,
+    fail_fast: bool = false,
+    fail_fast_stop: bool = false,
 }
 
 fn new_results(
@@ -132,6 +137,9 @@ fn run_status(results: Results&) -> i32 {
     }
     if results.totals.failed > 0 || results.totals.suite_failures > 0 {
         return 1;
+    }
+    if results.totals.not_run > 0 {
+        return 2;
     }
     return 0;
 }
@@ -179,6 +187,9 @@ fn count_outcome(totals: Totals&, outcome: Outcome) {
         },
         Skipped => {
             totals.skipped += 1;
+        },
+        NotRun => {
+            totals.not_run += 1;
         },
         RunnerError => {
             totals.runner_errors += 1;

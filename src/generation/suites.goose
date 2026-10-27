@@ -9,7 +9,7 @@ import src.generation.model;
 import src.generation.suite_hooks;
 import src.generation.validation;
 
-fn emit_case(output: Output&, manifest: discovery::Manifest&, index: i64, executable: bool) {
+fn emit_case(output: Output&, manifest: discovery::Manifest&, index: i64, executable: bool, selected: bool) {
     let entry = manifest.cases[index];
     let suite = manifest.suites[entry.suite_index];
     let path = discovery::manifest_text(manifest, suite.path);
@@ -24,6 +24,9 @@ fn emit_case(output: Output&, manifest: discovery::Manifest&, index: i64, execut
     } else {
         out.append("fn run(t: goosetest::Test&) {\n");
     }
+    if !selected {
+        emit_filtered(out);
+    }
     out.append("    if t.results.incomplete {\n        return;\n    }\n");
     out.append("    let path = source_path();\n    let namespace_name = source_namespace();\n");
     out.append("    let function_name = source_function();\n    let display_name = source_display();\n");
@@ -36,6 +39,9 @@ fn emit_case(output: Output&, manifest: discovery::Manifest&, index: i64, execut
         out.append("    if !t.suite_ready {\n");
         out.append("        goosetest::skip_case(t.results, identity, \"suite setup failed\");\n");
         out.append("        return;\n    }\n");
+    }
+    if !entry.disabled {
+        emit_fail_fast(out);
     }
     if entry.uses_fixture {
         emit_fixture(out, namespace_name, function_name, suite);
@@ -52,6 +58,19 @@ fn emit_case(output: Output&, manifest: discovery::Manifest&, index: i64, execut
         emit_text(out, "source_reason", discovery::manifest_text(manifest, entry.disabled_reason));
     }
     add_module(output, str("case_", index, ".goose"), out);
+}
+
+// Preserve the whole unselected call path, but retain no executed/skipped record.
+fn emit_filtered(out: u8[>..]&) {
+    out.append("    if false {\n        run_unselected(t);\n    }\n");
+    out.append("    goosetest::record_filtered(t.results);\n}\n\n");
+    out.append("fn run_unselected(t: goosetest::Test&) {\n");
+}
+
+fn emit_fail_fast(out: u8[>..]&) {
+    out.append("    if t.results.fail_fast_stop {\n");
+    out.append("        goosetest::not_run_case(t.results, identity, \"fail-fast\");\n");
+    out.append("        return;\n    }\n");
 }
 
 // The pinned compiler specializes calls in `if false` before dead-code elimination.

@@ -14,6 +14,9 @@ fn outcome_label(outcome: goosetest::Outcome) -> const u8[:] {
         Skipped => {
             return "SKIP";
         },
+        NotRun => {
+            return "NOT RUN";
+        },
         RunnerError => {
             return "ERROR";
         },

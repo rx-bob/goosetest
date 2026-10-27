@@ -7,6 +7,7 @@ import std;
 import src.arguments;
 import src.discovery.manifest;
 import src.discovery.mirror;
+import src.discovery.selection;
 import src.generation.artifacts;
 import src.generation.model;
 import src.generation.runner;
@@ -20,7 +21,11 @@ fn run(options: arguments::Options&, manifest: discovery::Manifest&, audit: disc
     var sources: u8[>..] = [];
     var errors: u8[>..] = [];
     var output = generation::new_output(modules, paths, sources, errors);
-    generation::generate(output, manifest, audit);
+    generation::generate(output, manifest, audit,
+        selection::Options {
+            filter: options.filter,
+            suite: options.suite
+        }, options.fail_fast);
     if generation::status(output) != 0 {
         write_stderr(str("ERROR: generation: ", output.error, "\nRun incomplete; no tests executed.\n"));
         return 2;
