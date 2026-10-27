@@ -1,0 +1,52 @@
+{
+  "source_directory": "/Users/bob/repos/pretty-goose/src",
+  "provenance": "Exact working-tree bytes; these source files are not tracked by the source repository HEAD. No source commit is claimed.",
+  "files": [
+    {
+      "source": "lexer.goose",
+      "snapshot": "production/lexer.goose.data",
+      "sha256": "110f3cd0df8f4d02232b4793864a69b6e38b4fc40c5168329b5cff9c2986a0c4"
+    },
+    {
+      "source": "lexer_scan.goose",
+      "snapshot": "production/lexer_scan.goose.data",
+      "sha256": "e6f543c2073acce4c169bf42d0451e1cbb93d4099e3696f306eafd292443ff35"
+    },
+    {
+      "source": "formatter.goose",
+      "snapshot": "production/formatter.goose.data",
+      "sha256": "84741be706b8fdd693882080272fda1184e052f0a8f2aea7cd9e22ee354e7f3f"
+    },
+    {
+      "source": "formatter_rules.goose",
+      "snapshot": "production/formatter_rules.goose.data",
+      "sha256": "d6b95ba6f8d117a48c4bb486182f6ea4d070d672716ba12d33673088daacc4d5"
+    },
+    {
+      "source": "formatter_imports.goose",
+      "snapshot": "production/formatter_imports.goose.data",
+      "sha256": "38442c528df4fbd9eda8b0b1de90204b52187e6f8b3db67a28173e4c1e3e169e"
+    },
+    {
+      "source": "formatter_import_rules.goose",
+      "snapshot": "production/formatter_import_rules.goose.data",
+      "sha256": "8e8b7566aa9229cabfae81ecd03f1460265b70f8cc5155a24d616e29ce4aed66"
+    },
+    {
+      "source": "tests.goose",
+      "snapshot": "production/original_tests.goose.data",
+      "sha256": "10543773019c1ecf4add48eed7b537645d6f7e9a2bf25d591befcef7f47c676a"
+    }
+  ],
+  "selected_tests": [
+    "test_statement_blocks",
+    "test_literal_preservation"
+  ],
+  "selected_helpers": [
+    "formatted",
+    "code_tokens",
+    "assert_tokens_preserved",
+    "expect_format",
+    "expect_fragment"
+  ]
+}

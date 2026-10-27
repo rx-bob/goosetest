@@ -27,8 +27,9 @@ self-hosted suite and independent process-level failure checks. `check` checks
 shipping and representative generated Goose sources. Task delegates automation
 to Goose scripts in `scripts/`; it does not install or publish a package.
 
-E6.S3, the isolated pretty-goose adoption fixture, is still outstanding. These
-commands do not establish that adoption or completion of all first-release criteria.
+The [isolated pretty-goose consumer](docs/adopting_pretty_goose.md) demonstrates
+lexer and formatter adoption against preserved production snapshots. Its original
+repository and test commands remain unchanged.
 
 ## Use a local checkout
 

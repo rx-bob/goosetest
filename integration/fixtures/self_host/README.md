@@ -3,7 +3,7 @@
 Run from the repository root with the pinned Goose compiler and Python 3:
 
 ```sh
-goose run scripts/verify.goose
+task test
 ```
 
 The Goose entry point now runs self-host checks plus the full

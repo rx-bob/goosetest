@@ -1,0 +1,49 @@
+namespace consumer_lexer_test;
+
+import goosetest;
+import pretty_goose.lexer;
+import src.formatter;
+import src.lexer;
+
+fn test_literal_preservation(t: goosetest::Test&) {
+    let source = "fn f(){use(\"a, { b }\",'\\n');/* outer /* nested */ x */let x=1.2e-3;}\n";
+    let actual = consumer_formatter::formatted(source);
+    let before = consumer_lexer::tokens(source);
+    let after = consumer_lexer::tokens(actual);
+    check_known_literals(t, before);
+    var next: i64 = 0;
+    for token in before {
+        if token.kind == lexer::NEWLINE {
+            continue;
+        }
+        while next < after.len && after[next].kind == lexer::NEWLINE {
+            next += 1;
+        }
+        t.assert_true(next < after.len);
+        t.assert_eq(token.text, after[next].text);
+        t.assert_eq(token.kind, after[next].kind);
+        next += 1;
+    }
+}
+
+fn check_known_literals(t: goosetest::Test&, tokens: lexer::Token[:]) {
+    var counts: i64[4] = [0, 0, 0, 0];
+    for token in tokens {
+        if token.kind == lexer::STRING {
+            t.assert_eq("\"a, { b }\"", token.text);
+            counts[0] += 1;
+        } else if token.kind == lexer::CHARACTER {
+            t.assert_eq("'\\n'", token.text);
+            counts[1] += 1;
+        } else if token.kind == lexer::COMMENT {
+            t.assert_eq("/* outer /* nested */ x */", token.text);
+            counts[2] += 1;
+        } else if token.kind == lexer::NUMBER {
+            t.assert_eq("1.2e-3", token.text);
+            counts[3] += 1;
+        }
+    }
+    for count in counts {
+        t.assert_eq(1, count, "one literal of each expected kind");
+    }
+}

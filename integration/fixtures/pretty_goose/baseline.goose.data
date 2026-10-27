@@ -1,0 +1,98 @@
+import std;
+import formatter;
+import lexer;
+
+fn formatted(source: const u8[:]) -> u8[>..] {
+    return formatter::format_source(source, formatter::FormatConfig {
+            indent_width: 4,
+            final_newline: true
+        });
+}
+
+fn code_tokens(source: const u8[:]) -> lexer::Token[>..] {
+    let tokens = lexer::lex(source);
+    let imports, namespace_end, first_declaration = formatter::scan_imports(tokens);
+    var result: lexer::Token[>..] = [];
+    var i: i64 = 0;
+    var entry: i64 = 0;
+    while i < tokens.len {
+        if entry < imports.len && i == imports[entry].first {
+            i = imports[entry].last + 1;
+            entry += 1;
+            continue;
+        }
+        if tokens[i].kind != lexer::NEWLINE && tokens[i].kind != lexer::COMMENT {
+            result.push(tokens[i]);
+        }
+        i += 1;
+    }
+    return result;
+}
+
+fn assert_tokens_preserved(source: const u8[:], actual: const u8[:]) {
+    let before = code_tokens(source);
+    let after = code_tokens(actual);
+    assert(before.len == after.len);
+    for i in before.len {
+        assert(before[i].text == after[i].text);
+        assert(before[i].kind == after[i].kind);
+    }
+}
+
+fn expect_format(source: const u8[:], expected: const u8[:]) {
+    let actual = formatted(source);
+    if actual != expected {
+        print("Unexpected format:\n", actual, "Expected:\n", expected);
+    }
+    assert(actual == expected);
+    let second = formatted(actual);
+    assert(second == actual);
+    assert_tokens_preserved(source, actual);
+}
+
+fn expect_fragment(source: const u8[:], fragment: const u8[:]) {
+    let actual = formatted(source);
+    if find(actual, fragment) < 0 {
+        print("Missing fragment: ", fragment, "\n", actual);
+    }
+    assert(find(actual, fragment) >= 0);
+    let second = formatted(actual);
+    assert(second == actual);
+    assert_tokens_preserved(source, actual);
+}
+
+fn test_statement_blocks() {
+    expect_format("fn f(){let v,ok=parse_int(s);for x,i in xs{return x,i,1;}}",
+        "fn f() {\n    let v, ok = parse_int(s);\n    for x, i in xs {\n        return x, i, 1;\n    }\n}\n");
+    expect_fragment("fn f(){if ok{return 1,2;}else if other{return 3,4;}else{return 5,6;}}",
+        "} else if other {");
+    expect_fragment("fn f(){guard ok else{return 1,2;}while ok {return 3,4;}loop{break;}}", "return 3, 4;");
+    expect_fragment("struct Pair{a:i32,b:i32}", "    a: i32,\n    b: i32");
+    expect_fragment("fn f(){let p=Pair{a:1,b:2};}", "        a: 1,\n        b: 2");
+    expect_fragment("fn f(){match p {A=>1,B=>2,}}", "        A => 1,\n        B => 2,");
+}
+
+fn test_literal_preservation() {
+    let source = "fn f(){use(\"a, { b }\",'\\n');/* outer /* nested */ x */let x=1.2e-3;}\n";
+    let actual = formatted(source);
+    let before = lexer::lex(source);
+    let after = lexer::lex(actual);
+    var next: i64 = 0;
+    for token in before {
+        if token.kind == lexer::NEWLINE {
+            continue;
+        }
+        while next < after.len && after[next].kind == lexer::NEWLINE {
+            next += 1;
+        }
+        assert(next < after.len);
+        assert(token.text == after[next].text);
+        assert(token.kind == after[next].kind);
+        next += 1;
+    }
+}
+
+fn main() {
+    test_statement_blocks();
+    test_literal_preservation();
+}

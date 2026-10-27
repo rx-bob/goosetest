@@ -136,10 +136,9 @@ An explicit local package source is the verified installation method; see the
 checks exercise source resolution from different working directories. No remote
 repository source or package registry is required or claimed to be verified.
 
-E6.S3 remains outstanding: the representative pretty-goose adoption fixture and
-migration recipe have not been delivered. Passing the documented commands does
-not establish that missing consumer baseline or completion of all release exit
-criteria. The real pretty-goose working tree is outside this implementation.
+The [pretty-goose adoption recipe](adopting_pretty_goose.md) describes the isolated
+consumer now included in verification. The real pretty-goose working tree remains
+outside this implementation; its production snapshots are fixture data.
 
 ## E6.S4 verification record — 2026-10-27
 
@@ -164,4 +163,29 @@ the supplemental checker with status 2 and a file/line diagnostic. This confirms
 that the formatter's missing function-length rule cannot silently pass that case.
 
 These results are scoped to the supported baseline and implemented stories.
-E6.S3 adoption evidence remains outstanding as noted above.
+E6.S3 adoption evidence was not yet available at the time of this E6.S4 record;
+its later verification is recorded below.
+
+## E6.S3 adoption verification — 2026-10-27
+
+The isolated consumer matrix is now part of `task test`. Six production modules
+match their recorded SHA-256 snapshots before and after execution. The selected
+original test/helper declarations match the archived original source exactly and
+pass using builtin assertions before conversion. The converted consumer then
+passes two mirrored unit cases and one integration case through the public
+package and generated runner, outside this checkout.
+
+A changed formatter expectation exits 1, reports exactly its case as failed,
+retains both other passing IDs, and prints the declaration location, custom
+message, and distinct expected/actual formatting values. The consumer's authored
+and generated sources pass formatting checks; original production snapshots stay
+byte-for-byte unchanged.
+
+Final `task test` passed all 171 self-hosted cases and all ten independent
+matrices. Final `task check` passed the four-case basic example and checked 314
+shipping/generated Goose files, including the supplemental function-line bound.
+The original pretty-goose checkout was inspected read-only: all 23 file hashes
+and its pre-existing Git status matched before and after this work, including
+its unchanged Taskfile. No original test command was run there. See the
+[adoption guide](adopting_pretty_goose.md) for provenance and the deliberately
+limited package-boundary migration recipe.

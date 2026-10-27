@@ -84,6 +84,7 @@ def main():
             ('self_host', [cli]), ('cli', [cli, oracle]), ('execution', [cli]),
             ('artifacts', [cli]), ('limits', [cli]), ('disabled', [cli]),
             ('selection', [cli]), ('lifecycle', [cli]), ('suite', [cli]),
+            ('pretty_goose', [cli]),
         ]
         for name, arguments in matrices:
             path = REPO / 'integration' / 'fixtures' / name / 'verify.py'

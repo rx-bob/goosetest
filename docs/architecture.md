@@ -91,6 +91,7 @@ and old fixed-capacity boundaries. Parent-owned temporary directories and bounde
 process waits keep verification artifacts separate from authored source. See the
 [external verification matrix](../integration/fixtures/README.md).
 
-These checks cover implemented framework behavior. The E6.S3 isolated
-pretty-goose adoption fixture remains outstanding; no consumer-adoption result
-or completion of every release criterion is implied.
+The [pretty-goose consumer](adopting_pretty_goose.md) adds an isolated adoption
+check: byte-preserved production modules, original builtin-assert baselines,
+mirrored public-package tests, and an externally verified failing expectation.
+It demonstrates a small package boundary, not a migration of the original repository.

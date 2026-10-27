@@ -1,0 +1,14 @@
+namespace consumer_pipeline_test;
+
+import goosetest;
+import src.formatter;
+import test_support.contracts;
+
+fn test_format_and_lex(t: goosetest::Test&) {
+    let source = "fn f(){use(\"a, { b }\",'\\n');/* outer /* nested */ x */let x=1.2e-3;}\n";
+    let actual = consumer_formatter::formatted(source);
+    let second = consumer_formatter::formatted(actual);
+    t.assert_eq(actual, second, "pipeline idempotence");
+    consumer_contracts::assert_tokens_preserved(t, source, actual);
+    t.assert_contains("/* outer /* nested */ x */", actual);
+}

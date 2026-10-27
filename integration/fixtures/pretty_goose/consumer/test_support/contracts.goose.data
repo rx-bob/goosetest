@@ -1,0 +1,69 @@
+// Original helper contracts adapted to public expected-first assertions.
+namespace consumer_contracts;
+
+import std;
+
+import goosetest;
+import pretty_goose.formatter;
+import pretty_goose.lexer;
+import src.formatter;
+import src.lexer;
+
+fn formatted(source: const u8[:]) -> u8[>..] {
+    return consumer_formatter::formatted(source);
+}
+
+fn code_tokens(source: const u8[:]) -> lexer::Token[>..] {
+    let tokens = consumer_lexer::tokens(source);
+    let imports,
+    namespace_end,
+    first_declaration = formatter::scan_imports(tokens);
+    var result: lexer::Token[>..] = [];
+    var i: i64 = 0;
+    var entry: i64 = 0;
+    while i < tokens.len {
+        if entry < imports.len && i == imports[entry].first {
+            i = imports[entry].last + 1;
+            entry += 1;
+            continue;
+        }
+        if tokens[i].kind != lexer::NEWLINE && tokens[i].kind != lexer::COMMENT {
+            result.push(tokens[i]);
+        }
+        i += 1;
+    }
+    return result;
+}
+
+fn assert_tokens_preserved(t: goosetest::Test&, source: const u8[:], actual: const u8[:]) {
+    let before = code_tokens(source);
+    let after = code_tokens(actual);
+    t.assert_eq(before.len, after.len);
+    for i in before.len {
+        t.assert_eq(before[i].text, after[i].text);
+        t.assert_eq(before[i].kind, after[i].kind);
+    }
+}
+
+fn expect_format(t: goosetest::Test&, source: const u8[:], expected: const u8[:]) {
+    let actual = formatted(source);
+    if actual != expected {
+        print("Unexpected format:\n", actual, "Expected:\n", expected);
+    }
+    t.assert_eq(expected, actual, "pretty-goose statement formatting");
+    let second = formatted(actual);
+    t.assert_eq(actual, second, "formatting is idempotent");
+    assert_tokens_preserved(t, source, actual);
+}
+
+fn expect_fragment(t: goosetest::Test&, source: const u8[:], fragment: const u8[:]) {
+    let actual = formatted(source);
+    if find(actual, fragment) < 0 {
+        print("Missing fragment: ", fragment, "\n", actual);
+    }
+    t.assert_contains(fragment, actual);
+    let second = formatted(actual);
+    t.assert_eq(actual, second, "formatting is idempotent");
+    assert_tokens_preserved(t, source, actual);
+}
+

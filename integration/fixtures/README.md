@@ -22,6 +22,7 @@ oracles. A nonzero oracle status fails the command.
 | `limits` | 129 production/test pairs exceed 128 files in each root; one module has 65 cases, and all 321 case IDs match discovery, generated wrappers and passing rows exactly. Oversized input fails before compiler invocation. |
 | `disabled` | Disabled assertions and hooks remain cold but compiler checked, with original skip reasons. |
 | `selection` | Filters preserve compile checks, including cleanup hooks and non-local returns; empty selection exits 2; fail-fast still cleans up. |
+| `pretty_goose` | Byte-preserved formatter/lexer baseline, two unit mirrors and one integration suite; changed formatter expectation exits 1 with value diagnostics. |
 | `lifecycle`, `suite` | Setup/body/cleanup failure combinations preserve causes, continuation, cleanup and nonzero statuses. |
 
 The compiler wrapper in `limits` also checks the real invocation begins with
@@ -48,3 +49,7 @@ Valid discovered integration suites are `integration/*_test.goose`. Supporting
 Goose modules live under `test_support/`. Intentionally invalid Goose text uses
 `.goose.data` or is constructed inside a disposable consumer. It is never an
 accidentally discovered or formatted suite.
+
+See [pretty-goose adoption](pretty_goose/README.md) for the source snapshot,
+public-package conversion, and migration recipe. Its recorded source-directory
+path is provenance only; verification runs without that original checkout.
