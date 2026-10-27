@@ -35,8 +35,10 @@ Each discovered case gets `case_<index>.goose`, with a direct call enclosed by
 The runtime recovery boundary remains in the static call ancestry, so a hard
 assertion stops its case and returns to dispatch. Original path, namespace,
 function, display bytes and declaration line populate `CaseIdentity`; the runtime
-copies them before execution. A small reporter prints stable IDs and original
-path/line, then diagnostics and aggregate status. Full reporting belongs to E5.
+copies them before execution. The generated report adapter delegates to the
+[shared console renderer](../reporting/README.md), passing the complete selected
+case count. It prints original declaration locations, stable IDs, display names,
+escaped phase diagnostics and reconciled totals, including cases not run.
 
 Dispatch modules have at most 32 children. Additional levels are emitted until a
 single entry remains. Imports are sorted lexically, while calls follow manifest

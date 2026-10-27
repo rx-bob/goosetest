@@ -132,3 +132,9 @@ The external verifier creates and removes its own projects and checks pass/fail,
 next-case continuation, compiler failure, fatal checks, early exits, empty/audit/
 generation rejection, stale binary prevention, project-relative resources, missing
 compiler/output, compile/run deadlines, and cancellation.
+
+
+The generated runtime report starts with `goosetest results`, after compiler
+output. It includes declaration locations, stable IDs, display names, escaped
+phase diagnostics, and finalized-case totals. See [console reporting](reporting/README.md)
+for not-run/filtered accounting and the plain ASCII escaping contract.

@@ -98,7 +98,8 @@ fn emit_runner(output: Output&, manifest: discovery::Manifest&, level: i64) {
         metadata_size(manifest), ",\n        ..\n    };\n");
     out.append("    var results = goosetest::new_results(cases, failures, diagnostics, metadata, limits);\n");
     out.append("    var t = goosetest::Test {\n        results: results,\n        ..\n    };\n");
-    format(out, "    goosetest_generated_", child, "::run(t);\n    goosetest_generated_report::report(results);\n");
+    format(out, "    goosetest_generated_", child, "::run(t);\n");
+    format(out, "    goosetest_generated_report::report(results, ", manifest.cases.len, ");\n");
     out.append("    return goosetest_generated_completion::finish(goosetest::run_status(results));\n}\n");
     add_module(output, "runner.goose", out);
 }

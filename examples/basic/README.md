@@ -14,10 +14,12 @@ goose build --debug examples/basic/goosetest_root.goose -o /tmp/goosetest-basic
 Expected output and process status:
 
 ```text
+goosetest results (locations identify test declarations)
 PASS test/calculator_test.goose::calculator_test::test_addition (test/calculator_test.goose:8)
 PASS test/calculator_test.goose::calculator_test::test_subtraction (test/calculator_test.goose:12)
 PASS test/calculator_test.goose::calculator_test::test_zero_identity (test/calculator_test.goose:16)
-Cases: 3 passed, 0 failed, 0 skipped, 0 errors
+Cases: 3 passed, 0 failed, 0 skipped, 0 errors, 0 not run; 0 filtered
+Assertions: 4; suite-hook errors: 0
 ```
 
 The executable exits 0. Build output comes from the compiler, separately from

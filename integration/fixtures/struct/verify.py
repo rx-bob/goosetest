@@ -65,7 +65,7 @@ fn test_later(t: goosetest::Test&) {
     diagnostic = (b'viewer write check: struct fields differ:\n'
                   b'.allowed expected: <true> actual: <false>\n'
                   b'.reason expected: <ok> actual: <insufficient_role>\n')
-    assert diagnostic in out, out
+    assert diagnostic.replace(b"\n", b"\\x0A") in out, out
     assert b'.effective_role' not in out
     assert b'1 passed, 1 failed' in out
     for name, diagnostic in (("mismatched_types", b"no matching overload"),
