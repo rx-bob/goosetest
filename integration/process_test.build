@@ -1,0 +1,2 @@
+// Runtime imports alone do not request this adapter; executable roots choose it.
+c_sources = ["../native/process.c", "../test_support/process_observer.c"];
