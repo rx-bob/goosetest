@@ -1,0 +1,14 @@
+// Intentionally invalid: field reflection requires a struct type.
+import goosetest from "PACKAGE_PATH";
+import goosetest.test_support.runtime;
+
+fn main() {
+    let expected: i64 = 1;
+    let actual: i64 = 2;
+    runtime_support::with_test() {
+        t =>
+        goosetest::execute_case(t) {
+            t.assert_struct_eq(expected, actual);
+        }
+    }
+}

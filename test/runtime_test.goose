@@ -1,6 +1,7 @@
 // Bootstrap unit-test entry point; no dependency on goosetest's own verdicts.
 import goosetest from "..";
 
+import runtime.assertions_struct_test;
 import runtime.assertions_test;
 import runtime.assertions_values_test;
 import runtime.context_test;
@@ -11,6 +12,14 @@ import runtime.results_test;
 import runtime.value_format_test;
 
 fn main() {
+    assertions_struct_test::test_equal_and_const();
+    assertions_struct_test::test_multiple_and_single();
+    assertions_struct_test::test_nested_format_hook();
+    assertions_struct_test::test_slice_fields();
+    assertions_struct_test::test_struct_budget();
+    assertions_struct_test::test_struct_limit_stops_hooks();
+    assertions_struct_test::test_multifield_budget_atomicity();
+    assertions_struct_test::test_nested_slice_identity();
     context_test::test_reset();
     execution_test::test_hard_stop();
     execution_test::test_soft_failures();

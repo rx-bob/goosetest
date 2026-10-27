@@ -1,0 +1,21 @@
+// Intentionally invalid: different struct types are not a field-comparison pair.
+import goosetest from "PACKAGE_PATH";
+import goosetest.test_support.runtime;
+
+struct Expected {
+    count: i64
+}
+struct Actual {
+    count: i64
+}
+
+fn main() {
+    let expected = Expected { count: 1 };
+    let actual = Actual { count: 1 };
+    runtime_support::with_test() {
+        t =>
+        goosetest::execute_case(t) {
+            t.assert_struct_eq(expected, actual);
+        }
+    }
+}

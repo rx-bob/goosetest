@@ -13,6 +13,7 @@ outcomes, and expected-first assertion calls:
 | `t.check_eq(expected, actual, message = "")` | Record both values and continue |
 | `t.assert_contains(expected_fragment, actual_text, message = "")` | Require a byte substring and stop case |
 | `t.assert_near(expected, actual, absolute_tolerance, message = "")` | Require absolute proximity and stop case |
+| `t.assert_struct_eq(expected, actual, message = "")` | Report differing top-level fields and stop case |
 
 See [assertion contracts](../../../src/runtime/ASSERTIONS.md) for float special
 values, diagnostic rendering bounds, and custom format-hook limits.
