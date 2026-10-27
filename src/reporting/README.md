@@ -2,8 +2,9 @@
 
 Import `goosetest.src.reporting.console` from a consumer and call
 `reporting::report(results, selected_case_count)` after execution and cleanup.
-The reporter also works with the independent explicit runtime harness; importing
-the assertion facade alone does not import console output or native adapters.
+The public `report_results(results, selected_case_count)` facade delegates to the same
+renderer and is used by generated runners, including self-hosting.
+The reporter also works with the independent explicit runtime harness; the facade imports the renderer but performs no output until called and links no native adapters.
 
 `reporting::render(results, selected_case_count) { chunk => ... }` emits the same
 bytes to a synchronous callback. Chunks are ephemeral slices; consume or copy them
@@ -52,9 +53,9 @@ requires no color support or terminal library.
 Verification:
 
 ```sh
-goose build --debug test/reporting_bootstrap.goose -o /tmp/goosetest-reporting-unit
-/tmp/goosetest-reporting-unit
-goose build --debug integration/reporting_test.goose -o /tmp/goosetest-reporting
+goose build --debug main.goose -o /tmp/goosetest
+/tmp/goosetest test --project . --filter test/reporting/
+goose build --debug test_support/oracles/reporting_test.goose -o /tmp/goosetest-reporting
 python3 integration/fixtures/reporting/verify.py /tmp/goosetest-reporting
 ```
 

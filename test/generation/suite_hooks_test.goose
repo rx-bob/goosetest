@@ -1,15 +1,17 @@
 // Disabled calls remain compiler-visible while runtime paths only record skips.
-namespace disabled_test;
+namespace suite_hooks_test;
+
+import goosetest;
 
 import std;
 
-import goosetest.src.discovery.manifest;
-import goosetest.src.generation.model;
-import goosetest.src.generation.runner;
-import goosetest.test_support.generation;
-import goosetest.test_support.syntax;
+import src.discovery.manifest;
+import src.generation.model;
+import src.generation.runner;
+import test_support.generation;
+import test_support.syntax;
 
-fn test_all_disabled_wrappers() {
+fn test_all_disabled_wrappers(outer: goosetest::Test&) {
     let source = """
 namespace sample;
 struct Fixture { value: i64 }
@@ -51,7 +53,7 @@ fn test_plain(t: goosetest::Test&) {}
     }
 }
 
-fn test_mixed_disabled_reason() {
+fn test_mixed_disabled_reason(outer: goosetest::Test&) {
     let source = """
 namespace sample;
 fn before_all(t: goosetest::Test&) {}
@@ -85,7 +87,7 @@ fn test_enabled(t: goosetest::Test&) {}
     }
 }
 
-fn test_reason_bound() {
+fn test_reason_bound(outer: goosetest::Test&) {
     for length in 1024..1026 {
         var reason: u8[>..] = [];
         for index in 0..length {

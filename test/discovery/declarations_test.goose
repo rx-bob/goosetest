@@ -1,15 +1,17 @@
 // Ordinary authoring survives multiline syntax and lexical decoys; malformed declarations fail explicitly.
 namespace declarations_test;
 
-import goosetest.src.discovery.catalog;
-import goosetest.src.discovery.declarations;
-import goosetest.src.discovery.manifest;
-import goosetest.src.discovery.model;
-import goosetest.test_support.syntax;
+import goosetest;
+
+import src.discovery.catalog;
+import src.discovery.declarations;
+import src.discovery.manifest;
+import src.discovery.model;
+import test_support.syntax;
 
 import std;
 
-fn test_authoring() {
+fn test_authoring(outer: goosetest::Test&) {
     syntax_support::with_manifest() {
         manifest =>
         syntax_support::parse(manifest, embed_file("../../integration/fixtures/syntax/authoring.goose.data"));
@@ -38,7 +40,7 @@ fn test_authoring() {
     }
 }
 
-fn test_namespace_and_fixture_errors() {
+fn test_namespace_and_fixture_errors(outer: goosetest::Test&) {
     syntax_support::expect_error("", discovery::SyntaxIssue.MissingNamespace, 1);
     syntax_support::expect_error("fn test_x(t: goosetest::Test&) {}", discovery::SyntaxIssue.NamespaceOrder, 1);
     syntax_support::expect_error("namespace x; namespace x;", discovery::SyntaxIssue.DuplicateNamespace, 1);
@@ -52,7 +54,7 @@ fn test_namespace_and_fixture_errors() {
     syntax_support::expect_error("namespace x; inline", discovery::SyntaxIssue.DanglingModifier);
 }
 
-fn test_late_fixture_and_crlf() {
+fn test_late_fixture_and_crlf(outer: goosetest::Test&) {
     syntax_support::with_manifest() {
         manifest =>
         let source = "import goosetest;\r\nnamespace late;\r\ninline\r\nfn test_x(\r\n t: goosetest::Test&,\r\n f: Fixture&,\r\n) {}\r\nstruct Fixture {}";
@@ -64,7 +66,7 @@ fn test_late_fixture_and_crlf() {
     }
 }
 
-fn test_owned_names() {
+fn test_owned_names(outer: goosetest::Test&) {
     syntax_support::with_manifest() {
         manifest =>
         parse_temporary(manifest);

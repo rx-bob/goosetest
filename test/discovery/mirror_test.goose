@@ -1,14 +1,16 @@
 // Audit correspondence independently of syntax and preserve every mismatch.
 namespace mirror_test;
 
+import goosetest;
+
 import std;
 
-import goosetest.src.discovery.mirror;
-import goosetest.src.discovery.model;
-import goosetest.test_support.filesystem;
-import goosetest.test_support.mirror;
+import src.discovery.mirror;
+import src.discovery.model;
+import test_support.filesystem;
+import test_support.mirror;
 
-fn test_order_and_prefixes() {
+fn test_order_and_prefixes(outer: goosetest::Test&) {
     filesystem_support::with_inventory() {
         inventory =>
         // Opposite full-path ordering after adding _test must not break matches.
@@ -35,7 +37,7 @@ fn test_order_and_prefixes() {
     }
 }
 
-fn test_rename() {
+fn test_rename(outer: goosetest::Test&) {
     filesystem_support::with_inventory() {
         inventory =>
         mirror_support::add(inventory, "src/new.goose", discovery::RootKind.Source);
@@ -55,7 +57,7 @@ fn test_rename() {
     }
 }
 
-fn test_bad_names() {
+fn test_bad_names(outer: goosetest::Test&) {
     filesystem_support::with_inventory() {
         inventory =>
         mirror_support::add(inventory, "test/helper.goose", discovery::RootKind.Unit);
@@ -76,7 +78,7 @@ fn test_bad_names() {
     }
 }
 
-fn test_empty_and_incomplete() {
+fn test_empty_and_incomplete(outer: goosetest::Test&) {
     filesystem_support::with_inventory() {
         inventory =>
         mirror_support::with_audit() {
@@ -95,7 +97,7 @@ fn test_empty_and_incomplete() {
     }
 }
 
-fn test_large_audit() {
+fn test_large_audit(outer: goosetest::Test&) {
     filesystem_support::with_inventory() {
         inventory =>
         for index in 0..350 {

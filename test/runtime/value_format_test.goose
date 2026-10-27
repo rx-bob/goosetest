@@ -2,7 +2,7 @@
 namespace value_format_test;
 
 import goosetest;
-import goosetest.test_support.runtime;
+import test_support.runtime;
 
 import std;
 
@@ -26,7 +26,7 @@ fn format(out: u8[>..]&, value: LargeValue) {
     }
 }
 
-fn test_large_text() {
+fn test_large_text(outer: goosetest::Test&) {
     var large: u8[>..] = [];
     for index in 0..1048576 {
         large.push('x');
@@ -46,7 +46,7 @@ fn test_large_text() {
     }
 }
 
-fn test_collection_stops_formatting() {
+fn test_collection_stops_formatting(outer: goosetest::Test&) {
     var expected: Value[>..] = [];
     var actual: Value[>..] = [];
     for index in 0..10000 {
@@ -77,7 +77,7 @@ fn test_collection_stops_formatting() {
     }
 }
 
-fn test_custom_hook_limit() {
+fn test_custom_hook_limit(outer: goosetest::Test&) {
     runtime_support::with_test(goosetest::Limits {
             diagnostic_bytes: 64,
             ..
@@ -98,7 +98,7 @@ fn test_custom_hook_limit() {
     }
 }
 
-fn test_nested_arrays() {
+fn test_nested_arrays(outer: goosetest::Test&) {
     let expected: i64[2][2] = [[1, 2], [3, 4]];
     let actual: i64[2][2] = [[1, 2], [3, 5]];
     let text = "expected: <[[1, 2], [3, 4]]> actual: <[[1, 2], [3, 5]]>\n";
@@ -124,7 +124,7 @@ fn test_nested_arrays() {
     }
 }
 
-fn test_array_storage_and_bytes() {
+fn test_array_storage_and_bytes(outer: goosetest::Test&) {
     let expected: i64[3] = [1, 2, 3];
     var actual: i64[3] = [1, 2, 4];
     var grown_expected: i64[>..] = [1, 2, 3];
@@ -147,7 +147,7 @@ fn test_array_storage_and_bytes() {
     }
 }
 
-fn test_nested_byte_escaping() {
+fn test_nested_byte_escaping(outer: goosetest::Test&) {
     let expected: const u8[:][2] = ["a\0\n\r\t\"\\z", "same"];
     let actual: const u8[:][2] = ["other", "same"];
     let oracle = str("expected: <", expected, "> actual: <", actual, ">\n");
@@ -164,7 +164,7 @@ fn test_nested_byte_escaping() {
     }
 }
 
-fn test_scalar_format_hooks() {
+fn test_scalar_format_hooks(outer: goosetest::Test&) {
     let maximum: u64 = 18446744073709551615;
     let zero: u64 = 0;
     runtime_support::with_test() {

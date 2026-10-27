@@ -53,26 +53,15 @@ independent unbounded collection is introduced. Construct fresh contexts per run
 
 ## Verification
 
-`test/mirror_test.goose` is a transitional bootstrap executable with an explicit
-native sidecar. Its parent supplies a nonexistent temporary fixture directory and
-cleans that directory after success or failure. Example from the repository root:
+Mirror unit cases and cross-module discovery cases run through generated discovery.
+The self-host root supplies owned scratch directories. From the repository root:
 
 ```sh
-GOOSE_HOME=/tmp/goosetest-mirror-cache goose build --debug test/mirror_test.goose -o /tmp/goosetest-mirror-test
-python3 - <<'PY'
-import pathlib, shutil, subprocess, tempfile
-parent = pathlib.Path(tempfile.mkdtemp(prefix="goosetest-mirror-"))
-try:
-    subprocess.run([
-        "/tmp/goosetest-mirror-test", str(parent / "projects"),
-        str(pathlib.Path("poc/example_project").resolve()),
-    ], check=True)
-finally:
-    shutil.rmtree(parent)
-PY
+goose build --debug main.goose -o /tmp/goosetest
+/tmp/goosetest test --project .
 ```
 
-Expected: `mirror tests passed`, exit 0. Builtin assertions verify 350 exact pairs,
+Expected: the generated suite exits 0. Builtin assertions verify 350 exact pairs,
 ordering traps, nested/prefixed names, missing and orphaned paths from a rename,
 bad filenames, incomplete inputs, independent integration suites, empty suites,
 empty projects and ignored roots. The original POC is read without alteration;

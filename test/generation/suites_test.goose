@@ -1,16 +1,18 @@
 // Lifecycle hooks follow signatures; disabled wrappers retain typed but unreachable calls.
 namespace suites_test;
 
+import goosetest;
+
 import std;
 
-import goosetest.src.discovery.manifest;
-import goosetest.src.generation.model;
-import goosetest.src.generation.runner;
-import goosetest.src.generation.validation;
-import goosetest.test_support.generation;
-import goosetest.test_support.syntax;
+import src.discovery.manifest;
+import src.generation.model;
+import src.generation.runner;
+import src.generation.validation;
+import test_support.generation;
+import test_support.syntax;
 
-fn test_rejections() {
+fn test_rejections(outer: goosetest::Test&) {
     reject("namespace goosetest_generated; fn test_x(t: goosetest::Test&) {}");
     reject("namespace goosetest_generated_extra; fn test_x(t: goosetest::Test&) {}");
     assert( !generation::identifier("x; injected"));
@@ -35,7 +37,7 @@ fn reject(source: u8[:]) {
     }
 }
 
-fn test_label_limit() {
+fn test_label_limit(outer: goosetest::Test&) {
     var label: u8[>..] = [];
     for index in 0..1025 {
         label.push('a');
@@ -43,7 +45,7 @@ fn test_label_limit() {
     reject(str("namespace x;\n// @DisplayName(\"", label, "\")\nfn test_x(t: goosetest::Test&) {}"));
 }
 
-fn test_fixture_wrappers() {
+fn test_fixture_wrappers(outer: goosetest::Test&) {
     let source = """
 namespace sample;
 struct Fixture { value: i64 }
@@ -81,7 +83,7 @@ fn test_plain(t: goosetest::Test&) {}
     }
 }
 
-fn test_fixture_without_hooks() {
+fn test_fixture_without_hooks(outer: goosetest::Test&) {
     let source = "namespace sample; struct Fixture {} fn test_fixture(t: goosetest::Test&, f: Fixture&) {}";
     syntax_support::with_manifest() {
         manifest =>
@@ -102,7 +104,7 @@ fn test_fixture_without_hooks() {
     }
 }
 
-fn test_fixture_identifier_bounds() {
+fn test_fixture_identifier_bounds(outer: goosetest::Test&) {
     var namespace_name: u8[>..] = [];
     var function_name: u8[>..] = [];
     for index in 0..48 {
@@ -139,7 +141,7 @@ fn test_fixture_identifier_bounds() {
     }
 }
 
-fn test_suite_hook_wrappers() {
+fn test_suite_hook_wrappers(outer: goosetest::Test&) {
     let source = """
 namespace sample;
 struct Fixture { value: i64 }

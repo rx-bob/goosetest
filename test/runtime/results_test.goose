@@ -2,9 +2,9 @@
 namespace results_test;
 
 import goosetest;
-import goosetest.test_support.runtime;
+import test_support.runtime;
 
-fn test_totals() {
+fn test_totals(outer: goosetest::Test&) {
     runtime_support::with_test() {
         t =>
         goosetest::execute_case(t) {
@@ -33,7 +33,7 @@ fn test_totals() {
     }
 }
 
-fn test_case_limit() {
+fn test_case_limit(outer: goosetest::Test&) {
     runtime_support::with_test(goosetest::Limits {
             cases: 1,
             ..
@@ -61,7 +61,7 @@ fn test_case_limit() {
     }
 }
 
-fn test_zero_limits() {
+fn test_zero_limits(outer: goosetest::Test&) {
     let limits = goosetest::Limits {
         cases: 0,
         failures: 0,
@@ -83,7 +83,7 @@ fn test_zero_limits() {
     }
 }
 
-fn test_skipped_only() {
+fn test_skipped_only(outer: goosetest::Test&) {
     runtime_support::with_test(goosetest::Limits {
             cases: 1,
             ..
@@ -101,7 +101,7 @@ fn test_skipped_only() {
     }
 }
 
-fn test_invalid_limits() {
+fn test_invalid_limits(outer: goosetest::Test&) {
     let limits: goosetest::Limits[4] = [
         goosetest::Limits {
             cases: - 1,
@@ -137,7 +137,7 @@ fn test_invalid_limits() {
     }
 }
 
-fn test_not_run_without_failure() {
+fn test_not_run_without_failure(outer: goosetest::Test&) {
     runtime_support::with_test() {
         t =>
         goosetest::not_run_case(t.results, goosetest::CaseIdentity {

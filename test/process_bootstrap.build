@@ -1,2 +1,0 @@
-// Only this test root links the wait/signal observers.
-c_sources = ["../native/process.c", "../test_support/process_observer.c"];

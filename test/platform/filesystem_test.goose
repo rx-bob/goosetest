@@ -1,13 +1,17 @@
 // Adapter probes verify bounded reads, missing-entry distinctions, and no-follow opens.
 namespace filesystem_test;
 
-import goosetest.src.platform.filesystem;
-import goosetest.test_support.filesystem;
+import goosetest;
+import test_support.selfhost;
+
+import src.platform.filesystem;
+import test_support.filesystem;
 
 import os;
 import std;
 
-fn test_adapter(parent: u8[:]) {
+fn test_adapter(outer: goosetest::Test&) {
+    let parent = selfhost_support::scratch(outer);
     let root = filesystem_support::project(parent, "adapter");
     filesystem_support::write(root, "data", "abc");
     filesystem_support::write(root, "empty", "");
@@ -40,7 +44,8 @@ fn test_adapter(parent: u8[:]) {
     assert(filesystem::close_project(fd) == 0);
 }
 
-fn test_replacement(parent: u8[:]) {
+fn test_replacement(outer: goosetest::Test&) {
+    let parent = selfhost_support::scratch(outer);
     let root = filesystem_support::project(parent, "replacement");
     filesystem_support::write(root, "source.goose", "original");
     filesystem_support::write(root, "outside", "must not be read");

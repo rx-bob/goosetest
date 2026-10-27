@@ -1,7 +1,8 @@
 // Standalone bootstrap oracle, independent of the future goosetest runtime.
-import goosetest from "./fixtures/compatibility/contract";
+import goosetest from "../compatibility/contract";
 
-import fixtures.compatibility.scenarios;
+import probes from "../compatibility";
+import probes.scenarios;
 
 fn main() {
     compatibility_test::test_bridge_recovery();

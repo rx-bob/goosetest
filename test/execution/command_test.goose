@@ -1,10 +1,12 @@
 // Stage policy distinguishes assertion failures from incomplete process outcomes.
 namespace command_test;
 
-import goosetest.src.execution.command;
-import goosetest.src.platform.process;
+import goosetest;
 
-fn test_normal_status() {
+import src.execution.command;
+import src.platform.process;
+
+fn test_normal_status(outer: goosetest::Test&) {
     var result = process::ProcessResult {
         outcome: process::Outcome.Exited,
         exit_code: 0,
@@ -24,7 +26,7 @@ fn test_normal_status() {
     }
 }
 
-fn test_incomplete_outcomes() {
+fn test_incomplete_outcomes(outer: goosetest::Test&) {
     for outcome in[process::Outcome.LaunchFailed, process::Outcome.Signaled, process::Outcome.Deadline,
         process::Outcome.SystemError, process::Outcome.InvalidInput] {
         let result = process::ProcessResult {
@@ -37,7 +39,7 @@ fn test_incomplete_outcomes() {
     }
 }
 
-fn test_cleanup_errors() {
+fn test_cleanup_errors(outer: goosetest::Test&) {
     var result = process::ProcessResult {
         outcome: process::Outcome.Exited,
         exit_code: 0,
@@ -52,7 +54,7 @@ fn test_cleanup_errors() {
     assert(command::stage_status(result, true) == 2);
 }
 
-fn test_cancellation() {
+fn test_cancellation(outer: goosetest::Test&) {
     for signal in[2, 15] {
         let result = process::ProcessResult {
             outcome: process::Outcome.Cancelled,

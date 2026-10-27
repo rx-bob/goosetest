@@ -60,16 +60,15 @@ fixtures. Choose build/cache paths outside the inspected project:
 ```sh
 export GOOSE_HOME=/tmp/goosetest-cli-cache
 goose build --debug main.goose -o /tmp/goosetest
-goose build --debug test/cli_bootstrap.goose -o /tmp/goosetest-cli-unit
-/tmp/goosetest-cli-unit
-goose build --debug integration/cli_test.goose -o /tmp/goosetest-cli-oracle
+/tmp/goosetest test --project . --suite unit
+goose build --debug test_support/oracles/cli_test.goose -o /tmp/goosetest-cli-oracle
 python3 integration/fixtures/cli/verify.py /tmp/goosetest /tmp/goosetest-cli-oracle
 goosefmt check --config .goosefmt.toml main.goose src/arguments.goose src/cli.goose \
     src/cli_output.goose test/arguments_test.goose test/cli_test.goose \
-    test/cli_bootstrap.goose integration/cli_test.goose
+    test_support/oracles/cli_test.goose
 ```
 
-Expected: `cli unit tests passed` and `cli process tests passed`, exit 0. Checks
+Expected: the generated unit suite and CLI process checks both exit 0. Checks
 cover exact listing/audit bytes, control metadata, argument ownership/errors,
 actual child statuses, repeated/default-cwd/explicit-project output, the basic
 example, rename diagnostics, malformed/empty suites, helper filenames, empty or
@@ -125,8 +124,8 @@ and report skips with their reasons. Selection and fail-fast are described below
 Independent verification:
 
 ```sh
-goose build --debug test/execution_bootstrap.goose -o /tmp/goosetest-execution-unit
-/tmp/goosetest-execution-unit
+goose build --debug main.goose -o /tmp/goosetest
+/tmp/goosetest test --project . --filter test/execution/
 python3 integration/fixtures/execution/verify.py /tmp/goosetest
 ```
 

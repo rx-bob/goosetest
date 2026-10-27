@@ -1,9 +1,11 @@
 // Literal encoding preserves bytes while preventing source injection.
 namespace literals_test;
 
-import goosetest.src.generation.literals;
+import goosetest;
 
-fn test_bytes() {
+import src.generation.literals;
+
+fn test_bytes(outer: goosetest::Test&) {
     assert(generation::encoded_byte('"') == "\\\"");
     assert(generation::encoded_byte('\\') == "\\\\");
     assert(generation::encoded_byte('\n') == "\\x0A");
@@ -12,7 +14,7 @@ fn test_bytes() {
     assert(generation::encoded_byte('A') == "A");
 }
 
-fn test_function_bounds() {
+fn test_function_bounds(outer: goosetest::Test&) {
     var value: u8[>..] = [];
     for index in 0..1024 {
         value.push(0);

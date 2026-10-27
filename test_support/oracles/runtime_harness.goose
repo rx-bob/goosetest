@@ -1,9 +1,9 @@
 // Hand-written consumer owns result storage through reporting and process exit.
-import goosetest from "..";
+import goosetest from "../..";
 
 import os;
 
-import fixtures.runtime.harness;
+import goosetest.test_support.runtime_harness;
 
 fn main() {
     var option: u8[>..] = [];

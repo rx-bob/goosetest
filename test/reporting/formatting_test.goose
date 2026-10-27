@@ -1,10 +1,12 @@
 // Independent byte-level and chunk-boundary checks for terminal-safe report text.
 namespace formatting_test;
 
-import goosetest.src.reporting.formatting;
-import goosetest.src.runtime.results;
+import goosetest;
 
-fn test_labels() {
+import src.reporting.formatting;
+import src.runtime.results;
+
+fn test_labels(outer: goosetest::Test&) {
     assert(reporting::outcome_label(goosetest::Outcome.Passed) == "PASS");
     assert(reporting::outcome_label(goosetest::Outcome.Failed) == "FAIL");
     assert(reporting::outcome_label(goosetest::Outcome.Skipped) == "SKIP");
@@ -16,7 +18,7 @@ fn test_labels() {
     assert(reporting::phase_label(goosetest::Phase.SuiteCleanup) == "suite cleanup");
 }
 
-fn test_escaping() {
+fn test_escaping(outer: goosetest::Test&) {
     let source = "a\\\n\r\t\0\x1B[31m\x7F\x85é";
     let expected = "a\\\\\\x0A\\x0D\\x09\\x00\\x1B[31m\\x7F\\x85\\xC3\\xA9";
     var appended: u8[>..] = [];
@@ -34,7 +36,7 @@ fn test_escaping() {
     assert(empty_calls == 0);
 }
 
-fn test_chunk_bound() {
+fn test_chunk_bound(outer: goosetest::Test&) {
     var source: u8[>..] = [];
     for index in 0..5000 {
         source.push(0);

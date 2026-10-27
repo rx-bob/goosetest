@@ -1,15 +1,19 @@
 // Small trees verify roots, owned paths/content, ignored helpers, and explicit errors.
 namespace files_test;
 
-import goosetest.src.discovery.files;
-import goosetest.src.discovery.model;
-import goosetest.src.discovery.paths;
-import goosetest.test_support.filesystem;
+import goosetest;
+
+import src.discovery.files;
+import src.discovery.model;
+import src.discovery.paths;
+import test_support.filesystem;
+import test_support.selfhost;
 
 import os;
 import std;
 
-fn test_empty_and_optional(parent: u8[:]) {
+fn test_empty_and_optional(outer: goosetest::Test&) {
+    let parent = selfhost_support::scratch(outer);
     let root = filesystem_support::project(parent, "empty");
     filesystem_support::with_inventory() {
         inventory =>
@@ -34,7 +38,8 @@ fn test_empty_and_optional(parent: u8[:]) {
     }
 }
 
-fn test_owned_content(parent: u8[:]) {
+fn test_owned_content(outer: goosetest::Test&) {
+    let parent = selfhost_support::scratch(outer);
     let root = filesystem_support::project(parent, "owned");
     filesystem_support::directory(root, "src/nested");
     filesystem_support::write(root, "src/nested/first.goose", "// first");
@@ -59,7 +64,8 @@ fn scan_temporary_path(inventory: discovery::Inventory&, root: u8[:]) {
     discovery::scan(inventory, path);
 }
 
-fn test_missing_roots(parent: u8[:]) {
+fn test_missing_roots(outer: goosetest::Test&) {
+    let parent = selfhost_support::scratch(outer);
     let root = str(parent, "/missing");
     assert(make_dir(root));
     expect_error(root, discovery::Error.MissingRoot, "src");
@@ -69,7 +75,8 @@ fn test_missing_roots(parent: u8[:]) {
     expect_error(root, discovery::Error.RootNotDirectory, "test");
 }
 
-fn test_invalid_paths(parent: u8[:]) {
+fn test_invalid_paths(outer: goosetest::Test&) {
+    let parent = selfhost_support::scratch(outer);
     let names: const u8[:][5] = ["bad-name.goose", "if.goose", "line\nbreak.goose", ".goose", "a\\b.goose"];
     for name,
     index in names {
@@ -82,7 +89,8 @@ fn test_invalid_paths(parent: u8[:]) {
     expect_error(root, discovery::Error.InvalidImport, "src/bad-name");
 }
 
-fn test_links(parent: u8[:]) {
+fn test_links(outer: goosetest::Test&) {
+    let parent = selfhost_support::scratch(outer);
     let root = filesystem_support::project(parent, "cycle");
     assert(filesystem_support::symlink("../src", str(root, "/src/cycle")) == 0);
     expect_error(root, discovery::Error.Symlink, "src/cycle");
@@ -95,7 +103,8 @@ fn test_links(parent: u8[:]) {
     expect_error(file, discovery::Error.Symlink, "src/linked.goose");
 }
 
-fn test_unreadable(parent: u8[:]) {
+fn test_unreadable(outer: goosetest::Test&) {
+    let parent = selfhost_support::scratch(outer);
     assert(filesystem_support::unprivileged() != 0);
     let root = filesystem_support::project(parent, "unreadable_file");
     filesystem_support::write(root, "src/locked.goose", "denied");
@@ -135,7 +144,7 @@ fn expect_error(root: u8[:], expected: discovery::Error, path: u8[:]) {
     }
 }
 
-fn test_directory_read_error() {
+fn test_directory_read_error(outer: goosetest::Test&) {
     filesystem_support::with_inventory() {
         inventory =>
         let path = discovery::record_path(inventory, "src", 0);
@@ -156,7 +165,8 @@ fn test_directory_read_error() {
     }
 }
 
-fn test_limits(parent: u8[:]) {
+fn test_limits(outer: goosetest::Test&) {
+    let parent = selfhost_support::scratch(outer);
     let empty = filesystem_support::project(parent, "exact_empty");
     let exact = discovery::Limits {
         max_entries: 2,
@@ -245,7 +255,8 @@ fn verify(root: u8[:], limits: discovery::Limits, expected: discovery::Error, pa
     assert(filesystem_support::fd_count() == before);
 }
 
-fn test_large_trees(parent: u8[:]) {
+fn test_large_trees(outer: goosetest::Test&) {
+    let parent = selfhost_support::scratch(outer);
     let forward = make_large(parent, "forward", false);
     let reverse = make_large(parent, "reverse", true);
     verify_order(forward);

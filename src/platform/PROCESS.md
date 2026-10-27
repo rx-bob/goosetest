@@ -111,19 +111,21 @@ No per-test crash isolation or general sandbox is claimed.
 From the repository root with the pinned compiler and Apple command-line tools:
 
 ```sh
-export GOOSE_HOME=/tmp/goosetest-process-cache
+goose build --debug main.goose -o /tmp/goosetest
+/tmp/goosetest test --project .
+goose build --debug test_support/oracles/process_test.goose -o /tmp/goosetest-process-driver
 clang -std=c11 -Wall -Wextra -Werror integration/fixtures/process/child.c -o /tmp/goosetest-process-child
-goose build --debug test/process_bootstrap.goose -o /tmp/goosetest-process-unit
-goose build --debug integration/process_test.goose -o /tmp/goosetest-process-driver
-python3 integration/fixtures/process/verify.py /tmp/goosetest-process-driver \
-    /tmp/goosetest-process-child /tmp/goosetest-process-unit
+python3 integration/fixtures/process/verify.py /tmp/goosetest-process-driver /tmp/goosetest-process-child
 goosefmt check --config .goosefmt.toml src/platform/process.goose \
-    test/platform/process_test.goose test/process_bootstrap.goose \
-    test_support/process.goose integration/process_test.goose
+    test/platform/process_test.goose test_support/process.goose \
+    test_support/oracles/process_test.goose
 clang -std=c11 -Wall -Wextra -Werror -fsyntax-only native/process.c
 ```
 
-Expected: `process unit tests passed` and `process lifecycle tests passed`, exit 0.
+Expected: the generated unit and integration suites exit 0. The self-host root
+builds the purpose-built process child once in owned scratch space.
+The separate Python lifecycle oracle takes only the standalone driver and child
+executables; unit coverage runs through the generated repository suite.
 Tests use builtin assertions and a parent-owned temporary directory. The child
 fixture verifies literal argv/cwd and inherited streams; the matrix checks exit
 0/7/127, missing executable/cwd, ENOEXEC without shell fallback, signal termination,

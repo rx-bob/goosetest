@@ -1,11 +1,13 @@
 // Inventory status rejects unfinished and invalid scans before any filesystem work.
 namespace model_test;
 
-import goosetest.src.discovery.files;
-import goosetest.src.discovery.model;
-import goosetest.test_support.filesystem;
+import goosetest;
 
-fn test_invalid_limits() {
+import src.discovery.files;
+import src.discovery.model;
+import test_support.filesystem;
+
+fn test_invalid_limits(outer: goosetest::Test&) {
     let limits: discovery::Limits[6] = [
         discovery::Limits {
             max_entries: - 1,
@@ -40,7 +42,7 @@ fn test_invalid_limits() {
     }
 }
 
-fn test_status() {
+fn test_status(outer: goosetest::Test&) {
     filesystem_support::with_inventory() {
         inventory =>
         assert(discovery::status(inventory) == 2);

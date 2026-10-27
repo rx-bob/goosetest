@@ -69,5 +69,5 @@ mismatch variants, plus compiler-negative checks for mismatched struct types and
 nonstruct operands:
 
 ```sh
-python3 integration/fixtures/struct/verify.py /tmp/goosetest
+python3 integration/fixtures/struct_values/verify.py /tmp/goosetest
 ```

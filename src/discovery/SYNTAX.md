@@ -90,12 +90,12 @@ inventory limits apply independently before syntax scanning.
 From the repository root with Goose v2026.3, choose a temporary cache/output path:
 
 ```sh
-GOOSE_HOME=/tmp/goosetest-syntax-cache goose build --debug test/syntax_test.goose -o /tmp/goosetest-syntax-test
-/tmp/goosetest-syntax-test
-goosefmt check --config .goosefmt.toml src/discovery test/discovery test/syntax_test.goose test_support/syntax.goose
+goose build --debug main.goose -o /tmp/goosetest
+/tmp/goosetest test --project . --filter test/discovery/
+goosefmt check --config .goosefmt.toml src/discovery test/discovery test_support/syntax.goose
 ```
 
-Expected: `syntax tests passed`, exit 0. Independent builtin assertions cover
+Expected: selected discovered tests pass and exit 0. Independent builtin assertions cover
 lexical decoys, multiline authoring, hook forms, unsupported declarations,
 annotation attachment/escapes, stable IDs, duplicates, temporary source ownership,
 inventory filtering, exact/over budgets and path/line/column diagnostics. The

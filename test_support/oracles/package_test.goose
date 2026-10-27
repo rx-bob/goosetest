@@ -15,9 +15,9 @@ fn main() {
     assert(read_file(output_path, output));
     if variant == "passing" {
         assert(status == "0");
-        assert(output == embed_file("fixtures/package/passing.stdout"));
+        assert(output == embed_file("../../integration/fixtures/package/passing.stdout"));
     } else {
         assert(status == "1");
-        assert(output == embed_file("fixtures/package/failing.stdout"));
+        assert(output == embed_file("../../integration/fixtures/package/failing.stdout"));
     }
 }

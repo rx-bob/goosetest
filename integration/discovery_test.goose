@@ -1,6 +1,9 @@
 // Filesystem-to-manifest checks use parent-owned disposable projects and builtin assertions.
 namespace discovery_integration_test;
 
+import goosetest;
+import test_support.selfhost;
+
 import os;
 import std;
 
@@ -12,7 +15,8 @@ import test_support.filesystem;
 import test_support.mirror;
 import test_support.syntax;
 
-fn test_project(root: u8[:]) {
+fn test_project(outer: goosetest::Test&) {
+    let root = selfhost_support::scratch(outer);
     let project = filesystem_support::project(root, "valid");
     for name in["a", "a0"] {
         filesystem_support::write(project, str("src/", name, ".goose"), "namespace production;");
@@ -66,7 +70,8 @@ fn check_valid(project: u8[:]) {
     }
 }
 
-fn test_empty_suites(root: u8[:]) {
+fn test_empty_suites(outer: goosetest::Test&) {
+    let root = selfhost_support::scratch(outer);
     for kind in["unit", "integration"] {
         let project = filesystem_support::project(root, kind);
         var path = str("test/empty_test.goose");
@@ -94,7 +99,15 @@ fn test_empty_suites(root: u8[:]) {
     }
 }
 
-fn test_original_poc(project: u8[:]) {
+fn test_original_poc(outer: goosetest::Test&) {
+    let root = selfhost_support::scratch(outer);
+    let project = filesystem_support::project(root, "original_poc");
+    filesystem_support::directory(project, "src/workspaces");
+    filesystem_support::write(project, "src/workspaces/archive.goose", "namespace archive;");
+    for name in["first", "second"] {
+        filesystem_support::write(project, str("src/", name, ".goose"), "namespace production;");
+        filesystem_support::write(project, str("test/", name, "_test.goose"), "namespace tests;");
+    }
     filesystem_support::with_inventory() {
         inventory =>
         discovery::scan(inventory, project);
@@ -118,7 +131,8 @@ fn test_original_poc(project: u8[:]) {
     }
 }
 
-fn test_no_cases(root: u8[:]) {
+fn test_no_cases(outer: goosetest::Test&) {
+    let root = selfhost_support::scratch(outer);
     let project = filesystem_support::project(root, "no_cases");
     filesystem_support::with_inventory() {
         inventory =>

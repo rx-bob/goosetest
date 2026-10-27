@@ -1,12 +1,14 @@
 // Argument grammar checks include ownership after temporary argv buffers disappear.
 namespace arguments_test;
 
+import goosetest;
+
 import std;
 
-import goosetest.src.arguments;
-import goosetest.src.discovery.selection;
+import src.arguments;
+import src.discovery.selection;
 
-fn test_valid() {
+fn test_valid(outer: goosetest::Test&) {
     var project: u8[>..] = [];
     var options = arguments::new_options(project);
     arguments::consume(options, "--project");
@@ -23,7 +25,7 @@ fn temporary_path(options: arguments::Options&) {
     arguments::consume(options, path);
 }
 
-fn test_defaults() {
+fn test_defaults(outer: goosetest::Test&) {
     var project: u8[>..] = [];
     var options = arguments::new_options(project);
     arguments::consume(options, "check-mirror");
@@ -32,7 +34,7 @@ fn test_defaults() {
     assert(options.command == arguments::Command.CheckMirror);
 }
 
-fn test_invalid() {
+fn test_invalid(outer: goosetest::Test&) {
     invalid(["check-mirror", "--filter", "x"]);
     invalid(["test", "list"]);
     invalid(["list", "check-mirror"]);
@@ -57,7 +59,7 @@ fn invalid(values: const u8[:][:]) {
     assert(options.error.len > 0);
 }
 
-fn test_help_and_limit() {
+fn test_help_and_limit(outer: goosetest::Test&) {
     var project: u8[>..] = [];
     var options = arguments::new_options(project);
     arguments::consume(options, "list");
@@ -71,7 +73,7 @@ fn test_help_and_limit() {
     invalid(["list", "--project", long_path]);
 }
 
-fn test_execution_options() {
+fn test_execution_options(outer: goosetest::Test&) {
     var project: u8[>..] = [];
     var options = arguments::new_options(project);
     arguments::consume(options, "--compiler");
@@ -94,7 +96,7 @@ fn temporary_compiler(options: arguments::Options&) {
     arguments::consume(options, path);
 }
 
-fn test_execution_defaults() {
+fn test_execution_defaults(outer: goosetest::Test&) {
     var project: u8[>..] = [];
     var options = arguments::new_options(project);
     arguments::consume(options, "test");
@@ -103,7 +105,7 @@ fn test_execution_defaults() {
     assert(options.compile_timeout_seconds == 120 && options.run_timeout_seconds == 120);
 }
 
-fn test_execution_invalid() {
+fn test_execution_invalid(outer: goosetest::Test&) {
     invalid(["list", "--compiler", "goose"]);
     invalid(["check-mirror", "--run-timeout-seconds", "1"]);
     invalid(["--help", "--compile-timeout-seconds", "1"]);
@@ -128,7 +130,7 @@ fn test_execution_invalid() {
     invalid(["test", "--compiler", long_path]);
 }
 
-fn test_selection_options() {
+fn test_selection_options(outer: goosetest::Test&) {
     var project: u8[>..] = [];
     var options = arguments::new_options(project);
     arguments::consume(options, "--filter");
@@ -149,7 +151,7 @@ fn temporary_filter(options: arguments::Options&) {
     arguments::consume(options, value);
 }
 
-fn test_selection_empty_and_defaults() {
+fn test_selection_empty_and_defaults(outer: goosetest::Test&) {
     var project: u8[>..] = [];
     var options = arguments::new_options(project);
     arguments::consume(options, "list");
@@ -170,7 +172,7 @@ fn test_selection_empty_and_defaults() {
     assert(other.suite == selection::Suite.Unit);
 }
 
-fn test_selection_invalid() {
+fn test_selection_invalid(outer: goosetest::Test&) {
     invalid(["list", "--filter"]);
     invalid(["test", "--suite"]);
     invalid(["test", "--suite", ""]);

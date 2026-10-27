@@ -9,7 +9,7 @@ import sys
 import tempfile
 import time
 
-driver, child, unit = (str(Path(p).resolve()) for p in sys.argv[1:])
+driver, child = (str(Path(p).resolve()) for p in sys.argv[1:])
 
 
 def result(output):
@@ -52,7 +52,6 @@ with tempfile.TemporaryDirectory(prefix="goosetest-process-") as temporary:
     cwd.mkdir()
     executable = cwd / 'child space "quote" $cash;semi'
     shutil.copy2(child, executable)
-    subprocess.run([unit, str(executable), str(cwd)], check=True, timeout=10)
     arguments = ["", "space value", 'double"quote', "single'quote", "$HOME", "a;touch injected", "\\slash", "line\nbreak"]
     response, record = invoke(cwd, str(executable), "echo", *arguments)
     expected = "cwd=" + str(cwd) + "\n" + "".join("arg=" + a + "\n" for a in arguments)

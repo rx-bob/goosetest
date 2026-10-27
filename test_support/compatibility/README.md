@@ -1,12 +1,12 @@
 # E1.S1 compatibility fixtures
 
 Run from the repository root with the pinned compiler described in
-[compatibility.md](../../../docs/compatibility.md).
+[compatibility.md](../../docs/compatibility.md).
 
 `contract/` is a miniature compiler probe package, not the production runtime.
 `users/` exercises its bridge from two namespaces. `scenarios.goose` checks hard
 stops, continuation, nested recovery, const-generic inputs, and storage references.
-The standalone `integration/compatibility_test.goose` is the root entry point.
+The standalone `test_support/oracles/compatibility_test.goose` is the root entry point.
 Built-in assertions are the oracle; no goosetest implementation judges itself.
 
 The following shell commands are an external bootstrap procedure, not repository
@@ -20,9 +20,9 @@ Build failures stop the procedure before any binary can run.
     work=$(mktemp -d "${TMPDIR:-/tmp}/goosetest-compatibility.XXXXXX")
     trap 'rm -rf "$work"' EXIT
     export GOOSE_HOME="$work/cache"
-    fixtures=integration/fixtures/compatibility
+    fixtures=test_support/compatibility
 
-    goose build --debug integration/compatibility_test.goose -o "$work/positive"
+    goose build --debug test_support/oracles/compatibility_test.goose -o "$work/positive"
     "$work/positive"
     goosefmt check --config .goosefmt.toml integration
 

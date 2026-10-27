@@ -110,26 +110,21 @@ preserves the first failure rather than replacing it with a secondary close erro
 
 Run as an unprivileged user so permission-denial fixtures actually fail access.
 The suite explicitly rejects a root-user run rather than silently skipping those
-checks. Its parent owns and cleans the temporary directory, even if an assertion
-fails. Native test-only `chmod`/symlink helpers are kept out of the production
-adapter; permission modes are restored immediately after the scan.
+checks. The self-host root owns scratch directories. The independent verifier
+supplies a temporary parent that also cleans up after a fatal assertion. Native
+test-only `chmod`/symlink helpers stay outside the production adapter; permission
+modes are restored immediately after the scan.
 
 From the repository root:
 
 ```sh
-(
-    set -eu
-    work=$(mktemp -d "${TMPDIR:-/tmp}/goosetest-discovery.XXXXXX")
-    trap 'chmod -R u+rwX "$work"; rm -rf "$work"' EXIT
-    export GOOSE_HOME="$work/cache"
-    goose build --debug test/discovery_test.goose -o "$work/discovery-test"
-    "$work/discovery-test" "$work/project roots with spaces"
-    goosefmt check --config .goosefmt.toml src/discovery src/platform \
-        test/discovery test/platform test/discovery_test.goose test_support/filesystem.goose
-)
+goose build --debug main.goose -o /tmp/goosetest
+/tmp/goosetest test --project .
+goosefmt check --config .goosefmt.toml src/discovery src/platform \
+    test/discovery test/platform test_support/filesystem.goose
 ```
 
-Expected: `discovery tests passed`, process status 0, style status 0. Independent
+Expected: generated tests pass with process status 0 and style status 0. Independent
 builtin assertions check:
 
 - Empty/nested roots, missing roots, optional integration, and ignored helper roots.
@@ -144,6 +139,16 @@ builtin assertions check:
 - Descriptor counts before/after success and failure; bounded reads, empty files,
   invalid child names, and preserved errno distinctions.
 
-The two C sources in `test/discovery_test.build` deliberately have distinct
-basenames. The pinned compiler uses basenames for native object files, so giving
+Native sources in `goosetest_root.build` deliberately have distinct basenames. The pinned compiler uses basenames for native object files, so giving
 a test helper the same basename as the production adapter overwrites its object.
+
+The independent self-host verifier checks the discovered inventory and runs a
+copy with an injected framework assertion failure. It observes the actual child
+status externally, so a broken success verdict cannot certify itself. The copy,
+compiler cache, and scratch parent are disposable; the checkout stays unchanged.
+Run it from the repository root:
+
+```sh
+goose build --debug scripts/verify.goose -o /tmp/goosetest-verify
+/tmp/goosetest-verify
+```

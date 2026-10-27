@@ -2,9 +2,9 @@
 namespace context_test;
 
 import goosetest;
-import goosetest.test_support.runtime;
+import test_support.runtime;
 
-fn test_reset() {
+fn test_reset(outer: goosetest::Test&) {
     runtime_support::with_test() {
         t =>
         goosetest::execute_case(t) {

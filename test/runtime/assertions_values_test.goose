@@ -2,12 +2,12 @@
 namespace assertions_values_test;
 
 import goosetest;
-import goosetest.test_support.runtime;
+import test_support.runtime;
 
 import math;
 import std;
 
-fn test_contains_values() {
+fn test_contains_values(outer: goosetest::Test&) {
     runtime_support::with_test() {
         t =>
         goosetest::execute_case(t) {
@@ -26,7 +26,7 @@ fn test_contains_values() {
     }
 }
 
-fn test_contains_failure() {
+fn test_contains_failure(outer: goosetest::Test&) {
     runtime_support::with_test() {
         t =>
         var reached = false;
@@ -54,7 +54,7 @@ fn test_contains_failure() {
     }
 }
 
-fn test_near_values() {
+fn test_near_values(outer: goosetest::Test&) {
     let infinity = exp(1000.0);
     assert(is_inf(infinity));
     let single: f32 = 1.5;
@@ -76,7 +76,7 @@ fn test_near_values() {
     }
 }
 
-fn test_near_failures() {
+fn test_near_failures(outer: goosetest::Test&) {
     let infinity = exp(1000.0);
     let nan = sqrt( - 1.0);
     assert(is_inf(infinity) && is_nan(nan));
@@ -120,7 +120,7 @@ fn near_failure(expected: f64, actual: f64, tolerance: f64, invalid: bool) {
     }
 }
 
-fn test_value_diagnostic_budgets() {
+fn test_value_diagnostic_budgets(outer: goosetest::Test&) {
     let message = "expected fragment: <missing> actual: <text>\n";
     let budgets: i64[2] = [message.len, message.len - 1];
     for budget in budgets {

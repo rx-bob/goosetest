@@ -97,15 +97,15 @@ The independent original runtime harness remains available through
 `examples/basic/bootstrap_root.goose`; its package regression keeps that oracle
 separate from generation tests.
 
-Until CLI execution and artifact management land, `integration/generation_test.goose`
-is a transitional driver for parent-owned fresh destinations. It performs the real
+`test_support/oracles/generation_test.goose` is an independent generation driver
+for parent-owned fresh destinations. It performs the real
 filesystem/mirror/syntax pipeline, stages all modules successfully, and only then
 writes them. The destination must not already exist. It does not replace or clean
 arbitrary project directories. To inspect a fresh generation snapshot:
 
 ```sh
 export GOOSE_HOME=/tmp/goosetest-generation-cache
-goose build --debug integration/generation_test.goose -o /tmp/goosetest-generate
+goose build --debug test_support/oracles/generation_test.goose -o /tmp/goosetest-generate
 work=$(mktemp -d)
 /tmp/goosetest-generate examples/basic "$work/goosetest_generated"
 goosefmt check --config .goosefmt.toml "$work/goosetest_generated"
@@ -114,22 +114,23 @@ diff -ru examples/basic/goosetest_generated "$work/goosetest_generated"
 
 Adding/changing test files requires regeneration, not edits to the root or a
 registration list. After reviewing changes, replace the entire known example
-snapshot with the fresh one; do not merge stale generated files. General project
-replacement/locking is intentionally deferred to E3.S4.
+snapshot with the fresh one; do not merge stale generated files. The CLI owns normal project
+replacement and locking; see [artifact contracts](ARTIFACTS.md).
 
 ## Verification
 
 ```sh
-goose build --debug test/generation_bootstrap.goose -o /tmp/goosetest-generation-unit
-/tmp/goosetest-generation-unit
+goose build --debug main.goose -o /tmp/goosetest
+/tmp/goosetest test --project . --filter test/generation/
+goose build --debug test_support/oracles/generation_test.goose -o /tmp/goosetest-generate
 python3 integration/fixtures/generation/verify.py /tmp/goosetest-generate
 goosefmt check --config .goosefmt.toml src/generation test/generation \
-    test/generation_bootstrap.goose test_support/generation.goose \
-    integration/generation_test.goose examples/basic
+    test_support/generation.goose \
+    test_support/oracles/generation_test.goose examples/basic
 ```
 
-Expected: `generation unit tests passed` and `generation compile tests passed`,
-exit 0. Python is the independent temporary parent/process launcher; it builds
+Expected: the generated unit suite and generation compile checks both exit 0.
+Python is the independent temporary parent/process launcher; it builds
 through unchanged authored roots in paths containing spaces and another cwd.
 It checks local native-package and root-sidecar paths, escaped and maximum-size
 labels, exact output determinism, unsupported inputs and exact/over budgets,

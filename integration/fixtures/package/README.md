@@ -1,6 +1,6 @@
 # Standalone package regression (E1.S4)
 
-`integration/package_test.goose` is an independent verification executable. It
+`test_support/oracles/package_test.goose` is an independent verification executable. It
 imports only `os`, checks the actual status supplied by the parent shell, and
 compares captured output against the two embedded `.stdout` expectations. It does
 not import goosetest or use framework assertions to judge framework behavior.
@@ -27,7 +27,7 @@ No new subprocess/native dependency is added to the runtime or checker.
     trap 'rm -rf "$work"' EXIT
     export GOOSE_HOME="$work/cache"
 
-    goose build --debug "$repo/integration/package_test.goose" -o "$work/oracle"
+    goose build --debug "$repo/test_support/oracles/package_test.goose" -o "$work/oracle"
     cp -R "$repo/examples/basic" "$work/consumer"
     mkdir "$work/elsewhere"
     ln -s "$repo" "$work/package"
@@ -67,7 +67,7 @@ No new subprocess/native dependency is added to the runtime or checker.
     verify_variant failing elsewhere
 
     goosefmt check --config "$repo/.goosefmt.toml" \
-        "$repo/examples/basic" "$repo/integration/package_test.goose"
+        "$repo/examples/basic" "$repo/test_support/oracles/package_test.goose"
 )
 ```
 

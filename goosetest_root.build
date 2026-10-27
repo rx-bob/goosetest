@@ -1,0 +1,2 @@
+// One canonical native implementation per interface, plus owned test fixtures.
+c_sources = ["native/filesystem.c", "native/process.c", "native/staging.c", "native/staging_manifest.c", "test_support/filesystem_fixture.c", "test_support/process_observer.c", "test_support/selfhost_fixture.c"];

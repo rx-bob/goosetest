@@ -1,15 +1,17 @@
 // Literal stable-ID selection never depends on display labels or disabled state.
 namespace selection_test;
 
+import goosetest;
+
 import std;
 
-import goosetest.src.discovery.declarations;
-import goosetest.src.discovery.manifest;
-import goosetest.src.discovery.model;
-import goosetest.src.discovery.selection;
-import goosetest.test_support.syntax;
+import src.discovery.declarations;
+import src.discovery.manifest;
+import src.discovery.model;
+import src.discovery.selection;
+import test_support.syntax;
 
-fn test_kinds_and_ids() {
+fn test_kinds_and_ids(outer: goosetest::Test&) {
     syntax_support::with_manifest() {
         manifest =>
         discovery::parse_file(manifest, "test/a_test.goose",
@@ -52,7 +54,7 @@ fn test_kinds_and_ids() {
     }
 }
 
-fn test_literal_specials_and_empty() {
+fn test_literal_specials_and_empty(outer: goosetest::Test&) {
     syntax_support::with_manifest() {
         manifest =>
         discovery::parse_file(manifest, "test/a[1]+_test.goose",

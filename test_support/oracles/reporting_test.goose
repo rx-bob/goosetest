@@ -1,5 +1,5 @@
 // Independent harness exercises retained runtime records without discovery or generation.
-import goosetest from "..";
+import goosetest from "../..";
 import goosetest.src.reporting.console;
 import goosetest.test_support.runtime;
 

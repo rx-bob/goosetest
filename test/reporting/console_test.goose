@@ -2,12 +2,12 @@
 namespace console_test;
 
 import goosetest;
-import goosetest.src.reporting.console;
-import goosetest.test_support.runtime;
+import src.reporting.console;
+import test_support.runtime;
 
 import std;
 
-fn test_case_order_and_totals() {
+fn test_case_order_and_totals(outer: goosetest::Test&) {
     runtime_support::with_test() {
         t =>
         goosetest::execute_case(t, identity("test_z", 20)) {
@@ -40,7 +40,7 @@ fn test_case_order_and_totals() {
     }
 }
 
-fn test_active_and_incomplete() {
+fn test_active_and_incomplete(outer: goosetest::Test&) {
     runtime_support::with_test() {
         t =>
         var active: u8[>..] = [];
@@ -73,7 +73,7 @@ fn identity(name: u8[:], line: i64) -> goosetest::CaseIdentity {
     };
 }
 
-fn test_runner_error_record() {
+fn test_runner_error_record(outer: goosetest::Test&) {
     runtime_support::with_test(goosetest::Limits {
             diagnostic_bytes: 0,
             ..
@@ -93,7 +93,7 @@ fn test_runner_error_record() {
     }
 }
 
-fn test_reused_id_order() {
+fn test_reused_id_order(outer: goosetest::Test&) {
     runtime_support::with_test() {
         t =>
         goosetest::execute_case(t, identity("test_same", 10)) {
@@ -119,7 +119,7 @@ fn test_reused_id_order() {
     }
 }
 
-fn test_standalone_suite_failure() {
+fn test_standalone_suite_failure(outer: goosetest::Test&) {
     runtime_support::with_test() {
         t =>
         goosetest::execute_case(t, identity("test_pass", 10)) {

@@ -1,5 +1,5 @@
 // Parent drives cancellation and verifies result records against external child observations.
-import goosetest from "..";
+import goosetest from "../..";
 import goosetest.src.platform.process;
 import goosetest.test_support.process;
 

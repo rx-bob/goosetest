@@ -1,10 +1,12 @@
 // Literal/comment decoys and delimiter/byte budgets are checked without the declaration parser.
 namespace lexer_test;
 
-import goosetest.src.discovery.lexer;
-import goosetest.src.discovery.model;
+import goosetest;
 
-fn test_locations() {
+import src.discovery.lexer;
+import src.discovery.model;
+
+fn test_locations(outer: goosetest::Test&) {
     var tokens: discovery::Token[>..] = [];
     let source = "\xEF\xBB\xBF// header\r\nnamespace sample;\r\n  fn test_x() {}\n";
     let error = discovery::lex(source, tokens);
@@ -16,7 +18,7 @@ fn test_locations() {
     assert(discovery::token_text(source, tokens[4]) == "fn");
 }
 
-fn test_groups() {
+fn test_groups(outer: goosetest::Test&) {
     var tokens: discovery::Token[>..] = [];
     let error = discovery::lex("([{ }])", tokens, discovery::SyntaxLimits {
             max_nesting: 3,
@@ -39,7 +41,7 @@ fn test_groups() {
         });
 }
 
-fn test_lexical_errors() {
+fn test_lexical_errors(outer: goosetest::Test&) {
     expect_error("\"unterminated", discovery::SyntaxIssue.UnterminatedQuote);
     expect_error("\"\"\"unterminated", discovery::SyntaxIssue.UnterminatedRaw);
     expect_error("/* unterminated", discovery::SyntaxIssue.UnterminatedComment);
@@ -53,7 +55,7 @@ fn test_lexical_errors() {
     expect_error("{", discovery::SyntaxIssue.UnclosedDelimiter);
 }
 
-fn test_literal_decoys() {
+fn test_literal_decoys(outer: goosetest::Test&) {
     var tokens: discovery::Token[>..] = [];
     let source = "\"fn test_string() {}\" '\\'' '\\x7D' /* outer /* test_fake */ done */ // fn test_line\n";
     let error = discovery::lex(source, tokens);
@@ -65,7 +67,7 @@ fn test_literal_decoys() {
     assert(tokens[4].kind == discovery::TokenKind.LineComment);
 }
 
-fn test_lexer_limits() {
+fn test_lexer_limits(outer: goosetest::Test&) {
     var tokens: discovery::Token[>..] = [];
     let limits = discovery::SyntaxLimits {
         max_tokens: 1,

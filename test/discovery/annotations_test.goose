@@ -1,13 +1,15 @@
 // Metadata requires exact spelling, supported escapes, and contiguous attachment to a test.
 namespace annotations_test;
 
-import goosetest.src.discovery.manifest;
-import goosetest.src.discovery.model;
-import goosetest.test_support.syntax;
+import goosetest;
+
+import src.discovery.manifest;
+import src.discovery.model;
+import test_support.syntax;
 
 import std;
 
-fn test_bad_annotations() {
+fn test_bad_annotations(outer: goosetest::Test&) {
     check("// @Tag(\"x\")", discovery::SyntaxIssue.UnknownAnnotation);
     check("// @RepeatedTest(2)", discovery::SyntaxIssue.UnknownAnnotation);
     check("// @Unknown(\"x\")", discovery::SyntaxIssue.UnknownAnnotation);
@@ -21,7 +23,7 @@ fn test_bad_annotations() {
     check("// @Disabled(\"a\")\n// @Disabled(\"b\")", discovery::SyntaxIssue.DuplicateAnnotation);
 }
 
-fn test_orphans() {
+fn test_orphans(outer: goosetest::Test&) {
     let misplaced = str("namespace x;\nfn test_x(\n// @Disabled(\"why\")\n",
         "t: goosetest::Test&) {}");
     syntax_support::expect_error(misplaced, discovery::SyntaxIssue.OrphanAnnotation, 3);
@@ -36,7 +38,7 @@ fn test_orphans() {
     syntax_support::expect_error("namespace x;\n// @Disabled(\"x\")", discovery::SyntaxIssue.OrphanAnnotation, 2);
 }
 
-fn test_metadata_escapes() {
+fn test_metadata_escapes(outer: goosetest::Test&) {
     syntax_support::with_manifest() {
         manifest =>
         let source = "namespace x;\n// Mention @Unknown in prose.\n// @DisplayName(\"\\n\\r\\t\\0\\\\\\\"\\'\\x41\")\n// @Disabled(\"why\")\nfn test_x(t: goosetest::Test&) {}";

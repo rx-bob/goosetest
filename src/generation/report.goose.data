@@ -2,8 +2,7 @@
 namespace goosetest_generated_report;
 
 import goosetest;
-import goosetest.src.reporting.console;
 
 fn report(results: goosetest::Results&, planned_cases: i64) {
-    reporting::report(results, planned_cases);
+    report_results(results, planned_cases);
 }

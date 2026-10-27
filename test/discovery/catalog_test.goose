@@ -1,13 +1,15 @@
 // Collision checks use stable IDs and suite namespaces, independent of labels or selection.
 namespace catalog_test;
 
-import goosetest.src.discovery.catalog;
-import goosetest.src.discovery.declarations;
-import goosetest.src.discovery.manifest;
-import goosetest.src.discovery.model;
-import goosetest.test_support.syntax;
+import goosetest;
 
-fn test_duplicates() {
+import src.discovery.catalog;
+import src.discovery.declarations;
+import src.discovery.manifest;
+import src.discovery.model;
+import test_support.syntax;
+
+fn test_duplicates(outer: goosetest::Test&) {
     syntax_support::expect_error("namespace x; fn test_x(t: goosetest::Test&) {} fn test_x(t: goosetest::Test&) {}",
         discovery::SyntaxIssue.DuplicateCase);
     syntax_support::with_manifest() {
@@ -21,7 +23,7 @@ fn test_duplicates() {
     }
 }
 
-fn test_labels_do_not_define_identity() {
+fn test_labels_do_not_define_identity(outer: goosetest::Test&) {
     syntax_support::with_manifest() {
         manifest =>
         let source = "namespace x;\n// @DisplayName(\"same\")\nfn test_one(t: goosetest::Test&) {}\n// @DisplayName(\"same\")\nfn test_two(t: goosetest::Test&) {}";
@@ -35,7 +37,7 @@ fn test_labels_do_not_define_identity() {
     }
 }
 
-fn test_empty_manifest() {
+fn test_empty_manifest(outer: goosetest::Test&) {
     syntax_support::with_manifest() {
         manifest =>
         discovery::finish_manifest(manifest);
@@ -44,7 +46,7 @@ fn test_empty_manifest() {
     }
 }
 
-fn test_inventory_selection() {
+fn test_inventory_selection(outer: goosetest::Test&) {
     var files: discovery::SourceFile[>..] = [];
     var paths: u8[>..] = [];
     var sources: u8[>..] = [];
@@ -94,7 +96,7 @@ fn add_file(inventory: discovery::Inventory&, path: u8[:], source: u8[:], kind: 
         });
 }
 
-fn test_strict_suite_files() {
+fn test_strict_suite_files(outer: goosetest::Test&) {
     for path in["test/helper.goose", "integration/helper.goose", "test/_test.goose"] {
         var files: discovery::SourceFile[>..] = [];
         var paths: u8[>..] = [];
@@ -113,7 +115,7 @@ fn test_strict_suite_files() {
     }
 }
 
-fn test_disabled_suite_is_nonempty() {
+fn test_disabled_suite_is_nonempty(outer: goosetest::Test&) {
     var files: discovery::SourceFile[>..] = [];
     var paths: u8[>..] = [];
     var sources: u8[>..] = [];

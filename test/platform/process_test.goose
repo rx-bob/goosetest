@@ -1,10 +1,15 @@
 // Process results distinguish real exits from launch, signal and resource failures.
 namespace process_test;
 
-import goosetest.src.platform.process;
-import goosetest.test_support.process;
+import goosetest;
+import test_support.selfhost;
 
-fn test_exits(child: u8[:], cwd: u8[:]) {
+import src.platform.process;
+import test_support.process;
+
+fn test_exits(outer: goosetest::Test&) {
+    let child = selfhost_support::child();
+    let cwd = selfhost_support::scratch(outer);
     assert(process_support::begin() == 1);
     for code in["0", "7", "127"] {
         let argv: const u8[:][3] = [child, "exit", code];
@@ -24,7 +29,9 @@ fn test_exits(child: u8[:], cwd: u8[:]) {
     assert(process_support::end() == 1);
 }
 
-fn test_launch_and_signal(child: u8[:], cwd: u8[:]) {
+fn test_launch_and_signal(outer: goosetest::Test&) {
+    let child = selfhost_support::child();
+    let cwd = selfhost_support::scratch(outer);
     assert(process_support::begin() == 1);
     let missing = process::run(["/definitely/missing/goosetest-child"], cwd);
     assert(missing.outcome == process::Outcome.LaunchFailed && missing.native_error > 0);
@@ -40,7 +47,7 @@ fn test_launch_and_signal(child: u8[:], cwd: u8[:]) {
     assert(process_support::end() == 1);
 }
 
-fn test_invalid() {
+fn test_invalid(outer: goosetest::Test&) {
     assert(process::run([], ".").outcome == process::Outcome.InvalidInput);
     assert(process::run([""], ".").outcome == process::Outcome.InvalidInput);
     assert(process::run(["x\0y"], ".").outcome == process::Outcome.InvalidInput);
@@ -58,7 +65,9 @@ fn test_invalid() {
         == process::Outcome.InvalidInput);
 }
 
-fn test_bounds(child: u8[:], cwd: u8[:]) {
+fn test_bounds(outer: goosetest::Test&) {
+    let child = selfhost_support::child();
+    let cwd = selfhost_support::scratch(outer);
     var argv: const u8[:][>..] = [];
     argv.push(child);
     argv.push("ok");

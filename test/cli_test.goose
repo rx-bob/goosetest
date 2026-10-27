@@ -1,19 +1,23 @@
-// Listing bytes stay deterministic even when metadata contains decoded controls.
+// CLI dispatch rejects invalid options before help or any project access.
 namespace cli_test;
 
-import goosetest.src.cli_output;
-import goosetest.src.discovery.manifest;
-import goosetest.test_support.syntax;
+import goosetest;
+import src.arguments;
+import src.cli;
 
-fn test_output() {
-    assert(cli_output::escaped("why\n\t\0\r\\\x7F") == "why\\x0A\\x09\\x00\\x0D\\\\\\x7F");
-    syntax_support::with_manifest() {
-        manifest =>
-        syntax_support::parse(manifest,
-            "namespace sample;\n// @Disabled(\"pending\")\nfn test_x(t: goosetest::Test&) {}");
-        assert(discovery::manifest_status(manifest) == 0);
-        assert(cli_output::case_line(manifest, manifest.cases[0])
-            == "unit  test/example_test.goose::sample::test_x  (test/example_test.goose:3:1)\n");
-        assert(cli_output::case_summary(manifest) == "1 discovered cases: 0 executable, 1 disabled\n");
-    }
+fn test_invalid_options_before_help(outer: goosetest::Test&) {
+    var project: u8[>..] = [];
+    var options = arguments::new_options(project);
+    options.help = true;
+    options.error = "unit test invalid options";
+    assert(cli::run(options) == 2);
+    assert(project.len == 0);
+}
+
+fn test_help_without_project(outer: goosetest::Test&) {
+    var project: u8[>..] = [];
+    var options = arguments::new_options(project);
+    options.help = true;
+    assert(cli::run(options) == 0);
+    assert(project.len == 0);
 }

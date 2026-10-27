@@ -1,0 +1,2 @@
+// Verification uses the same bounded child-process adapter as the CLI.
+c_sources = ["../native/process.c"];

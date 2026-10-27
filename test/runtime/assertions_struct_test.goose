@@ -2,7 +2,7 @@
 namespace assertions_struct_test;
 
 import goosetest;
-import goosetest.test_support.runtime;
+import test_support.runtime;
 
 import std;
 
@@ -37,7 +37,7 @@ fn format(out: u8[>..]&, value: Nested) {
     ::format(out, "nested=", value.number);
 }
 
-fn test_equal_and_const() {
+fn test_equal_and_const(outer: goosetest::Test&) {
     let expected = Decision {
         allowed: true,
         reason: "allowed"
@@ -65,7 +65,7 @@ fn test_equal_and_const() {
     }
 }
 
-fn test_multiple_and_single() {
+fn test_multiple_and_single(outer: goosetest::Test&) {
     let expected = Decision {
         allowed: true,
         reason: "allowed"
@@ -104,7 +104,7 @@ fn test_multiple_and_single() {
     }
 }
 
-fn test_nested_format_hook() {
+fn test_nested_format_hook(outer: goosetest::Test&) {
     let expected = Envelope {
         nested: Nested {
             number: 1
@@ -131,7 +131,7 @@ fn test_nested_format_hook() {
     }
 }
 
-fn test_slice_fields() {
+fn test_slice_fields(outer: goosetest::Test&) {
     let first: i64[3] = [1, 2, 3];
     var second: i64[3] = [1, 2, 3];
     let expected = Collection {
@@ -157,7 +157,7 @@ fn test_slice_fields() {
     }
 }
 
-fn test_struct_budget() {
+fn test_struct_budget(outer: goosetest::Test&) {
     let expected = Decision {
         allowed: true,
         reason: "same"
@@ -193,7 +193,7 @@ fn test_struct_budget() {
     }
 }
 
-fn test_struct_limit_stops_hooks() {
+fn test_struct_limit_stops_hooks(outer: goosetest::Test&) {
     let expected = Envelope {
         nested: Nested {
             number: 1
@@ -221,7 +221,7 @@ fn test_struct_limit_stops_hooks() {
     }
 }
 
-fn test_multifield_budget_atomicity() {
+fn test_multifield_budget_atomicity(outer: goosetest::Test&) {
     let expected = Decision {
         allowed: true,
         reason: "allowed"
@@ -250,7 +250,7 @@ fn test_multifield_budget_atomicity() {
     }
 }
 
-fn test_nested_slice_identity() {
+fn test_nested_slice_identity(outer: goosetest::Test&) {
     var left: i64[2] = [1, 2];
     var right: i64[2] = [1, 2];
     let expected = NestedSlices {

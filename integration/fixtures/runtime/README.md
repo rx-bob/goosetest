@@ -86,7 +86,7 @@ retained bytes after fixtures and temporary assertion arguments have left scope.
 `case_diagnostics(t)` reads the current completed case's text.
 
 `Phase` represents body, per-case setup/cleanup, and suite setup/cleanup. Phase is
-recorded with each failure; lifecycle orchestration remains for E4. `skip_case`
+recorded with each failure; generated lifecycle wrappers own setup and cleanup. `skip_case`
 records a skipped result and owned reason without executing a body.
 `record_filtered` increments a separate inventory count and allocates no result.
 These record operations do not implement annotation parsing or filtering policy.
@@ -156,9 +156,9 @@ are materialized only inside a disposable directory.
     trap 'rm -rf "$work"' EXIT
     export GOOSE_HOME="$work/cache"
 
-    goose build --debug test/runtime_test.goose -o "$work/unit"
-    "$work/unit"
-    goose build --debug integration/runtime_harness.goose -o "$work/harness"
+    goose build --debug main.goose -o "$work/goosetest"
+    "$work/goosetest" test --project . --filter test/runtime/
+    goose build --debug test_support/oracles/runtime_harness.goose -o "$work/harness"
     "$work/harness"
     status=0
     "$work/harness" --fail || status=$?
@@ -185,3 +185,14 @@ are materialized only inside a disposable directory.
 
 Historical POCs and `.goose.data` inputs remain outside formatter discovery.
 The earlier compatibility fixture matrix remains independently runnable.
+
+The independent self-host verifier checks the discovered inventory and runs a
+copy with an injected framework assertion failure. It observes the actual child
+status externally, so a broken success verdict cannot certify itself. The copy,
+compiler cache, and scratch parent are disposable; the checkout stays unchanged.
+Run it from the repository root:
+
+```sh
+goose build --debug scripts/verify.goose -o /tmp/goosetest-verify
+/tmp/goosetest-verify
+```

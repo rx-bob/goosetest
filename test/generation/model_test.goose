@@ -1,10 +1,12 @@
 // Generation errors retain their first cause and never report partial modules as complete.
 namespace generation_model_test;
 
-import goosetest.src.generation.model;
-import goosetest.test_support.generation;
+import goosetest;
 
-fn test_invalid_limits() {
+import src.generation.model;
+import test_support.generation;
+
+fn test_invalid_limits(outer: goosetest::Test&) {
     for index in 0..3 {
         var limits = generation::Limits {
         };

@@ -2,9 +2,9 @@
 namespace execution_test;
 
 import goosetest;
-import goosetest.test_support.runtime;
+import test_support.runtime;
 
-fn test_hard_stop() {
+fn test_hard_stop(outer: goosetest::Test&) {
     runtime_support::with_test() {
         t =>
         var reached = false;
@@ -31,7 +31,7 @@ fn hard_helper(t: goosetest::Test&) {
     t.fail("unreachable helper statement");
 }
 
-fn test_soft_failures() {
+fn test_soft_failures(outer: goosetest::Test&) {
     runtime_support::with_test() {
         t =>
         var reached = false;
@@ -52,7 +52,7 @@ fn test_soft_failures() {
     }
 }
 
-fn test_soft_then_hard() {
+fn test_soft_then_hard(outer: goosetest::Test&) {
     runtime_support::with_test() {
         t =>
         goosetest::execute_case(t) {
@@ -66,7 +66,7 @@ fn test_soft_then_hard() {
     }
 }
 
-fn test_phase_failures() {
+fn test_phase_failures(outer: goosetest::Test&) {
     for mode in 0..5 {
         runtime_support::with_test() {
             t =>
@@ -133,7 +133,7 @@ fn test_phase_failures() {
     }
 }
 
-fn test_cleanup_after_limit() {
+fn test_cleanup_after_limit(outer: goosetest::Test&) {
     runtime_support::with_test(goosetest::Limits {
             diagnostic_bytes: 0,
             ..
@@ -176,7 +176,7 @@ fn suite_identity(name: u8[:], line: i64) -> goosetest::CaseIdentity {
     };
 }
 
-fn test_suite_failures_are_separate() {
+fn test_suite_failures_are_separate(outer: goosetest::Test&) {
     runtime_support::with_test() {
         t =>
         t.suite_active = true;
@@ -207,7 +207,7 @@ fn test_suite_failures_are_separate() {
     }
 }
 
-fn test_suite_cleanup_and_next_suite() {
+fn test_suite_cleanup_and_next_suite(outer: goosetest::Test&) {
     runtime_support::with_test() {
         t =>
         let ready = goosetest::run_suite_hook(t, suite_identity("before_all", 12), goosetest::Phase.SuiteSetup) {
@@ -239,7 +239,7 @@ fn test_suite_cleanup_and_next_suite() {
     }
 }
 
-fn test_suite_empty_selection() {
+fn test_suite_empty_selection(outer: goosetest::Test&) {
     runtime_support::with_test() {
         t =>
         var called = false;
@@ -258,7 +258,7 @@ fn test_suite_empty_selection() {
     }
 }
 
-fn test_suite_limit_cleanup() {
+fn test_suite_limit_cleanup(outer: goosetest::Test&) {
     runtime_support::with_test(goosetest::Limits {
             metadata_bytes: 0,
             ..
@@ -279,7 +279,7 @@ fn test_suite_limit_cleanup() {
     }
 }
 
-fn test_fail_fast_finalization() {
+fn test_fail_fast_finalization(outer: goosetest::Test&) {
     runtime_support::with_test() {
         t =>
         t.results.fail_fast = true;

@@ -1,15 +1,17 @@
 // Exact syntax budgets cannot silently drop suites, cases, or owned metadata.
 namespace manifest_test;
 
-import goosetest.src.discovery.catalog;
-import goosetest.src.discovery.declarations;
-import goosetest.src.discovery.manifest;
-import goosetest.src.discovery.model;
-import goosetest.test_support.syntax;
+import goosetest;
+
+import src.discovery.catalog;
+import src.discovery.declarations;
+import src.discovery.manifest;
+import src.discovery.model;
+import test_support.syntax;
 
 let TWO_CASES = "namespace x; fn test_a(t: goosetest::Test&) {} fn test_b(t: goosetest::Test&) {}";
 
-fn test_case_and_suite_limits() {
+fn test_case_and_suite_limits(outer: goosetest::Test&) {
     syntax_support::with_manifest(discovery::SyntaxLimits {
             max_cases: 2,
             max_suites: 1,
@@ -44,7 +46,7 @@ fn test_case_and_suite_limits() {
     }
 }
 
-fn test_byte_limits() {
+fn test_byte_limits(outer: goosetest::Test&) {
     syntax_support::with_manifest(discovery::SyntaxLimits {
             max_file_bytes: TWO_CASES.len,
             max_total_bytes: TWO_CASES.len,
@@ -74,7 +76,7 @@ fn test_byte_limits() {
     }
 }
 
-fn test_text_limits() {
+fn test_text_limits(outer: goosetest::Test&) {
     var needed: i64 = 0;
     syntax_support::with_manifest() {
         manifest =>
@@ -102,7 +104,7 @@ fn test_text_limits() {
     }
 }
 
-fn test_invalid_limits() {
+fn test_invalid_limits(outer: goosetest::Test&) {
     let limits: discovery::SyntaxLimits[7] = [
         discovery::SyntaxLimits {
             max_file_bytes: - 1,

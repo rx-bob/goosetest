@@ -2,7 +2,7 @@
 namespace diagnostics_test;
 
 import goosetest;
-import goosetest.test_support.runtime;
+import test_support.runtime;
 
 import std;
 
@@ -17,7 +17,7 @@ fn format(out: u8[>..]&, value: Value) {
     ::format(out, value.number);
 }
 
-fn test_failure_limit() {
+fn test_failure_limit(outer: goosetest::Test&) {
     runtime_support::with_test(goosetest::Limits {
             failures: 2,
             ..
@@ -50,7 +50,7 @@ fn test_failure_limit() {
     }
 }
 
-fn test_byte_limit() {
+fn test_byte_limit(outer: goosetest::Test&) {
     runtime_support::with_test(goosetest::Limits {
             diagnostic_bytes: FAILURE_TEXT.len,
             ..
@@ -77,7 +77,7 @@ fn test_byte_limit() {
     }
 }
 
-fn test_byte_boundary() {
+fn test_byte_boundary(outer: goosetest::Test&) {
     let budgets: i64[2] = [FAILURE_TEXT.len, FAILURE_TEXT.len - 1];
     for budget in budgets {
         runtime_support::with_test(goosetest::Limits {
@@ -101,7 +101,7 @@ fn test_byte_boundary() {
     }
 }
 
-fn test_zero_failure_budget() {
+fn test_zero_failure_budget(outer: goosetest::Test&) {
     runtime_support::with_test(goosetest::Limits {
             failures: 0,
             diagnostic_bytes: 0,
@@ -128,7 +128,7 @@ fn test_zero_failure_budget() {
     }
 }
 
-fn test_phase_and_lifetime() {
+fn test_phase_and_lifetime(outer: goosetest::Test&) {
     runtime_support::with_test() {
         t =>
         record_temporary_values(t);
@@ -149,7 +149,7 @@ fn test_phase_and_lifetime() {
     }
 }
 
-fn test_format_budget() {
+fn test_format_budget(outer: goosetest::Test&) {
     let envelope = "expected: <> actual: <>\n";
     let budgets: i64[2] = [0, envelope.len + 1];
     for budget in budgets {
@@ -186,7 +186,7 @@ fn test_format_budget() {
     }
 }
 
-fn test_explicit_budget() {
+fn test_explicit_budget(outer: goosetest::Test&) {
     let text = "label: explicit failure\n";
     let budgets: i64[2] = [text.len, text.len - 1];
     for budget in budgets {

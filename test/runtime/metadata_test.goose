@@ -2,9 +2,9 @@
 namespace metadata_test;
 
 import goosetest;
-import goosetest.test_support.runtime;
+import test_support.runtime;
 
-fn test_retained_identity() {
+fn test_retained_identity(outer: goosetest::Test&) {
     runtime_support::with_test() {
         t =>
         record_temporary_identity(t);
@@ -41,7 +41,7 @@ fn record_temporary_identity(t: goosetest::Test&) {
     }
 }
 
-fn test_metadata_limit() {
+fn test_metadata_limit(outer: goosetest::Test&) {
     runtime_support::with_test(goosetest::Limits {
             metadata_bytes: 3,
             ..
@@ -70,7 +70,7 @@ fn test_metadata_limit() {
     }
 }
 
-fn test_metadata_atomicity() {
+fn test_metadata_atomicity(outer: goosetest::Test&) {
     runtime_support::with_test(goosetest::Limits {
             metadata_bytes: 2,
             ..

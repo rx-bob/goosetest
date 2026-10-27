@@ -2,7 +2,7 @@
 namespace assertions_test;
 
 import goosetest;
-import goosetest.test_support.runtime;
+import test_support.runtime;
 
 import std;
 
@@ -17,7 +17,7 @@ fn format(out: u8[>..]&, value: Value) {
     ::format(out, "value=", value.number);
 }
 
-fn test_passing_values() {
+fn test_passing_values(outer: goosetest::Test&) {
     runtime_support::with_test() {
         t =>
         var text: u8[>..] = [];
@@ -42,7 +42,7 @@ fn test_passing_values() {
     }
 }
 
-fn test_boolean_failures() {
+fn test_boolean_failures(outer: goosetest::Test&) {
     runtime_support::with_test() {
         t =>
         goosetest::execute_case(t) {
@@ -60,7 +60,7 @@ fn test_boolean_failures() {
     }
 }
 
-fn test_explicit_and_unequal_failures() {
+fn test_explicit_and_unequal_failures(outer: goosetest::Test&) {
     runtime_support::with_test() {
         t =>
         goosetest::execute_case(t) {
@@ -80,7 +80,7 @@ fn test_explicit_and_unequal_failures() {
     }
 }
 
-fn test_failed_text_and_slices() {
+fn test_failed_text_and_slices(outer: goosetest::Test&) {
     runtime_support::with_test() {
         t =>
         goosetest::execute_case(t) {
@@ -97,7 +97,7 @@ fn test_failed_text_and_slices() {
     }
 }
 
-fn test_format_hooks() {
+fn test_format_hooks(outer: goosetest::Test&) {
     runtime_support::with_test() {
         t =>
         let first = Value {
@@ -128,7 +128,7 @@ fn test_format_hooks() {
     }
 }
 
-fn test_empty_and_different_length_slices() {
+fn test_empty_and_different_length_slices(outer: goosetest::Test&) {
     runtime_support::with_test() {
         t =>
         let empty: i64[0] = [];

@@ -55,8 +55,8 @@ case only after cleanup returns.
 Verification:
 
 ```sh
-goose build --debug test/runtime_test.goose -o /tmp/goosetest-runtime
-/tmp/goosetest-runtime
+goose build --debug main.goose -o /tmp/goosetest
+/tmp/goosetest test --project . --filter test/runtime/
 python3 integration/fixtures/lifecycle/verify.py /tmp/goosetest
 ```
 

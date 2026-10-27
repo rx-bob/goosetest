@@ -1,9 +1,11 @@
 // Pinned import grammar and bytewise path ordering are checked independently.
 namespace paths_test;
 
-import goosetest.src.discovery.paths;
+import goosetest;
 
-fn test_segments() {
+import src.discovery.paths;
+
+fn test_segments(outer: goosetest::Test&) {
     let valid: const u8[:][8] = ["_", "A", "a1", "snake_case", "inline", "from", "fields", "checkfree"];
     for name in valid {
         assert(discovery::import_segment(name));

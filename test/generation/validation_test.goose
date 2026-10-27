@@ -1,12 +1,14 @@
 // Path and identifier channels cannot carry literals or bypass generated style bounds.
 namespace validation_test;
 
+import goosetest;
+
 import std;
 
-import goosetest.src.discovery.model;
-import goosetest.src.generation.validation;
+import src.discovery.model;
+import src.generation.validation;
 
-fn test_paths() {
+fn test_paths(outer: goosetest::Test&) {
     assert(generation::valid_path("test/nested/name_test.goose", discovery::RootKind.Unit));
     assert(generation::valid_path("integration/flow_test.goose", discovery::RootKind.Integration));
     assert( !generation::valid_path("test/../name_test.goose", discovery::RootKind.Unit));
@@ -21,7 +23,7 @@ fn test_paths() {
     assert( !generation::identifier(name));
 }
 
-fn test_path_bounds() {
+fn test_path_bounds(outer: goosetest::Test&) {
     var directory: u8[>..] = [];
     var base: u8[>..] = [];
     for index in 0..40 {

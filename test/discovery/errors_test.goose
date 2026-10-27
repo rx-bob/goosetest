@@ -1,11 +1,13 @@
 // Diagnostics preserve the offending path, configured budget, and native error number.
 namespace errors_test;
 
-import goosetest.src.discovery.errors;
-import goosetest.src.discovery.model;
-import goosetest.test_support.filesystem;
+import goosetest;
 
-fn test_diagnostics() {
+import src.discovery.errors;
+import src.discovery.model;
+import test_support.filesystem;
+
+fn test_diagnostics(outer: goosetest::Test&) {
     filesystem_support::with_inventory() {
         inventory =>
         discovery::fail(inventory, discovery::Error.PathLimit, "src/a.goose", 0, 10);

@@ -1,5 +1,5 @@
 // Transitional generation driver: parent owns a fresh destination and all cleanup.
-import goosetest from "..";
+import goosetest from "../..";
 import goosetest.src.discovery.files;
 import goosetest.src.discovery.manifest;
 import goosetest.src.discovery.mirror;

@@ -1,13 +1,15 @@
 // Signature rejection is independent from compiler type checking of test bodies.
 namespace signatures_test;
 
-import goosetest.src.discovery.manifest;
-import goosetest.src.discovery.model;
-import goosetest.test_support.syntax;
+import goosetest;
+
+import src.discovery.manifest;
+import src.discovery.model;
+import test_support.syntax;
 
 import std;
 
-fn test_bad_parameters() {
+fn test_bad_parameters(outer: goosetest::Test&) {
     check("fn test_x() {}", discovery::SyntaxIssue.TestSignature);
     check("fn test_x(f: Fixture&) {}", discovery::SyntaxIssue.TestSignature);
     check("fn test_x(t: Test&) {}", discovery::SyntaxIssue.ParameterType);
@@ -20,7 +22,7 @@ fn test_bad_parameters() {
     check("fn test_x(t: goosetest::Test&);", discovery::SyntaxIssue.FunctionBody);
 }
 
-fn test_unsupported_modifiers() {
+fn test_unsupported_modifiers(outer: goosetest::Test&) {
     check("fn test_x<T>(t: goosetest::Test&) {}", discovery::SyntaxIssue.FunctionModifiers);
     check("recursive fn test_x(t: goosetest::Test&) {}", discovery::SyntaxIssue.FunctionModifiers);
     check("thread_fn test_x(t: goosetest::Test&) {}", discovery::SyntaxIssue.FunctionModifiers);
@@ -34,7 +36,7 @@ fn test_unsupported_modifiers() {
     check("fn nested::test_x(t: goosetest::Test&) {}", discovery::SyntaxIssue.FunctionModifiers);
 }
 
-fn test_hook_signatures() {
+fn test_hook_signatures(outer: goosetest::Test&) {
     check("fn before_all(f: Fixture&) {}", discovery::SyntaxIssue.HookSignature);
     check("fn after_all(t: goosetest::Test&, f: Fixture&) {}", discovery::SyntaxIssue.HookSignature);
     check("fn before_each() {}", discovery::SyntaxIssue.HookSignature);
