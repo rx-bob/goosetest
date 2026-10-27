@@ -24,6 +24,8 @@ fn main() {
     execution_test::test_hard_stop();
     execution_test::test_soft_failures();
     execution_test::test_soft_then_hard();
+    execution_test::test_phase_failures();
+    execution_test::test_cleanup_after_limit();
     assertions_test::test_passing_values();
     assertions_test::test_boolean_failures();
     assertions_test::test_explicit_and_unequal_failures();

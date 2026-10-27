@@ -7,17 +7,47 @@ import src.runtime.results;
 
 fn execute_case<F>(t: Test&, identity: CaseIdentity = CaseIdentity {
     }) {
-    reset(t);
-    t.current_case = reserve_case(t.results, identity);
-    if t.current_case < 0 {
+    if !begin_case(t, identity) {
         return;
     }
-    t.active = true;
-    t.results.active = true;
     run_case(t) {
         F();
     }
     finish_case(t);
+}
+
+// Fixture owners live inside F until all separately recovered phases finish.
+fn execute_fixture<F>(t: Test&, identity: CaseIdentity = CaseIdentity {
+    }) {
+    if !begin_case(t, identity) {
+        return;
+    }
+    F();
+    finish_case(t);
+}
+
+fn begin_case(t: Test&, identity: CaseIdentity) -> bool {
+    reset(t);
+    t.current_case = reserve_case(t.results, identity);
+    if t.current_case < 0 {
+        return false;
+    }
+    t.active = true;
+    t.results.active = true;
+    return true;
+}
+
+// Cleanup may still be attempted after a resource error; no phase resets earlier failures.
+fn run_phase<F>(t: Test&, phase: Phase) -> bool {
+    assert(t.active);
+    let previous_phase = t.phase;
+    let failures_before = t.failures;
+    t.phase = phase;
+    run_case(t) {
+        F();
+    }
+    t.phase = previous_phase;
+    return t.failures == failures_before && !t.results.incomplete;
 }
 
 // Assertions return here, never past the outer coordinator's finalization.

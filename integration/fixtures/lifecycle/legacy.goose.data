@@ -1,0 +1,40 @@
+// Fixture-only hooks remain supported alongside mixed test signatures.
+namespace lifecycle_test;
+
+import goosetest;
+
+import std;
+
+var constructed: i64 = 0;
+
+fn initialize() -> i64 {
+    constructed += 1;
+    print("EVENT CONSTRUCT ", constructed);
+    return 5;
+}
+
+struct Fixture {
+    value: i64 = initialize(),
+}
+
+fn before_each(f: Fixture&) {
+    print("EVENT SETUP");
+    assert(f.value == 5);
+    f.value = 7;
+}
+
+fn after_each(f: Fixture&) {
+    print("EVENT CLEAN");
+    assert(f.value == 9);
+}
+
+fn test_first(t: goosetest::Test&, f: Fixture&) {
+    print("EVENT BODY");
+    t.assert_eq(7, f.value);
+    f.value = 9;
+}
+
+fn test_free(t: goosetest::Test&) {
+    print("EVENT FREE");
+    t.assert_eq(1, constructed);
+}

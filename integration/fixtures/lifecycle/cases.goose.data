@@ -1,0 +1,58 @@
+// Lifecycle sentinels are read by an independent parent process.
+namespace lifecycle_test;
+
+import goosetest;
+
+import std;
+
+var constructed: i64 = 0;
+
+fn initialize() -> i64 {
+    constructed += 1;
+    print("EVENT CONSTRUCT ", constructed);
+    return constructed;
+}
+
+struct Fixture {
+    id: i64 = initialize(),
+    state: i64 = 7,
+    ready: bool = false,
+}
+
+fn before_each(t: goosetest::Test&, f: Fixture&) {
+    print("EVENT SETUP ", f.id);
+    t.assert_eq(7, f.state);
+    t.assert_false(f.ready);
+    SETUP_EARLY
+    f.state = 9;
+    SETUP_FAILURE
+    f.ready = true;
+}
+
+fn after_each(t: goosetest::Test&, f: Fixture&) {
+    print("EVENT CLEAN ", f.id);
+    print("STATE ", f.id, " ", f.state, " ", f.ready);
+    CLEANUP_CHECK
+    CLEANUP_FAILURE
+}
+
+fn test_first(t: goosetest::Test&, f: Fixture&) {
+    print("EVENT BODY ", f.id);
+    t.assert_eq(9, f.state);
+    t.assert_true(f.ready);
+    f.state = 11;
+    BODY_FAILURE
+}
+
+fn test_fixture_free(t: goosetest::Test&) {
+    print("EVENT FREE ", constructed);
+    t.assert_eq(1, constructed);
+}
+
+fn test_second(t: goosetest::Test&, f: Fixture&) {
+    print("EVENT SECOND ", f.id);
+    t.assert_eq(2, constructed);
+    t.assert_eq(9, f.state);
+    t.assert_true(f.ready);
+    f.state = 12;
+}

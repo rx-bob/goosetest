@@ -18,9 +18,8 @@ fn validate(output: Output&, manifest: discovery::Manifest&) {
         if !valid_path(path, suite.kind) {
             fail(output, path, "invalid or overlong test module path (maximum 100 bytes)");
         }
-        if suite.before_each.present || suite.after_each.present
-            || suite.before_all.present || suite.after_all.present {
-            fail(output, path, "lifecycle hooks require E4 generation support");
+        if suite.before_all.present || suite.after_all.present {
+            fail(output, path, "suite lifecycle hooks require E4.S2 generation support");
         }
     }
     for entry in manifest.cases {
@@ -29,9 +28,6 @@ fn validate(output: Output&, manifest: discovery::Manifest&) {
         let name = discovery::manifest_text(manifest, entry.name);
         if !identifier(name) {
             fail(output, path, "test identifier exceeds 48 bytes or is invalid");
-        }
-        if entry.uses_fixture {
-            fail(output, path, "fixture parameters require E4 generation support");
         }
         if entry.disabled {
             fail(output, path, "disabled execution requires E4 generation support");

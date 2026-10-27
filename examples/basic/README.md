@@ -45,11 +45,11 @@ Do not copy the runtime into your application or reconstruct its package modules
 The generated snapshot keeps this example buildable from a clean checkout.
 After adding or changing tests, regenerate from the complete audited manifest;
 no root or registration list edit is needed. See the
-[generation procedure](../../src/generation/README.md) for the transitional driver
-and fresh-output workflow. The one-command execution CLI arrives in E3.S3.
-Fixture parameters, lifecycle hooks and disabled execution are rejected by this
-first generator until E4 supplies their semantics. Fixture-free tests and escaped
-display labels are supported now.
+[CLI instructions](../../src/CLI.md) for automatic regeneration and execution.
+Per-case fixtures and before_each/after_each hooks are supported alongside
+fixture-free tests; see [lifecycle contracts](../../src/runtime/LIFECYCLE.md).
+Suite hooks and disabled execution remain deferred.
+
 
 ## Assertions and failure behavior
 

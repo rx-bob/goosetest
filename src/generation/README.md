@@ -49,10 +49,11 @@ sets case/metadata capacities from the validated manifest, while keeping finite
 runtime failure/diagnostic defaults. An incomplete runtime stops further case
 bodies and returns status 2.
 
-Fixture-free tests and display labels work now. Fixture parameters, lifecycle
-hooks and disabled cases produce explicit generation errors until E4 implements
-their semantics; they are never silently ignored or executed with changed meaning.
-A declared but unused Fixture does not block fixture-free tests.
+Fixture-free tests, display labels and per-case fixtures are supported. Fixture
+parameters select fresh construction and optional before_each/after_each hooks
+with separate recovery boundaries. See [lifecycle contracts](../runtime/LIFECYCLE.md).
+Suite hooks and disabled cases still produce explicit generation errors pending
+E4.S2/E4.S3. A declared but unused Fixture never runs for fixture-free tests.
 
 ## Bounds and source encoding
 
