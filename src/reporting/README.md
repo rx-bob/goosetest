@@ -60,5 +60,5 @@ python3 integration/fixtures/reporting/verify.py /tmp/goosetest-reporting
 The independent six-case harness reports 5 passed/1 skipped/status 0 normally,
 and 4 passed/1 failed/1 skipped/status 1 after changing the viewer expectation.
 Additional modes exercise mixed phase failures, filtering, not-run counts and
-incomplete execution. Disabled generation remains E4; the harness uses the
-existing explicit `skip_case` runtime API.
+incomplete execution. The harness uses the explicit `skip_case` runtime API;
+generated disabled cases now share that API.

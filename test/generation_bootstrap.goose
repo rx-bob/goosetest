@@ -3,6 +3,7 @@ import goosetest from "..";
 
 import std;
 
+import generation.disabled_test;
 import generation.literals_test;
 import generation.model_test;
 import generation.runner_test;
@@ -18,6 +19,9 @@ fn main() {
     runner_test::test_deterministic_and_limits();
     runner_test::test_incomplete();
     suites_test::test_rejections();
+    disabled_test::test_all_disabled_wrappers();
+    disabled_test::test_mixed_disabled_reason();
+    disabled_test::test_reason_bound();
     suites_test::test_fixture_wrappers();
     suites_test::test_suite_hook_wrappers();
     suites_test::test_fixture_without_hooks();

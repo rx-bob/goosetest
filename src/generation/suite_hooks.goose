@@ -9,12 +9,16 @@ fn has_suite_hooks(suite: discovery::Suite) -> bool {
     return suite.before_all.present || suite.after_all.present;
 }
 
-fn emit_suite_wrapper(out: u8[>..]&, manifest: discovery::Manifest&, index: i64) {
+fn emit_suite_wrapper(out: u8[>..]&, manifest: discovery::Manifest&, index: i64, executable: bool) {
     let entry = manifest.cases[index];
     let suite = manifest.suites[entry.suite_index];
     let first = index == suite.first_case;
     let last = index + 1 == suite.first_case + suite.case_count;
     out.append("fn run(t: goosetest::Test&) {\n");
+    if !executable {
+        emit_disabled_suite(out, suite, first, last);
+        return;
+    }
     if first {
         out.append("    if t.results.incomplete {\n        return;\n    }\n");
         out.append("    t.suite_active = true;\n    t.suite_ready = true;\n");
@@ -28,6 +32,18 @@ fn emit_suite_wrapper(out: u8[>..]&, manifest: discovery::Manifest&, index: i64)
             out.append("    after_suite(t);\n");
         }
         out.append("    t.suite_active = false;\n    t.suite_ready = true;\n");
+    }
+    out.append("}\n\n");
+}
+
+// Keep hook calls checked even when the suite has no executable cases.
+fn emit_disabled_suite(out: u8[>..]&, suite: discovery::Suite, first: bool, last: bool) {
+    if first && suite.before_all.present {
+        out.append("    if false {\n        before_suite(t);\n    }\n");
+    }
+    out.append("    run_selected(t);\n");
+    if last && suite.after_all.present {
+        out.append("    if false {\n        after_suite(t);\n    }\n");
     }
     out.append("}\n\n");
 }

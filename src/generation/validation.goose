@@ -26,8 +26,8 @@ fn validate(output: Output&, manifest: discovery::Manifest&) {
         if !identifier(name) {
             fail(output, path, "test identifier exceeds 48 bytes or is invalid");
         }
-        if entry.disabled {
-            fail(output, path, "disabled execution requires E4 generation support");
+        if entry.disabled && entry.disabled_reason.length > 1024 {
+            fail(output, path, "disabled reason exceeds generation limit of 1024 bytes");
         }
         if discovery::manifest_text(manifest, entry.display_name).len > 1024 {
             fail(output, path, "display label exceeds generation limit of 1024 bytes");

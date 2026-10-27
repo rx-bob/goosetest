@@ -53,7 +53,9 @@ Fixture-free tests, display labels and per-case fixtures are supported. Fixture
 parameters select fresh construction and optional before_each/after_each hooks
 with separate recovery boundaries. See [lifecycle contracts](../runtime/LIFECYCLE.md).
 Suite hooks now wrap executable suites; setup failure produces explicit case
-skips and cleanup still runs. Disabled cases remain deferred to E4.S3. A declared but unused Fixture never runs for fixture-free tests.
+skips and cleanup still runs. Disabled cases retain typechecked cold wrappers but
+only record skips at runtime. A declared but unused Fixture never runs for
+fixture-free tests.
 
 ## Bounds and source encoding
 
@@ -61,7 +63,7 @@ skips and cleanup still runs. Disabled cases remain deferred to E4.S3. A declare
 | --- | ---: |
 | Namespace, function and import segment | 48 bytes |
 | Original test module path including extension | 100 bytes |
-| Display label | 1024 decoded bytes |
+| Display label or disabled reason | 1024 decoded bytes |
 | Encoded literal chunk | at most 64 source bytes |
 | Dispatch fanout | 32 |
 | Default output files | 70000 |
@@ -70,7 +72,7 @@ skips and cleanup still runs. Disabled cases remain deferred to E4.S3. A declare
 | Per-module scratch ceiling | 65536 bytes |
 
 The three output budgets are injectable and nonnegative; exact limits succeed.
-Discovery's own suite/case/input limits apply independently. Identifier/path/label
+Discovery's own suite/case/input limits apply independently. Identifier/path/metadata
 bounds make emitted style guarantees explicit; valid but longer source names
 receive an actionable generation error rather than truncated identifiers. The
 `goosetest_generated*` namespace prefix is reserved against test namespaces.

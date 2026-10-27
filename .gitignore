@@ -1,2 +1,6 @@
 docs/
 poc/
+# Disposable consumer artifacts; tracked example sources remain a bootstrap snapshot.
+**/goosetest_generated/*
+!examples/basic/goosetest_generated/.owner
+!examples/basic/goosetest_generated/.manifest

@@ -1,4 +1,4 @@
-// Lifecycle hooks follow signatures; unsupported disabled cases and unsafe names fail before emission.
+// Lifecycle hooks follow signatures; disabled wrappers retain typed but unreachable calls.
 namespace suites_test;
 
 import std;
@@ -11,7 +11,6 @@ import goosetest.test_support.generation;
 import goosetest.test_support.syntax;
 
 fn test_rejections() {
-    reject("namespace x;\n// @Disabled(\"pending\")\nfn test_x(t: goosetest::Test&) {}");
     reject("namespace goosetest_generated; fn test_x(t: goosetest::Test&) {}");
     reject("namespace goosetest_generated_extra; fn test_x(t: goosetest::Test&) {}");
     assert( !generation::identifier("x; injected"));

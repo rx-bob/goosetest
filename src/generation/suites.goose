@@ -9,7 +9,7 @@ import src.generation.model;
 import src.generation.suite_hooks;
 import src.generation.validation;
 
-fn emit_case(output: Output&, manifest: discovery::Manifest&, index: i64) {
+fn emit_case(output: Output&, manifest: discovery::Manifest&, index: i64, executable: bool) {
     let entry = manifest.cases[index];
     let suite = manifest.suites[entry.suite_index];
     let path = discovery::manifest_text(manifest, suite.path);
@@ -19,7 +19,7 @@ fn emit_case(output: Output&, manifest: discovery::Manifest&, index: i64) {
     format(out, "// Generated direct case wrapper; edit the original test source.\nnamespace goosetest_generated_case_",
         index, ";\n\nimport goosetest;\n\nimport ", import_path(path), ";\n\n");
     if has_suite_hooks(suite) {
-        emit_suite_wrapper(out, manifest, index);
+        emit_suite_wrapper(out, manifest, index, executable);
         out.append("fn run_selected(t: goosetest::Test&) {\n");
     } else {
         out.append("fn run(t: goosetest::Test&) {\n");
@@ -30,7 +30,9 @@ fn emit_case(output: Output&, manifest: discovery::Manifest&, index: i64) {
     out.append("    let identity = goosetest::CaseIdentity {\n        test_path: path,\n");
     out.append("        namespace_name: namespace_name,\n        function_name: function_name,\n");
     format(out, "        display_name: display_name,\n        declaration_line: ", entry.location.line, ",\n    };\n");
-    if has_suite_hooks(suite) {
+    if entry.disabled {
+        emit_disabled_skip(out);
+    } else if has_suite_hooks(suite) {
         out.append("    if !t.suite_ready {\n");
         out.append("        goosetest::skip_case(t.results, identity, \"suite setup failed\");\n");
         out.append("        return;\n    }\n");
@@ -46,7 +48,17 @@ fn emit_case(output: Output&, manifest: discovery::Manifest&, index: i64) {
     emit_text(out, "source_namespace", namespace_name);
     emit_text(out, "source_function", function_name);
     emit_text(out, "source_display", discovery::manifest_text(manifest, entry.display_name));
+    if entry.disabled {
+        emit_text(out, "source_reason", discovery::manifest_text(manifest, entry.disabled_reason));
+    }
     add_module(output, str("case_", index, ".goose"), out);
+}
+
+// The pinned compiler specializes calls in `if false` before dead-code elimination.
+fn emit_disabled_skip(out: u8[>..]&) {
+    out.append("    if false {\n        run_disabled(t, identity);\n    }\n");
+    out.append("    let reason = source_reason();\n    goosetest::skip_case(t.results, identity, reason);\n}\n\n");
+    out.append("fn run_disabled(t: goosetest::Test&, identity: goosetest::CaseIdentity) {\n");
 }
 
 fn emit_fixture(out: u8[>..]&, namespace_name: u8[:], function_name: u8[:], suite: discovery::Suite) {

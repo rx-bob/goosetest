@@ -60,11 +60,12 @@ with tempfile.TemporaryDirectory(prefix="goosetest-execution-") as tmp:
     (empty / "test/a_test.goose").unlink()
     (empty / "src/a.goose").unlink()
     run(empty, 2, b"no tests executed")
-    disabled = project("generation")
-    text = (disabled / "test/a_test.goose").read_text().replace("fn test_first", '// @Disabled("later")\nfn test_first')
-    (disabled / "test/a_test.goose").write_text(text)
-    run(disabled, 2, b"generation")
-    assert not (disabled / "goosetest_generated").exists()
+    oversized = project("generation")
+    text = (oversized / "test/a_test.goose").read_text().replace(
+        "fn test_first", '// @DisplayName("' + 'x' * 1025 + '")\nfn test_first')
+    (oversized / "test/a_test.goose").write_text(text)
+    run(oversized, 2, b"generation")
+    assert not (oversized / "goosetest_generated").exists()
     run(project("missing compiler"), 2, b"compilation", ("--compiler", str(work / "absent")))
     compiler = work / "compiler with spaces"
     compiler.write_text('#!/bin/sh\nprintf started > compiler-started\nsleep 30\n')

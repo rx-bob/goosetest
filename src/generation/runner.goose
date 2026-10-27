@@ -20,11 +20,9 @@ fn generate(output: Output&, manifest: discovery::Manifest&, audit: discovery::M
     if output.error.len > 0 {
         return;
     }
-    for index in 0..manifest.cases.len {
-        emit_case(output, manifest, index);
-        if output.error.len > 0 {
-            return;
-        }
+    emit_cases(output, manifest);
+    if output.error.len > 0 {
+        return;
     }
     var count = manifest.cases.len;
     var level: i64 = 0;
@@ -43,6 +41,25 @@ fn generate(output: Output&, manifest: discovery::Manifest&, audit: discovery::M
     add_module(output, "report.goose", embed_file("report.goose.data"));
     add_module(output, "completion.goose", embed_file("completion.goose.data"));
     output.complete = output.error.len == 0;
+}
+
+// Each suite range is scanned once for executability and once for emission.
+fn emit_cases(output: Output&, manifest: discovery::Manifest&) {
+    for suite in manifest.suites {
+        var executable = false;
+        let end = suite.first_case + suite.case_count;
+        for index in suite.first_case..end {
+            if !manifest.cases[index].disabled {
+                executable = true;
+            }
+        }
+        for index in suite.first_case..end {
+            emit_case(output, manifest, index, executable);
+            if output.error.len > 0 {
+                return;
+            }
+        }
+    }
 }
 
 fn child_module(level: i64, index: i64) -> u8[>..] {
@@ -109,7 +126,9 @@ fn metadata_size(manifest: discovery::Manifest&) -> i64 {
     for entry in manifest.cases {
         let suite = manifest.suites[entry.suite_index];
         total += suite.path.length + suite.namespace_name.length + entry.name.length + entry.display_name.length;
-        if suite.before_all.present {
+        if entry.disabled {
+            total += entry.disabled_reason.length;
+        } else if suite.before_all.present {
             total += "suite setup failed".len;
         }
     }

@@ -183,7 +183,7 @@ Optional integration/: independent named *_test.goose suites. Every suite needs 
 Put helpers in test_support/. Root entries/facades and generated output are not audited.
 No exclusions or filters yet. list and check-mirror never compile or run tests.
 All commands validate the whole project; empty projects and incomplete discovery fail.
-Only @DisplayName and @Disabled metadata are parsed; execution of disabled cases awaits E4.
+Only @DisplayName and @Disabled metadata are supported; disabled cases compile but never execute.
 
 Default finite limits (bytes unless stated):
 Filesystem: 65536 entries, depth 64, 4096 per path, 8388608 retained path bytes,

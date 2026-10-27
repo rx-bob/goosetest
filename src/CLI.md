@@ -119,8 +119,8 @@ The checked-in basic snapshot includes ownership metadata, so it supports repeat
 CLI runs. Older snapshots without a marker must be moved aside explicitly; the CLI
 does not adopt them. Per-case fixtures and before_each/after_each hooks are
 supported, as are before_all/after_all suite hooks; see
-[lifecycle contracts](runtime/LIFECYCLE.md). Disabled execution and selection
-remain deferred; unsupported semantics fail before writing.
+[lifecycle contracts](runtime/LIFECYCLE.md). Disabled cases compile without executing
+and report skips with their reasons; selection remains deferred.
 
 Independent verification:
 

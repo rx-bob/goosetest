@@ -20,8 +20,8 @@ fn after_each(f: Fixture&) { }
 
 A hook needing assertions takes `t: goosetest::Test&` first, followed by
 `f: Fixture&`. Choose one form per hook name; duplicate forms are discovery
-errors. Hooks are optional. Suite hooks are described below; disabled execution
-and selection remain separate stories.
+errors. Hooks are optional. Suite hooks and disabled cases are described below;
+selection remains a separate story.
 
 Setup, body and cleanup each execute inside their own `run_case` recovery
 boundary. Hard assertions stop only the current phase. Any setup failure,
@@ -85,8 +85,8 @@ reserve both hook identities and possible setup-skip reasons.
 
 `run_suite_hook(..., executable: false)` performs no callback, metadata allocation,
 or state reset. This establishes the no-executable-selection boundary for disabled
-and filtered suites. End-to-end disabled/filter generation arrives in E4.S3/E4.S4;
-those unsupported requests still fail before execution today.
+and filtered suites. Generated all-disabled suites now enforce this boundary;
+filter selection arrives in E4.S4.
 
 Suite cleanup is attempted after framework resource exhaustion too, but exhausted
 storage cannot retain more diagnostics. A terminal resource error stops later
@@ -94,4 +94,43 @@ suites and returns status 2. Fatal process errors still have no cleanup guarante
 
 ```sh
 python3 integration/fixtures/suite/verify.py /tmp/goosetest
+```
+
+
+## Disabled cases and display labels
+
+Attach standalone metadata comments directly before a test declaration:
+
+```goose
+// @DisplayName("expired token with clock skew")
+// @Disabled("pending clock skew support")
+fn test_clock_skew(t: goosetest::Test&) {
+    t.fail("not implemented");
+}
+```
+
+Disabled cases keep their stable path/namespace/function identity and report a
+skip with the decoded reason and optional display label. Labels need not be
+unique and never replace identity. Reasons must contain at least one decoded
+byte. Both metadata strings have a 1024-byte generation limit. Ordinary quoted
+string escapes are decoded and safely re-encoded into generated source; terminal
+controls are escaped again by the console renderer.
+
+The disabled body and its requested fixture and per-case hooks remain in an
+unreachable, typechecked execution path with the required assertion recovery
+ancestor. Suite hooks in all-disabled suites also retain unreachable references.
+Compiler errors in these paths still fail the build. None of these constructors,
+bodies or hooks execute at runtime. A fixture-free disabled case does not invent
+a fixture dependency. A nonempty all-disabled run returns status 0 with its real
+skip count and no lifecycle side effects; an empty project remains an error.
+
+In mixed suites, suite hooks run once for executable cases. Disabled cases retain
+their declared reason even if suite setup fails; only executable cases receive
+`suite setup failed`. No fixture or per-case hook runs for a disabled case.
+
+Only `@DisplayName` and `@Disabled` are supported. `@Tag`, `@RepeatedTest`, unknown
+annotations, empty disabled reasons and malformed metadata fail discovery.
+
+```sh
+python3 integration/fixtures/disabled/verify.py /tmp/goosetest
 ```
