@@ -1,0 +1,2 @@
+// Style traversal and subprocesses use the existing native platform boundaries.
+c_sources = ["../native/process.c", "../native/filesystem.c"];

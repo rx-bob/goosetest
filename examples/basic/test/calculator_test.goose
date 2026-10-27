@@ -1,4 +1,4 @@
-// Ordinary named tests; bootstrap registration remains outside this mirrored suite.
+// Ordinary named tests are discovered automatically from this mirrored suite.
 namespace calculator_test;
 
 import goosetest;

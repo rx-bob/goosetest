@@ -77,13 +77,13 @@ with tempfile.TemporaryDirectory(prefix="goosetest-generation-") as temporary:
     authored = root.read_bytes(), sidecar.read_bytes(), snapshot(addon)
     generate(project, env)
     output = build_run(project, work, env, "basic")
-    assert output.count("PASS ") == 3 and "Cases: 3 passed" in output
+    assert output.count("PASS ") == 4 and "Cases: 4 passed" in output
     # New valid source/unit pair and integration suite: no root or registration edits.
     (project / "src/native.goose").write_text('namespace native_source;\nimport addon;\n'
         'extern "root_value" fn root_value() -> i32;\nfn value() -> i32 { return addon::value() + root_value(); }\n')
     (project / "test/native_test.goose").write_text('namespace native_test;\nimport goosetest;\nimport src.native;\n'
         'fn test_native(t: goosetest::Test&) { t.assert_eq(42, native_source::value()); }\n')
-    (project / "integration").mkdir()
+    (project / "integration").mkdir(exist_ok=True)
     label = b'quote" slash\\ newline\n nul\x00 utf8\xc3\xa9'
     (project / "integration/label_test.goose").write_text('namespace label_test;\nimport goosetest;\n'
         '// @DisplayName(' + literal(label) + ')\nfn test_label(t: goosetest::Test&) {\n'
@@ -98,7 +98,7 @@ with tempfile.TemporaryDirectory(prefix="goosetest-generation-") as temporary:
             '    for byte in label { t.assert_eq(1 as u8, byte); }\n}\n')
     generate(project, env)
     output = build_run(project, work, env, "native-and-label")
-    assert output.count("PASS ") == 6 and "Cases: 6 passed" in output
+    assert output.count("PASS ") == 7 and "Cases: 7 passed" in output
     assert authored == (root.read_bytes(), sidecar.read_bytes(), snapshot(addon))
     # Hard failure preserves original attribution and still runs later cases once.
     failed = project / "test/native_test.goose"
@@ -109,7 +109,7 @@ with tempfile.TemporaryDirectory(prefix="goosetest-generation-") as temporary:
     output = build_run(project, work, env, "failure", 1)
     assert "FAIL test/native_test.goose::native_test::test_native (test/native_test.goose:5)" in output
     assert "expected: <99>" in output and "actual: <42>" in output and "NEVER" not in output, output
-    # Large fixture crosses old case/file caps and forces two dispatch levels.
+    # Large fixture forces two dispatch levels; limits/verify.py checks the original per-root/module caps.
     large = work / "large project"
     (large / "src").mkdir(parents=True)
     (large / "test").mkdir()

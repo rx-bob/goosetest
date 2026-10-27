@@ -7,19 +7,20 @@ third-party runtime library is required.
 From the repository root:
 
 ```sh
-goose build --debug examples/basic/goosetest_root.goose -o /tmp/goosetest-basic
-/tmp/goosetest-basic
+task build
+build/goosetest test --project examples/basic
 ```
 
 Expected output and process status:
 
 ```text
 goosetest results (locations identify test declarations)
+PASS integration/arithmetic_test.goose::arithmetic_test::test_round_trip (integration/arithmetic_test.goose:21)
 PASS test/calculator_test.goose::calculator_test::test_addition (test/calculator_test.goose:8)
 PASS test/calculator_test.goose::calculator_test::test_subtraction (test/calculator_test.goose:12)
 PASS test/calculator_test.goose::calculator_test::test_zero_identity (test/calculator_test.goose:16)
-Cases: 3 passed, 0 failed, 0 skipped, 0 errors, 0 not run; 0 filtered
-Assertions: 4; suite-hook errors: 0
+Cases: 4 passed, 0 failed, 0 skipped, 0 errors, 0 not run; 0 filtered
+Assertions: 8; suite-hook errors: 0
 ```
 
 The executable exits 0. Build output comes from the compiler, separately from
@@ -30,6 +31,8 @@ the example's output above.
 - `src/calculator.goose` contains production arithmetic.
 - `test/calculator_test.goose` mirrors that module with ordinary namespaced
   `test_*(t: goosetest::Test&)` functions and direct imports.
+- `integration/arithmetic_test.goose` spans addition and subtraction, with a fresh
+  `Fixture` and `before_each`/`after_each` hooks for every case.
 - `goosetest_generated/` contains a checked-in deterministic generation snapshot.
   It owns result storage and calls every discovered case through the runtime.
 - `bootstrap_root.goose` and `test_support/bootstrap.goose` retain the independent
@@ -43,7 +46,7 @@ change the source to `"../goosetest"`. Subordinate files keep `import goosetest;
 Do not copy the runtime into your application or reconstruct its package modules.
 
 The generated snapshot keeps this example buildable from a clean checkout.
-After adding or changing tests, regenerate from the complete audited manifest;
+The CLI command above regenerates from the complete audited manifest after adding or changing tests;
 no root or registration list edit is needed. See the
 [CLI instructions](../../src/CLI.md) for automatic regeneration and execution.
 Per-case fixtures and before_each/after_each hooks are supported alongside
@@ -61,12 +64,12 @@ unless a storage budget is exhausted.
 
 Goose builtin `assert`, `abort`, and runtime checks are fatal checks, not
 recoverable test assertions. Use framework assertions for ordinary expectations.
-This harness returns 1 for assertion failures and 2 for incomplete/resource-error
+The generated runner returns 1 for assertion failures and 2 for incomplete/resource-error
 runs; it does not convert a fatal runtime abort into a normal case result.
 
 The [runtime reference](../../integration/fixtures/runtime/README.md) explains
-owned result storage, limits, diagnostics, and status codes. The small console
-display here belongs to this example; the runtime itself does not print.
+owned result storage, limits, diagnostics, and status codes. The reusable console renderer prints finalized records; assertions themselves
+do not print. Fatal aborts are reported as runner errors (status 2) by the CLI.
 
 ## External verification
 
@@ -82,7 +85,7 @@ Check example style from the repository root:
 goosefmt check --config .goosefmt.toml examples/basic
 ```
 
-For automatic regeneration and execution, build the CLI and run:
+Without Task, build the CLI directly and run:
 
 ```sh
 goose build --debug main.goose -o /tmp/goosetest

@@ -18,14 +18,14 @@ fn run(t: goosetest::Test&) {
         namespace_name: namespace_name,
         function_name: function_name,
         display_name: display_name,
-        declaration_line: 12,
+        declaration_line: 8,
     };
     if t.results.fail_fast_stop {
         goosetest::not_run_case(t.results, identity, "fail-fast");
         return;
     }
     goosetest::execute_case(t, identity) {
-        calculator_test::test_subtraction(t);
+        calculator_test::test_addition(t);
     }
 }
 
@@ -43,7 +43,7 @@ fn source_namespace() -> u8[>..] {
 
 fn source_function() -> u8[>..] {
     var text: u8[>..] = [];
-    text.append("test_subtraction");
+    text.append("test_addition");
     return text;
 }
 

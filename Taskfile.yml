@@ -1,0 +1,26 @@
+version: '3'
+
+tasks:
+  build:
+    desc: Build the supported debug CLI in build/goosetest
+    cmds:
+      - goose run scripts/prepare.goose --debug
+      - goose build scripts/build.goose --debug -o build/build
+      - build/build
+  test:
+    desc: Run self-hosted tests and all independent regression oracles
+    cmds:
+      - goose run scripts/prepare.goose --debug
+      - goose build scripts/verify.goose --debug -o build/verify
+      - build/verify
+  example:
+    desc: Compile and run the basic consumer through the CLI
+    cmds:
+      - task: build
+      - build/goosetest test --project examples/basic
+  check:
+    desc: Check shipping and representative generated Goose source
+    cmds:
+      - task: build
+      - goose build scripts/check.goose --debug -o build/check
+      - build/check

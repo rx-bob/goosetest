@@ -13,8 +13,8 @@ fn run_all() -> i32 {
     var diagnostics: u8[>..] = [];
     var metadata: u8[>..] = [];
     let limits = goosetest::Limits {
-        cases: 3,
-        metadata_bytes: 170,
+        cases: 4,
+        metadata_bytes: 233,
         ..
     };
     var results = goosetest::new_results(cases, failures, diagnostics, metadata, limits);
@@ -23,6 +23,6 @@ fn run_all() -> i32 {
         ..
     };
     goosetest_generated_dispatch_0_0::run(t);
-    goosetest_generated_report::report(results, 3);
+    goosetest_generated_report::report(results, 4);
     return goosetest_generated_completion::finish(goosetest::run_status(results));
 }

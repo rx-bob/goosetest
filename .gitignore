@@ -1,6 +1,8 @@
-docs/
-poc/
-# Disposable consumer artifacts; tracked example sources remain a bootstrap snapshot.
+# Disposable consumer artifacts; tracked example sources include a deterministic generated snapshot.
 **/goosetest_generated/*
 !examples/basic/goosetest_generated/.owner
 !examples/basic/goosetest_generated/.manifest
+
+# Local CLI build outputs.
+/build/
+!examples/basic/goosetest_generated/*.goose

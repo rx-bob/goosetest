@@ -6,9 +6,11 @@ import goosetest;
 import goosetest_generated.case_0;
 import goosetest_generated.case_1;
 import goosetest_generated.case_2;
+import goosetest_generated.case_3;
 
 fn run(t: goosetest::Test&) {
     goosetest_generated_case_0::run(t);
     goosetest_generated_case_1::run(t);
     goosetest_generated_case_2::run(t);
+    goosetest_generated_case_3::run(t);
 }

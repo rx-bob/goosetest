@@ -3,7 +3,7 @@ namespace goosetest_generated_case_0;
 
 import goosetest;
 
-import test.calculator_test;
+import integration.arithmetic_test;
 
 fn run(t: goosetest::Test&) {
     if t.results.incomplete {
@@ -18,32 +18,45 @@ fn run(t: goosetest::Test&) {
         namespace_name: namespace_name,
         function_name: function_name,
         display_name: display_name,
-        declaration_line: 8,
+        declaration_line: 21,
     };
     if t.results.fail_fast_stop {
         goosetest::not_run_case(t.results, identity, "fail-fast");
         return;
     }
-    goosetest::execute_case(t, identity) {
-        calculator_test::test_addition(t);
+    goosetest::execute_fixture(t, identity) {
+        var fixture = arithmetic_test::Fixture {
+            ..
+        };
+        goosetest::run_phase(t, goosetest::Phase.Setup) {
+            arithmetic_test::before_each(t, fixture);
+        }
+        if t.failures == 0 && !t.results.incomplete {
+            goosetest::run_phase(t, goosetest::Phase.Body) {
+                arithmetic_test::test_round_trip(t, fixture);
+            }
+        }
+        goosetest::run_phase(t, goosetest::Phase.Cleanup) {
+            arithmetic_test::after_each(t, fixture);
+        }
     }
 }
 
 fn source_path() -> u8[>..] {
     var text: u8[>..] = [];
-    text.append("test/calculator_test.goose");
+    text.append("integration/arithmetic_test.goose");
     return text;
 }
 
 fn source_namespace() -> u8[>..] {
     var text: u8[>..] = [];
-    text.append("calculator_test");
+    text.append("arithmetic_test");
     return text;
 }
 
 fn source_function() -> u8[>..] {
     var text: u8[>..] = [];
-    text.append("test_addition");
+    text.append("test_round_trip");
     return text;
 }
 

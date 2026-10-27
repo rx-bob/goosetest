@@ -120,7 +120,7 @@ with tempfile.TemporaryDirectory(prefix="goosetest-cli-") as temporary:
     run(["check-mirror", "--project", str(empty)], work, 2, b"no test cases discovered")
     example = repo / "examples/basic"
     before = snapshot(example)
-    run(["list", "--project", str(example)], work, contains=b"3 discovered cases")
+    run(["list", "--project", str(example)], work, contains=b"4 discovered cases")
     run(["check-mirror", "--project", str(example)], work, contains=b"1 matched")
     assert snapshot(example) == before
 print("cli process tests passed")

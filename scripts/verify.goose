@@ -1,8 +1,9 @@
 // Independent verifier owns disposable builds and checks the self-host runner from outside.
 import goosetest from "..";
-import goosetest.src.platform.process;
 
 import os;
+
+import goosetest.src.platform.process;
 
 fn main() {
     let result = process::run(["python3", "integration/fixtures/verify.py"], ".", process::Limits {
