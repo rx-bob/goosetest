@@ -9,7 +9,7 @@ goose build --debug main.goose -o /tmp/goosetest
 /tmp/goosetest --help
 ```
 
-`main.build` links the filesystem, process, and fresh-artifact adapters. The importable assertion package
+`main.build` links the filesystem, process, and artifact adapters. The importable assertion package
 still has no native sidecar. The compiler is needed to build this executable;
 list and check-mirror do not invoke it when inspecting a project.
 
@@ -100,14 +100,25 @@ Generated execution writes a completion record after reporting; missing or
 mismatched evidence rejects early `exit(0)` and `exit(1)`. This detects accidental
 premature termination, not deliberately forged results by project code.
 
-This incremental release requires **absent `goosetest_generated/`** and a regular
-`goosetest_root.goose`. Existing directories, files and symlinks are refused;
-nothing is overwritten or deleted. Generated source remains for inspection after
-success or failure. For the checked-in example, use a disposable copy and remove
-its generated snapshot there before invoking `test`. Owned regeneration, atomic
-updates, pruning and repeated-run support are E3.S4. Fresh directories ensure old
-executables cannot run after failed compilation. Fixtures, hooks, disabled
-execution and selection remain E4; unsupported semantics fail before writing.
+`goosetest_root.goose` remains authored and is never rewritten. The runner creates
+`goosetest_generated/` with an ownership marker and manifest, or reuses a directory
+with valid ownership metadata. Preexisting unowned directories and symlinks fail
+without deletion. A nonblocking exclusive directory lock spans publication,
+compilation, execution, and child cleanup. Concurrent runs fail with status 2;
+closing the descriptor or process death releases the lock without stale lockfiles.
+
+Generated sources publish atomically, preserving unchanged bytes and modification
+times. Dependencies publish before `runner.goose`. A union manifest records claimed
+files before writes, allowing regeneration after interruption. Only previously
+manifested obsolete files are removed; unknown user files remain untouched.
+Old executable and completion files are removed before every build. No successful
+result or binary is cached. Failed writes or builds never start the test binary.
+Sources remain available for inspection after failure and are disposable.
+
+The checked-in basic snapshot includes ownership metadata, so it supports repeated
+CLI runs. Older snapshots without a marker must be moved aside explicitly; the CLI
+does not adopt them. Fixtures, hooks, disabled execution and selection remain E4;
+unsupported semantics fail before writing.
 
 Independent verification:
 
@@ -119,5 +130,5 @@ python3 integration/fixtures/execution/verify.py /tmp/goosetest
 
 The external verifier creates and removes its own projects and checks pass/fail,
 next-case continuation, compiler failure, fatal checks, early exits, empty/audit/
-generation rejection, stale output refusal, project-relative resources, missing
+generation rejection, stale binary prevention, project-relative resources, missing
 compiler/output, compile/run deadlines, and cancellation.

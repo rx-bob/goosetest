@@ -38,11 +38,10 @@ with tempfile.TemporaryDirectory(prefix="goosetest-execution-") as tmp:
                    't.assert_eq("hello", value);')
     (good / "resource").write_text("hello")
     run(good, 0, b"1 passed")
-    before = (good / "goosetest_generated/tests").read_bytes()
-    # Existing output is refused until E3.S4 supplies owned regeneration.
+    # Broken new source must remove the previous executable before compilation.
     (good / "test/a_test.goose").write_text("namespace a_test;\nfn test_broken(t: goosetest::Test&) { missing(); }")
-    run(good, 2, b"artifacts")
-    assert (good / "goosetest_generated/tests").read_bytes() == before
+    run(good, 2, b"compilation")
+    assert not (good / "goosetest_generated/tests").exists()
     failed = project("assertion", 't.assert_eq(1, 2); print("NEVER");',
                      'fn test_second(t: goosetest::Test&) { print("FOLLOWING"); }\n')
     result = run(failed, 1, b"FOLLOWING")

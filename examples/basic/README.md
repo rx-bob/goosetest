@@ -79,3 +79,14 @@ Check example style from the repository root:
 ```sh
 goosefmt check --config .goosefmt.toml examples/basic
 ```
+
+For automatic regeneration and execution, build the CLI and run:
+
+```sh
+goose build --debug main.goose -o /tmp/goosetest
+/tmp/goosetest test --project examples/basic
+```
+
+The snapshot includes `.owner` and `.manifest` ownership metadata. Repeated runs
+preserve unchanged generated source timestamps, prune obsolete listed modules,
+and rebuild the executable. The authored root remains unchanged.

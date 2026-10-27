@@ -1,2 +1,2 @@
 // Canonical CLI adapters remain outside the runtime-only package.
-c_sources = ["../native/filesystem.c", "../native/process.c", "../native/staging.c"];
+c_sources = ["../native/filesystem.c", "../native/process.c", "../native/staging.c", "../native/staging_manifest.c"];

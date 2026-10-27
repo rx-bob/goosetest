@@ -1,4 +1,4 @@
-// Sequential build/run policy; a fresh artifact directory prevents stale execution.
+// Sequential build/run policy holds exclusive artifact ownership through child cleanup.
 namespace command;
 
 import os;
@@ -7,6 +7,7 @@ import std;
 import src.arguments;
 import src.discovery.manifest;
 import src.discovery.mirror;
+import src.generation.artifacts;
 import src.generation.model;
 import src.generation.runner;
 import src.platform.filesystem;
@@ -27,7 +28,8 @@ fn run(options: arguments::Options&, manifest: discovery::Manifest&, audit: disc
     let fd = staging::create(options.project);
     if fd < 0 {
         write_stderr(str("ERROR: artifacts: native error ", - fd,
-            "; require regular goosetest_root.goose and absent goosetest_generated/.\nRun incomplete.\n"));
+            "; require regular goosetest_root.goose and writable, owned goosetest_generated/.\n",
+            "A concurrent invocation must release ownership before retrying. Run incomplete.\n"));
         return 2;
     }
     let result = materialize(options, output, fd);
@@ -40,13 +42,15 @@ fn run(options: arguments::Options&, manifest: discovery::Manifest&, audit: disc
 }
 
 fn materialize(options: arguments::Options&, output: generation::Output&, fd: i32) -> i32 {
-    for module in output.modules {
-        let error = staging::write(fd, generation::module_path(output, module),
-            generation::module_source(output, module));
-        if error != 0 {
-            write_stderr(str("ERROR: generated source write: ", error, "\nRun incomplete.\n"));
-            return 2;
-        }
+    let published = artifacts::publish(fd, output);
+    if published != 0 {
+        write_stderr(str("ERROR: artifact publication: ", published, "\nRun incomplete.\n"));
+        return 2;
+    }
+    let reset = staging::reset(fd);
+    if reset != 0 {
+        write_stderr(str("ERROR: stale execution artifact removal: ", reset, "\nRun incomplete.\n"));
+        return 2;
     }
     let argv: const u8[:][6] = [options.compiler, "build", "--debug", "goosetest_root.goose", "-o",
         "./goosetest_generated/tests"];
