@@ -5,7 +5,9 @@ imports only `os`, checks the actual status supplied by the parent shell, and
 compares captured output against the two embedded `.stdout` expectations. It does
 not import goosetest or use framework assertions to judge framework behavior.
 
-The passing project is copied from `examples/basic`. The negative replacement
+The passing project is copied from `examples/basic`. This independent runtime
+regression uses its retained explicit `bootstrap_root.goose`; generated-runner
+checks are documented in `src/generation/README.md`. The negative replacement
 `calculator_test.goose.data` changes the first expectation to 999 instead of 42.
 A fatal sentinel immediately after that assertion detects failure to stop the
 case. A marker inside the final test body proves later execution independently
@@ -30,16 +32,16 @@ No new subprocess/native dependency is added to the runtime or checker.
     mkdir "$work/elsewhere"
     ln -s "$repo" "$work/package"
     sed 's@^import goosetest from "\.\./\.\.";$@import goosetest from "../package";@' \
-        "$work/consumer/goosetest_root.goose" >"$work/root.goose"
-    mv "$work/root.goose" "$work/consumer/goosetest_root.goose"
+        "$work/consumer/bootstrap_root.goose" >"$work/root.goose"
+    mv "$work/root.goose" "$work/consumer/bootstrap_root.goose"
 
     verify_variant() {
         variant=$1
         location=$2
         binary="$work/$variant-$location"
-        source_path="$work/consumer/goosetest_root.goose"
+        source_path="$work/consumer/bootstrap_root.goose"
         if test "$location" = consumer; then
-            source_path=goosetest_root.goose
+            source_path=bootstrap_root.goose
         fi
         (
             cd "$work/$location"

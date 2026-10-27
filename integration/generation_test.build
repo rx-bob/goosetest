@@ -1,0 +1,2 @@
+// Generation itself is pure Goose; project inventory needs the filesystem adapter.
+c_sources = ["../native/filesystem.c"];

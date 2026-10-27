@@ -1,8 +1,8 @@
-// Consumer root owns package declarations and propagates the real process status.
+// Authored package root stays stable while discovery refreshes generated orchestration.
 import goosetest from "../..";
 
-import test_support.bootstrap;
+import goosetest_generated.runner;
 
 fn main() {
-    exit(basic_bootstrap::run());
+    exit(goosetest_generated::run_all());
 }

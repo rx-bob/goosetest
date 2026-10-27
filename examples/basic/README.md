@@ -14,9 +14,9 @@ goose build --debug examples/basic/goosetest_root.goose -o /tmp/goosetest-basic
 Expected output and process status:
 
 ```text
-PASS test_addition
-PASS test_subtraction
-PASS test_zero_identity
+PASS test/calculator_test.goose::calculator_test::test_addition (test/calculator_test.goose:8)
+PASS test/calculator_test.goose::calculator_test::test_subtraction (test/calculator_test.goose:12)
+PASS test/calculator_test.goose::calculator_test::test_zero_identity (test/calculator_test.goose:16)
 Cases: 3 passed, 0 failed, 0 skipped, 0 errors
 ```
 
@@ -28,8 +28,10 @@ the example's output above.
 - `src/calculator.goose` contains production arithmetic.
 - `test/calculator_test.goose` mirrors that module with ordinary namespaced
   `test_*(t: goosetest::Test&)` functions and direct imports.
-- `test_support/bootstrap.goose` owns result storage, explicitly executes three
-  cases, and prints their results.
+- `goosetest_generated/` contains a checked-in deterministic generation snapshot.
+  It owns result storage and calls every discovered case through the runtime.
+- `bootstrap_root.goose` and `test_support/bootstrap.goose` retain the independent
+  explicit harness used by the original package regression.
 - `goosetest_root.goose` declares the package and propagates aggregate status
   through `exit(...)`.
 
@@ -38,11 +40,14 @@ the shell's working directory. In a separate project beside a goosetest checkout
 change the source to `"../goosetest"`. Subordinate files keep `import goosetest;`.
 Do not copy the runtime into your application or reconstruct its package modules.
 
-The explicit bootstrap is temporary: generated orchestration replaces it in E3.
-Test files already use the planned discovered-function authoring model, with no
-main function or registration list. Automatic discovery and fixture hooks are not
-implemented by this example; their stories add them later. Production source and
-ordinary test signatures can remain unchanged when the bootstrap is replaced.
+The generated snapshot keeps this example buildable from a clean checkout.
+After adding or changing tests, regenerate from the complete audited manifest;
+no root or registration list edit is needed. See the
+[generation procedure](../../src/generation/README.md) for the transitional driver
+and fresh-output workflow. The one-command execution CLI arrives in E3.S3.
+Fixture parameters, lifecycle hooks and disabled execution are rejected by this
+first generator until E4 supplies their semantics. Fixture-free tests and escaped
+display labels are supported now.
 
 ## Assertions and failure behavior
 

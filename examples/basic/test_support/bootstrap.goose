@@ -1,4 +1,4 @@
-// Temporary explicit harness; generated orchestration replaces it in E3.
+// Independent explicit runtime oracle retained alongside generated orchestration.
 namespace basic_bootstrap;
 
 import goosetest;
