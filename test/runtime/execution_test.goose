@@ -165,3 +165,116 @@ fn test_cleanup_after_limit() {
         assert( !constructed);
     }
 }
+
+fn suite_identity(name: u8[:], line: i64) -> goosetest::CaseIdentity {
+    return goosetest::CaseIdentity {
+        test_path: "test/suite_test.goose",
+        namespace_name: "suite_test",
+        function_name: name,
+        declaration_line: line,
+        ..
+    };
+}
+
+fn test_suite_failures_are_separate() {
+    runtime_support::with_test() {
+        t =>
+        t.suite_active = true;
+        let ready = goosetest::run_suite_hook(t, suite_identity("before_all", 12), goosetest::Phase.SuiteSetup) {
+            assert(t.results.active_suite && t.results.active);
+            t.check_eq(1, 2, "first setup cause");
+            t.fail("second setup cause");
+        };
+        assert( !ready && !t.active && !t.results.active_suite);
+        assert(t.results.cases.len == 0 && t.results.failures.len == 2);
+        assert(t.results.totals.suite_failures == 1);
+        assert(t.results.totals.suite_assertions == 2);
+        assert(t.results.failures[0].is_suite && t.results.failures[1].is_suite);
+        assert(t.results.failures[0].phase == goosetest::Phase.SuiteSetup);
+        let id = t.results.failures[0].identity;
+        assert(goosetest::metadata_text(t.results, id.function_name) == "before_all");
+        assert(id.declaration_line == 12);
+        goosetest::skip_case(t.results, suite_identity("test_skipped", 30), "suite setup failed");
+        let cleaned = goosetest::run_suite_hook(t, suite_identity("after_all", 20), goosetest::Phase.SuiteCleanup) {
+            t.fail("cleanup cause");
+        };
+        assert( !cleaned);
+        assert(t.results.totals.suite_failures == 2);
+        assert(t.results.totals.failed == 0 && t.results.totals.skipped == 1);
+        assert(t.results.failures[2].phase == goosetest::Phase.SuiteCleanup);
+        assert(t.suite_active && t.phase == goosetest::Phase.Body);
+        assert(goosetest::run_status(t.results) == 1);
+    }
+}
+
+fn test_suite_cleanup_and_next_suite() {
+    runtime_support::with_test() {
+        t =>
+        let ready = goosetest::run_suite_hook(t, suite_identity("before_all", 12), goosetest::Phase.SuiteSetup) {
+            t.assert_true(true);
+        };
+        assert(ready);
+        goosetest::execute_case(t) {
+            t.assert_true(true);
+        }
+        let cleaned = goosetest::run_suite_hook(t, suite_identity("after_all", 20), goosetest::Phase.SuiteCleanup) {
+            t.fail("after all failure");
+        };
+        assert( !cleaned);
+        let next = goosetest::run_suite_hook(t, suite_identity("next_before_all", 40), goosetest::Phase.SuiteSetup) {
+            t.assert_true(true);
+        };
+        assert(next);
+        goosetest::execute_case(t) {
+            t.assert_true(true);
+        }
+        assert(t.failures == 0 && !t.suite_hook);
+        assert(t.results.cases.len == 2);
+        assert(t.results.totals.passed == 2 && t.results.totals.failed == 0);
+        assert(t.results.totals.suite_failures == 1 && t.results.totals.suite_assertions == 3);
+        assert(t.results.totals.assertions == 5);
+        assert(goosetest::run_status(t.results) == 1);
+        assert(t.results.cases[0].failure_count == 0 && t.results.cases[1].failure_count == 0);
+        assert(t.results.failures.len == 1 && t.results.failures[0].is_suite);
+    }
+}
+
+fn test_suite_empty_selection() {
+    runtime_support::with_test() {
+        t =>
+        var called = false;
+        let setup = goosetest::run_suite_hook(t, suite_identity("before_all", 12), goosetest::Phase.SuiteSetup, false) {
+            called = true;
+        };
+        let cleanup = goosetest::run_suite_hook(t, suite_identity("after_all", 20),
+            goosetest::Phase.SuiteCleanup, false) {
+            called = true;
+        };
+        assert(setup && cleanup && !called);
+        assert(t.results.metadata.len == 0 && t.results.failures.len == 0 && t.results.cases.len == 0);
+        goosetest::skip_case(t.results, suite_identity("test_disabled", 30), "disabled");
+        assert(goosetest::run_status(t.results) == 0);
+        assert(t.results.totals.suite_assertions == 0 && t.results.totals.suite_failures == 0);
+    }
+}
+
+fn test_suite_limit_cleanup() {
+    runtime_support::with_test(goosetest::Limits {
+            metadata_bytes: 0,
+            ..
+        }) {
+        t =>
+        var setup_called = false;
+        var cleanup_called = false;
+        let setup = goosetest::run_suite_hook(t, suite_identity("before_all", 12), goosetest::Phase.SuiteSetup) {
+            setup_called = true;
+        };
+        let cleanup = goosetest::run_suite_hook(t, suite_identity("after_all", 20), goosetest::Phase.SuiteCleanup) {
+            cleanup_called = true;
+        };
+        assert( !setup && !cleanup && !setup_called && cleanup_called);
+        assert(t.results.terminal == goosetest::TerminalError.MetadataLimit);
+        assert(t.results.cases.len == 0 && t.results.failures.len == 0);
+        assert(goosetest::run_status(t.results) == 2);
+    }
+}

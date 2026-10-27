@@ -16,13 +16,7 @@ fn reserve_case(results: Results&, identity: CaseIdentity, reason: u8[:] = "") -
         stop_run(results, TerminalError.MetadataLimit);
         return - 1;
     }
-    let id = CaseId {
-        test_path: store_metadata(results, identity.test_path),
-        namespace_name: store_metadata(results, identity.namespace_name),
-        function_name: store_metadata(results, identity.function_name),
-        display_name: store_metadata(results, identity.display_name),
-        declaration_line: identity.declaration_line,
-    };
+    let id = own_identity(results, identity);
     let index = results.cases.len;
     results.cases.push(CaseResult {
             identity: id,
@@ -54,4 +48,15 @@ fn store_metadata(results: Results&, text: u8[:]) -> Span {
     };
     results.metadata.append(text);
     return span;
+}
+
+// Callers preflight the entire identity before mutating the arena.
+fn own_identity(results: Results&, identity: CaseIdentity) -> CaseId {
+    return CaseId {
+        test_path: store_metadata(results, identity.test_path),
+        namespace_name: store_metadata(results, identity.namespace_name),
+        function_name: store_metadata(results, identity.function_name),
+        display_name: store_metadata(results, identity.display_name),
+        declaration_line: identity.declaration_line,
+    };
 }

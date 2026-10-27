@@ -85,3 +85,26 @@ fn tie_less(results: goosetest::Results&, a: goosetest::CaseResult, b: goosetest
     }
     return false;
 }
+
+fn suite_failure_less(results: goosetest::Results&, left: i64, right: i64) -> bool {
+    let a = results.failures[left];
+    let b = results.failures[right];
+    let paths = compare_bytes(goosetest::metadata_text(results, a.identity.test_path),
+        goosetest::metadata_text(results, b.identity.test_path));
+    if paths != 0 {
+        return paths < 0;
+    }
+    let spaces = compare_bytes(goosetest::metadata_text(results, a.identity.namespace_name),
+        goosetest::metadata_text(results, b.identity.namespace_name));
+    if spaces != 0 {
+        return spaces < 0;
+    }
+    if a.phase != b.phase {
+        return a.phase == goosetest::Phase.SuiteSetup;
+    }
+    if a.identity.declaration_line != b.identity.declaration_line {
+        return a.identity.declaration_line < b.identity.declaration_line;
+    }
+    return compare_bytes(goosetest::diagnostic_text(results, a.message),
+        goosetest::diagnostic_text(results, b.message)) < 0;
+}

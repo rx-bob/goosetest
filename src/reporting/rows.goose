@@ -81,3 +81,22 @@ fn failure_rows<F>(results: goosetest::Results&, indices: i64[:], suite: bool) {
         }
     }
 }
+
+// Standalone hooks carry owned identities without fabricating case outcomes.
+fn suite_failure_rows<F>(results: goosetest::Results&, indices: i64[:], heading: bool) {
+    if indices.len > 0 && !heading {
+        F("Suite-hook errors:\n");
+    }
+    for index in indices {
+        let failure = results.failures[index];
+        F("  ");
+        identity(results, failure.identity) {
+            text => F(text);
+        }
+        F(str(" [", phase_label(failure.phase), "]\n    ")[..]);
+        escape(goosetest::diagnostic_text(results, failure.message)) {
+            text => F(text);
+        }
+        F("\n");
+    }
+}

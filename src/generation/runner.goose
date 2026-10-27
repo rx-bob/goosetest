@@ -109,6 +109,17 @@ fn metadata_size(manifest: discovery::Manifest&) -> i64 {
     for entry in manifest.cases {
         let suite = manifest.suites[entry.suite_index];
         total += suite.path.length + suite.namespace_name.length + entry.name.length + entry.display_name.length;
+        if suite.before_all.present {
+            total += "suite setup failed".len;
+        }
+    }
+    for suite in manifest.suites {
+        if suite.before_all.present {
+            total += suite.path.length + suite.namespace_name.length + "before_all".len;
+        }
+        if suite.after_all.present {
+            total += suite.path.length + suite.namespace_name.length + "after_all".len;
+        }
     }
     return total;
 }

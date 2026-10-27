@@ -118,8 +118,9 @@ Sources remain available for inspection after failure and are disposable.
 The checked-in basic snapshot includes ownership metadata, so it supports repeated
 CLI runs. Older snapshots without a marker must be moved aside explicitly; the CLI
 does not adopt them. Per-case fixtures and before_each/after_each hooks are
-supported; see [lifecycle contracts](runtime/LIFECYCLE.md). Suite hooks, disabled
-execution and selection remain deferred; unsupported semantics fail before writing.
+supported, as are before_all/after_all suite hooks; see
+[lifecycle contracts](runtime/LIFECYCLE.md). Disabled execution and selection
+remain deferred; unsupported semantics fail before writing.
 
 Independent verification:
 

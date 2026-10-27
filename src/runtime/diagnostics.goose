@@ -35,7 +35,9 @@ fn commit_failure(t: Test&, text: u8[:]) -> bool {
     t.results.diagnostics.append(text);
     t.results.failures.push(Failure {
             phase: t.phase,
-            message: span
+            message: span,
+            is_suite: t.suite_hook,
+            identity: t.suite_identity,
         });
     t.failures += 1;
     return true;

@@ -11,6 +11,13 @@ struct Test {
     current_case: i64 = - 1,
     diagnostic_start: i64 = 0,
     active: bool = false,
+    suite_hook: bool = false,
+    suite_identity: CaseId = CaseId {
+        ..
+    },
+    // Generated orchestration state spans case resets but never leaks into the next suite.
+    suite_active: bool = false,
+    suite_ready: bool = true,
 }
 
 fn reset(t: Test&) {
@@ -18,6 +25,10 @@ fn reset(t: Test&) {
     t.assertions = 0;
     t.failures = 0;
     t.phase = Phase.Body;
+    t.suite_hook = false;
+    t.suite_identity = CaseId {
+        ..
+    };
     t.current_case = - 1;
     t.diagnostic_start = t.results.diagnostics.len;
 }

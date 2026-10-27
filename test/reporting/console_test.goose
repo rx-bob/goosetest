@@ -118,3 +118,40 @@ fn test_reused_id_order() {
         assert(find(second[..], "Cases: 1 passed, 1 failed") >= 0);
     }
 }
+
+fn test_standalone_suite_failure() {
+    runtime_support::with_test() {
+        t =>
+        goosetest::execute_case(t, identity("test_pass", 10)) {
+            t.assert_true(true);
+        }
+        var active: u8[>..] = [];
+        goosetest::run_suite_hook(t, identity("after_all", 20), goosetest::Phase.SuiteCleanup) {
+            t.check_eq(1, 2, "first");
+            reporting::render(t.results) {
+                chunk => active.append(chunk);
+            }
+            t.check_eq(3, 4, "second");
+        }
+        assert(find(active[..], "PASS test/a_test.goose::a_test::test_pass") >= 0);
+        assert(find(active[..], "suite hook execution is still active") >= 0);
+        assert(t.results.cases.len == 1 && t.results.failures.len == 2);
+        var before: u8[>..] = [];
+        reporting::render(t.results) {
+            chunk => before.append(chunk);
+        }
+        assert(find(before[..], "Cases: 1 passed, 0 failed, 0 skipped") >= 0);
+        assert(find(before[..], "Assertions: 3; suite-hook errors: 1") >= 0);
+        assert(find(before[..], "[suite cleanup]") >= 0);
+        assert(find(before[..], "FAIL ") < 0);
+        assert(goosetest::run_status(t.results) == 1);
+        let failure = t.results.failures[0];
+        t.results.failures[0] = t.results.failures[1];
+        t.results.failures[1] = failure;
+        var after: u8[>..] = [];
+        reporting::render(t.results) {
+            chunk => after.append(chunk);
+        }
+        assert(before == after);
+    }
+}

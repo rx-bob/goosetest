@@ -23,7 +23,7 @@ fn render<F>(results: goosetest::Results&, planned_cases: i64 = - 1) {
     for result,
     index in results.cases {
         // Execution reserves its final slot before running; never render an active outcome.
-        if !results.active || index + 1 < results.cases.len {
+        if !results.active || results.active_suite || index + 1 < results.cases.len {
             indices.push(index);
             goosetest::count_outcome(totals, result.outcome);
             totals.assertions += result.assertions;
@@ -55,6 +55,11 @@ fn render<F>(results: goosetest::Results&, planned_cases: i64 = - 1) {
         planned = results.cases.len;
     }
     let not_run = max(0, planned - indices.len);
+    standalone_hooks(results, suite_errors > 0) {
+        text => F(text);
+    }
+    totals.assertions += results.totals.suite_assertions;
+    suite_errors += results.totals.suite_failures;
     summary(results, totals, not_run, suite_errors) {
         text => F(text);
     }
@@ -78,4 +83,21 @@ fn summary<F>(results: goosetest::Results&, totals: goosetest::Totals, not_run: 
         " skipped, ", totals.runner_errors, " errors, ", not_run, " not run; ",
         results.totals.filtered, " filtered\n")[..]);
     F(str("Assertions: ", totals.assertions, "; suite-hook errors: ", suite_errors, "\n")[..]);
+}
+
+fn standalone_hooks<F>(results: goosetest::Results&, heading: bool) {
+    var indices: i64[>..] = [];
+    for failure,
+    index in results.failures {
+        if failure.is_suite {
+            indices.push(index);
+        }
+    }
+    sort(indices) {
+        a,
+        b => suite_failure_less(results, a, b)
+    };
+    suite_failure_rows(results, indices, heading) {
+        text => F(text);
+    }
 }

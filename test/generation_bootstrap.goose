@@ -19,6 +19,7 @@ fn main() {
     runner_test::test_incomplete();
     suites_test::test_rejections();
     suites_test::test_fixture_wrappers();
+    suites_test::test_suite_hook_wrappers();
     suites_test::test_fixture_without_hooks();
     suites_test::test_fixture_identifier_bounds();
     suites_test::test_label_limit();

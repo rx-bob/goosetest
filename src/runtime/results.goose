@@ -49,7 +49,11 @@ enum TerminalError {
 }
 struct Failure {
     phase: Phase,
-    message: Span
+    message: Span,
+    is_suite: bool = false,
+    identity: CaseId = CaseId {
+        ..
+    },
 }
 struct CaseResult {
     identity: CaseId,
@@ -69,6 +73,8 @@ struct Totals {
     runner_errors: i64 = 0,
     filtered: i64 = 0,
     assertions: i64 = 0,
+    suite_assertions: i64 = 0,
+    suite_failures: i64 = 0,
 }
 struct Results {
     cases: CaseResult[>..]&,
@@ -81,6 +87,7 @@ struct Results {
     terminal: TerminalError = TerminalError.None,
     incomplete: bool = false,
     active: bool = false,
+    active_suite: bool = false,
 }
 
 fn new_results(
@@ -123,7 +130,7 @@ fn run_status(results: Results&) -> i32 {
     if results.totals.runner_errors > 0 {
         return 2;
     }
-    if results.totals.failed > 0 {
+    if results.totals.failed > 0 || results.totals.suite_failures > 0 {
         return 1;
     }
     return 0;
@@ -149,6 +156,9 @@ fn terminal_diagnostic(results: Results&) -> const u8[:] {
         },
         None => {
         },
+    }
+    if results.active_suite {
+        return "incomplete run: suite hook execution is still active";
     }
     if results.active {
         return "incomplete run: case execution is still active";

@@ -20,12 +20,13 @@ assertions. Display names and skip reasons appear beneath their case.
 
 A separate failure section labels setup, test and cleanup diagnostics. Suite
 setup/cleanup records appear in a separate suite-hook section. Totals count case
-outcomes once, regardless of how many phases failed. Suite-hook error count is a
-count of diagnostic records, not extra failed cases. Existing suite phases are
-rendered from case-associated records; E4 will supply actual hook execution.
+outcomes once, regardless of how many phases failed. Standalone suite-hook
+errors carry their own source identity and count failed hook executions, not
+individual checks or extra failed cases. Case-associated suite-phase diagnostics
+from explicit harnesses remain renderable separately from ordinary phases.
 
 Passed/failed/skipped/error and assertion totals are derived from finalized case
-records. `not run` is selected count minus finalized record count; filtered count
+records, with the completed suite-hook assertion subtotal added. `not run` is selected count minus finalized record count; filtered count
 is reported separately and must not be included in selected count. A negative
 selected count defaults to the number of retained records, so explicit harnesses
 must pass the intended selected count to expose cases never reserved. Generated

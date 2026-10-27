@@ -50,6 +50,48 @@ fn run_phase<F>(t: Test&, phase: Phase) -> bool {
     return t.failures == failures_before && !t.results.incomplete;
 }
 
+// Suite hooks own failures and metadata without reserving an ordinary case record.
+fn run_suite_hook<F>(t: Test&, identity: CaseIdentity, phase: Phase, executable: bool = true) -> bool {
+    assert( !t.active && !t.results.active);
+    assert(phase == Phase.SuiteSetup || phase == Phase.SuiteCleanup);
+    if !executable {
+        return true;
+    }
+    reset(t);
+    if t.results.incomplete && phase != Phase.SuiteCleanup {
+        return false;
+    }
+    if !t.results.incomplete {
+        if metadata_fits(t.results, identity, "") {
+            t.suite_identity = own_identity(t.results, identity);
+        } else {
+            stop_run(t.results, TerminalError.MetadataLimit);
+            if phase != Phase.SuiteCleanup {
+                return false;
+            }
+        }
+    }
+    t.suite_hook = true;
+    t.phase = phase;
+    t.active = true;
+    t.results.active = true;
+    t.results.active_suite = true;
+    run_case(t) {
+        F();
+    }
+    t.results.totals.assertions += t.assertions;
+    t.results.totals.suite_assertions += t.assertions;
+    if t.failures > 0 {
+        t.results.totals.suite_failures += 1;
+    }
+    t.active = false;
+    t.results.active = false;
+    t.results.active_suite = false;
+    t.suite_hook = false;
+    t.phase = Phase.Body;
+    return t.failures == 0 && !t.results.incomplete;
+}
+
 // Assertions return here, never past the outer coordinator's finalization.
 fn run_case<F>(t: Test&) {
     assert(t.active);

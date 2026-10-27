@@ -20,8 +20,8 @@ fn after_each(f: Fixture&) { }
 
 A hook needing assertions takes `t: goosetest::Test&` first, followed by
 `f: Fixture&`. Choose one form per hook name; duplicate forms are discovery
-errors. Hooks are optional. Suite hooks (`before_all`/`after_all`), disabled
-execution, and selection remain separate stories.
+errors. Hooks are optional. Suite hooks are described below; disabled execution
+and selection remain separate stories.
 
 Setup, body and cleanup each execute inside their own `run_case` recovery
 boundary. Hard assertions stop only the current phase. Any setup failure,
@@ -58,4 +58,40 @@ Verification:
 goose build --debug test/runtime_test.goose -o /tmp/goosetest-runtime
 /tmp/goosetest-runtime
 python3 integration/fixtures/lifecycle/verify.py /tmp/goosetest
+```
+
+
+## Suite setup and cleanup
+
+`before_all()` and `after_all()` run once around a suite with selected executable
+cases. Either may independently take `t: goosetest::Test&` for recoverable
+assertions. No shared fixture is supplied: per-case fixtures remain fresh.
+Hook names have one accepted declaration each; overloaded duplicates are rejected.
+
+A failed suite setup, including soft assertion failures, prevents that suite's
+bodies and per-case hooks. Each otherwise executable case becomes skipped with
+reason `suite setup failed`, without constructing its fixture. Suite cleanup is
+still attempted exactly once. An ordinary setup failure does not suppress other
+suites; suite state resets before moving on. Suite cleanup failure returns status
+1 even if every ordinary case passed. Later successful hooks cannot erase it.
+
+Suite failures are standalone records carrying owned source identity and phase.
+They share the bounded failure/diagnostic arenas, but consume no case slots and
+do not inflate failed-case totals. `suite_failures` counts failed hook executions;
+several failed checks within one hook still count once. Hook assertions contribute
+to the overall assertion count and a separate suite-assertion subtotal. Successful
+hooks also own their identity metadata until the run ends; generated budgets
+reserve both hook identities and possible setup-skip reasons.
+
+`run_suite_hook(..., executable: false)` performs no callback, metadata allocation,
+or state reset. This establishes the no-executable-selection boundary for disabled
+and filtered suites. End-to-end disabled/filter generation arrives in E4.S3/E4.S4;
+those unsupported requests still fail before execution today.
+
+Suite cleanup is attempted after framework resource exhaustion too, but exhausted
+storage cannot retain more diagnostics. A terminal resource error stops later
+suites and returns status 2. Fatal process errors still have no cleanup guarantee.
+
+```sh
+python3 integration/fixtures/suite/verify.py /tmp/goosetest
 ```

@@ -26,6 +26,10 @@ fn main() {
     execution_test::test_soft_then_hard();
     execution_test::test_phase_failures();
     execution_test::test_cleanup_after_limit();
+    execution_test::test_suite_failures_are_separate();
+    execution_test::test_suite_cleanup_and_next_suite();
+    execution_test::test_suite_empty_selection();
+    execution_test::test_suite_limit_cleanup();
     assertions_test::test_passing_values();
     assertions_test::test_boolean_failures();
     assertions_test::test_explicit_and_unequal_failures();

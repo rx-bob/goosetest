@@ -48,7 +48,7 @@ no root or registration list edit is needed. See the
 [CLI instructions](../../src/CLI.md) for automatic regeneration and execution.
 Per-case fixtures and before_each/after_each hooks are supported alongside
 fixture-free tests; see [lifecycle contracts](../../src/runtime/LIFECYCLE.md).
-Suite hooks and disabled execution remain deferred.
+Suite hooks are supported; disabled execution remains deferred.
 
 
 ## Assertions and failure behavior

@@ -18,9 +18,6 @@ fn validate(output: Output&, manifest: discovery::Manifest&) {
         if !valid_path(path, suite.kind) {
             fail(output, path, "invalid or overlong test module path (maximum 100 bytes)");
         }
-        if suite.before_all.present || suite.after_all.present {
-            fail(output, path, "suite lifecycle hooks require E4.S2 generation support");
-        }
     }
     for entry in manifest.cases {
         let suite = manifest.suites[entry.suite_index];

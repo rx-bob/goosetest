@@ -52,8 +52,8 @@ bodies and returns status 2.
 Fixture-free tests, display labels and per-case fixtures are supported. Fixture
 parameters select fresh construction and optional before_each/after_each hooks
 with separate recovery boundaries. See [lifecycle contracts](../runtime/LIFECYCLE.md).
-Suite hooks and disabled cases still produce explicit generation errors pending
-E4.S2/E4.S3. A declared but unused Fixture never runs for fixture-free tests.
+Suite hooks now wrap executable suites; setup failure produces explicit case
+skips and cleanup still runs. Disabled cases remain deferred to E4.S3. A declared but unused Fixture never runs for fixture-free tests.
 
 ## Bounds and source encoding
 

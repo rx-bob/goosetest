@@ -12,4 +12,5 @@ fn main() {
     console_test::test_reused_id_order();
     console_test::test_active_and_incomplete();
     console_test::test_runner_error_record();
+    console_test::test_standalone_suite_failure();
 }

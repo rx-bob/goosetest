@@ -1,4 +1,4 @@
-// Per-case hooks follow signatures; unsupported suite lifecycle and unsafe names fail before emission.
+// Lifecycle hooks follow signatures; unsupported disabled cases and unsafe names fail before emission.
 namespace suites_test;
 
 import std;
@@ -11,7 +11,6 @@ import goosetest.test_support.generation;
 import goosetest.test_support.syntax;
 
 fn test_rejections() {
-    reject("namespace x; fn before_all() {} fn test_x(t: goosetest::Test&) {}");
     reject("namespace x;\n// @Disabled(\"pending\")\nfn test_x(t: goosetest::Test&) {}");
     reject("namespace goosetest_generated; fn test_x(t: goosetest::Test&) {}");
     reject("namespace goosetest_generated_extra; fn test_x(t: goosetest::Test&) {}");
@@ -136,6 +135,52 @@ fn test_fixture_identifier_bounds() {
                     }
                 }
                 assert(find(generated, "                    t, fixture\n                );") >= 0);
+            }
+        }
+    }
+}
+
+fn test_suite_hook_wrappers() {
+    let source = """
+namespace sample;
+struct Fixture { value: i64 }
+fn before_all(t: goosetest::Test&) {}
+fn after_all() {}
+fn test_first(t: goosetest::Test&, f: Fixture&) {}
+fn test_middle(t: goosetest::Test&) {}
+fn test_last(t: goosetest::Test&) {}
+""";
+    syntax_support::with_manifest() {
+        manifest =>
+        syntax_support::parse(manifest, source);
+        generation_support::with_audit() {
+            audit =>
+            generation_support::with_output() {
+                output =>
+                generation::generate(output, manifest, audit);
+                assert(generation::status(output) == 0);
+                let first = generation::module_source(output, output.modules[0]);
+                let middle = generation::module_source(output, output.modules[1]);
+                let last = generation::module_source(output, output.modules[2]);
+                assert(find(first, "t.suite_ready = before_suite(t);") >= 0);
+                assert(find(first, "sample::before_all(t);") >= 0);
+                assert(find(first, "Phase.SuiteSetup") >= 0);
+                assert(find(first, "sample::after_all") < 0);
+                assert(find(middle, "before_suite") < 0 && find(middle, "after_suite") < 0);
+                assert(find(middle, "if !t.suite_active") < find(middle, "run_selected(t);"));
+                assert(find(last, "after_suite(t);") > find(last, "run_selected(t);"));
+                assert(find(last, "sample::after_all();") >= 0);
+                assert(find(last, "Phase.SuiteCleanup") >= 0);
+                assert(find(last, "t.suite_active = false;") >= 0);
+                assert(find(last, "t.suite_ready = true;") >= 0);
+                assert(find(first, "suite setup failed") < find(first, "goosetest::execute_fixture"));
+                let suite = manifest.suites[0];
+                var expected = 2 * (suite.path.length + suite.namespace_name.length);
+                expected += "before_all".len + "after_all".len + 3 * "suite setup failed".len;
+                for entry in manifest.cases {
+                    expected += suite.path.length + suite.namespace_name.length + entry.name.length;
+                }
+                assert(generation::metadata_size(manifest) == expected);
             }
         }
     }
