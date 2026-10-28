@@ -313,4 +313,85 @@ with tempfile.TemporaryDirectory(prefix="goosetest-targets-") as temporary:
     assert invocation_log.read_text().splitlines() == ["goosetest_http.goose", "goosetest_tail.goose"]
     assert b"TARGET tail PROFILE debug: passed (status 0)" in compile_then_pass.stdout
 
+    # Each target gets a fresh child and native globals, including after abort().
+    isolation = work / "native state isolation"
+    isolation.mkdir()
+    isolation_names = ("core", "database", "fatal", "tail")
+    isolation_config = {"version": 1, "targets": []}
+    fixture = Path(__file__).with_name("process_fixture.c")
+    shutil.copyfile(fixture, isolation / "process_fixture.c")
+    for name in isolation_names:
+        (isolation / f"tests/{name}").mkdir(parents=True)
+        entry(isolation, name)
+        (isolation / f"goosetest_{name}.build").write_text('c_sources = ["process_fixture.c"];\n')
+        isolation_config["targets"].append({
+            "name": name,
+            "entry": f"goosetest_{name}.goose",
+            "tests": [{"path": f"tests/{name}", "kind": "unit"}],
+        })
+        if name == "fatal":
+            body = ("assert(fixture_next() == 1); fixture_abort();")
+        elif name == "tail":
+            body = "assert(fixture_next() == 1); assert(fixture_descendant_stopped() == 1);"
+        else:
+            body = "assert(fixture_next() == 1);"
+        (isolation / f"tests/{name}/{name}_test.goose").write_text(
+            f"namespace {name}_test;\nimport goosetest;\n"
+            'extern "goosetest_fixture_next" fn fixture_next() -> i32;\n'
+            'extern "goosetest_fixture_abort" fn fixture_abort();\n'
+            'extern "goosetest_fixture_descendant_stopped" fn fixture_descendant_stopped() -> i32;\n'
+            f"fn test_native_state(t: goosetest::Test&) {{ {body} }}\n")
+    (isolation / "goosetest.json").write_text(json.dumps(isolation_config))
+    observations = isolation / "process-observations"
+    isolated_run = run(["test", "--project", str(isolation)], work, env,
+                       status=2, contains=b"TARGET tail PROFILE debug: passed (status 0)")
+    assert b"TARGET fatal PROFILE debug: incomplete (status 2)" in isolated_run.stdout
+    observed = [line.split() for line in observations.read_text().splitlines()]
+    assert len(observed) == 4 and all(value == "1" for _, value in observed), observed
+    assert len({pid for pid, _ in observed}) == 4, observed
+
+    observations.unlink()
+    fatal_fail_fast = run(["test", "--project", str(isolation), "--fail-fast"], work, env,
+                           status=2, contains=b"Aggregate status: 2")
+    assert observations.read_text().splitlines() and len(observations.read_text().splitlines()) == 3
+    assert b"TARGET tail PROFILE debug: NOT RUN" in fatal_fail_fast.stdout
+
+    # Stale success is reset before explicit exit(0)/exit(1), and malformed
+    # completion evidence is rejected even when the generated runner passed.
+    evidence = work / "completion evidence"
+    evidence.mkdir()
+    (evidence / "tests/case").mkdir(parents=True)
+    entry(evidence, "evidence")
+    (evidence / "tests/case/evidence_test.goose").write_text(
+        suite("evidence_test", "test_valid_completion"))
+    (evidence / "goosetest.json").write_text(json.dumps({"version": 1, "targets": [{
+        "name": "evidence", "entry": "goosetest_evidence.goose",
+        "tests": [{"path": "tests/case", "kind": "unit"}],
+    }]}))
+    run(["test", "--project", str(evidence)], work, env,
+        contains=b"TARGET evidence PROFILE debug: passed (status 0)")
+    assert (evidence / "goosetest_generated/evidence/completion").read_bytes() == b"0\n"
+    evidence_entry = evidence / "goosetest_evidence.goose"
+    for code in (0, 1):
+        evidence_entry.write_text(f"fn main() {{ exit({code}); }}\n")
+        early_exit = run(["test", "--project", str(evidence)], work, env, status=2,
+                         contains=b"completion record")
+        assert b"TARGET evidence PROFILE debug: incomplete (status 2)" in early_exit.stdout
+        assert b"TARGET evidence PROFILE debug: passed" not in early_exit.stdout
+        assert not (evidence / "goosetest_generated/evidence/completion").exists()
+
+    evidence_entry.write_text(
+        'import goosetest from "../goosetest";\n'
+        "import goosetest_generated.evidence.runner;\n"
+        'extern "goosetest_fixture_corrupt_completion" fn corrupt_completion();\n'
+        "fn main() { let status = goosetest_generated::run_all(); corrupt_completion(); exit(status); }\n")
+    (evidence / "process_fixture.c").write_bytes(fixture.read_bytes())
+    (evidence / "goosetest_evidence.build").write_text('c_sources = ["process_fixture.c"];\n')
+    malformed_env = dict(env, GOOSETEST_COMPLETION_PATH=str(
+        evidence / "goosetest_generated/evidence/completion"))
+    malformed = run(["test", "--project", str(evidence)], work, malformed_env, status=2,
+                    contains=b"completion record")
+    assert b"TARGET evidence PROFILE debug: incomplete (status 2)" in malformed.stdout
+    assert (evidence / "goosetest_generated/evidence/completion").read_bytes() == b"bad\n"
+
 print("target selection and preflight tests passed")

@@ -154,6 +154,13 @@ Generated execution writes a completion record after reporting; missing or
 mismatched evidence rejects early `exit(0)` and `exit(1)`. This detects accidental
 premature termination, not deliberately forged results by project code.
 
+Each selected target compiles and runs as its own child process, so native globals
+start fresh between targets. Cases within one target share that process and its
+state. Put a hazardous suite in its own target when it needs process isolation;
+goosetest does not reset state between individual cases or suites. A fatal child
+failure may be followed by another target only after its owned process group has
+been cleaned up and the direct child reaped; cleanup failure stops the run.
+
 The authored entry remains untouched. The runner creates `goosetest_generated/`
 with an ownership marker and manifest, or reuses a directory with valid ownership
 metadata. Configured targets use an owned target subdirectory. Preexisting unowned

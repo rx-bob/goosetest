@@ -237,6 +237,36 @@ static void signal_group(pid_t pid, int number, gt_process_result *result) {
     if (!result->cleanup_error) result->cleanup_error = error;
 }
 
+static void pause_poll(void);
+
+// Keep the leader waitable while confirming that no live descendant remains.
+// macOS can expose a group of zombies as EPERM; those processes cannot execute.
+static void confirm_group_cleanup(pid_t pid, gt_process_result *result) {
+    int64_t start = now_ms();
+    if (start < 0) {
+        if (!result->cleanup_error) result->cleanup_error = errno;
+        return;
+    }
+    int64_t end = start + 1000;
+    for (;;) {
+        if (group_is_dead(pid)) return;
+        if (kill(-pid, 0) < 0) {
+            if (errno == ESRCH) return;
+            if (errno != EPERM && !result->cleanup_error) result->cleanup_error = errno;
+        }
+        int64_t now = now_ms();
+        if (now < 0) {
+            if (!result->cleanup_error) result->cleanup_error = errno;
+            return;
+        }
+        if (now >= end) {
+            if (!result->cleanup_error) result->cleanup_error = ETIMEDOUT;
+            return;
+        }
+        pause_poll();
+    }
+}
+
 static void pause_poll(void) {
     struct timespec delay = {0, GT_POLL_MS * 1000000};
     nanosleep(&delay, NULL);
@@ -283,6 +313,7 @@ static void supervise(pid_t pid, int64_t end, int64_t grace, gt_process_result *
     }
     // Also remove lingering group members after a normally exited stage leader.
     signal_group(pid, SIGKILL, result);
+    confirm_group_cleanup(pid, result);
     reap(pid, result);
     if (cancelled) { result->kind = GT_CANCEL; result->signal = cancelled; result->exit_code = -1; }
 }

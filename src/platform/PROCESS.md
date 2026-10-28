@@ -98,9 +98,12 @@ remain inherited when open.
 Deadline expiry sends TERM to the whole group. Cancellation forwards its actual
 INT/TERM signal. After the configured grace period, KILL targets the entire group,
 even if the leader has already exited. A normal leader exit also triggers final
-group cleanup so a background child cannot outlive the stage unnoticed. The leader
-is observed with `waitid(WNOWAIT)` and kept unreaped until group cleanup, preventing
-its PID/group identity from being reused. `waitpid` then reaps the direct child.
+group cleanup so a background child cannot outlive the stage unnoticed. The adapter
+confirms that the group has no live members before returning; a group containing
+only zombies is treated as stopped, and inability to confirm cleanup becomes
+`cleanup_error`. The leader is observed with `waitid(WNOWAIT)` and kept unreaped
+until group cleanup, preventing its PID/group identity from being reused. `waitpid`
+then reaps the direct child.
 
 macOS returns EPERM when signaling a group containing only zombies. A bounded
 `sysctl(KERN_PROC_PGRP)` snapshot suppresses that error only when the retained
