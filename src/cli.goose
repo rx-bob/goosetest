@@ -16,6 +16,10 @@ import src.discovery.model;
 import src.discovery.paths;
 import src.discovery.selection;
 import src.execution.command;
+import src.generation.model;
+import src.generation.runner;
+import src.platform.filesystem;
+import src.platform.staging;
 
 fn run(options: arguments::Options&) -> i32 {
     if options.error.len > 0 {
@@ -97,12 +101,7 @@ fn run_selected(
         return 2;
     }
     if options.command == arguments::Command.Test {
-        for target_index, offset in selected {
-            if match_counts[offset] == 0 {
-                let target = selected_target(configuration, target_index);
-                write_stdout(str("TARGET ", target_label(target), ": selection excluded; no compiler call\n"));
-            }
-        }
+        return execute_targets(options, configuration, inventory, selected, match_counts);
     }
     var status: i32 = 0;
     for target_index, offset in selected {
@@ -110,13 +109,77 @@ fn run_selected(
             continue;
         }
         let target = selected_target(configuration, target_index);
-        let result = render_target(options, inventory, configuration, target_index, target);
+        let result = render_target(options, inventory, configuration, target_index, target, -1);
         if result == 2 {
             return 2;
         }
         if result == 1 {
             status = 1;
         }
+    }
+    return status;
+}
+
+fn execute_targets(
+    options: arguments::Options&, configuration: config::Configuration&, inventory: discovery::Inventory&,
+    selected: i64[:], match_counts: i64[:]
+) -> i32 {
+    var first_target_index: i64 = -2;
+    for target_index, offset in selected {
+        if match_counts[offset] > 0 {
+            first_target_index = target_index;
+            break;
+        }
+    }
+    assert(first_target_index != -2);
+    let first_target = selected_target(configuration, first_target_index);
+    let fd = staging::create(options.project, first_target.entry);
+    if fd < 0 {
+        write_stderr(str("ERROR: execution lock, entry validation, or generated artifacts for target ",
+            target_label(first_target),
+            ": native error ", -fd, "; run incomplete.\n"));
+        return 2;
+    }
+    for target_index in selected {
+        let target = selected_target(configuration, target_index);
+        let valid = if target_index == first_target_index {
+            0
+        } else {
+            staging::verify_entry(fd, target.entry)
+        };
+        if valid != 0 {
+            write_stderr(str("ERROR: entry validation for target ", target_label(target),
+                ": native error ", -valid, "; no target was built.\n"));
+            filesystem::close_project(fd);
+            incomplete();
+            return 2;
+        }
+    }
+    for target_index, offset in selected {
+        if match_counts[offset] == 0 {
+            let target = selected_target(configuration, target_index);
+            write_stdout(str("TARGET ", target_label(target), ": selection excluded; no compiler call\n"));
+        }
+    }
+    var status: i32 = 0;
+    for target_index, offset in selected {
+        if match_counts[offset] == 0 {
+            continue;
+        }
+        let target = selected_target(configuration, target_index);
+        let result = render_target(options, inventory, configuration, target_index, target, fd);
+        if result > 1 {
+            status = result;
+            break;
+        }
+        if result == 1 {
+            status = 1;
+        }
+    }
+    let closed = filesystem::close_project(fd);
+    if closed != 0 {
+        write_stderr(str("ERROR: execution lock release: ", closed, "\n"));
+        return 2;
     }
     return status;
 }
@@ -219,12 +282,33 @@ fn preflight_target(
     if options.command == arguments::Command.CheckMirror {
         return 0;
     }
-    return selection::count(manifest, selection_options(options));
+    let count = selection::count(manifest, selection_options(options));
+    if options.command == arguments::Command.Test && count > 0 &&
+    !generation_preflight(manifest, audit, options) {
+        return -1;
+    }
+    return count;
+}
+
+fn generation_preflight(manifest: discovery::Manifest&, audit: discovery::MirrorAudit&,
+    options: arguments::Options&) -> bool {
+    var modules: generation::Module[>..] = [];
+    var paths: u8[>..] = [];
+    var sources: u8[>..] = [];
+    var errors: u8[>..] = [];
+    var output = generation::new_output(modules, paths, sources, errors);
+    generation::generate(output, manifest, audit, selection_options(options), options.fail_fast);
+    if generation::status(output) != 0 {
+        write_stderr(str("ERROR: generation: ", output.error,
+            "\nRun incomplete; no tests executed.\n"));
+        return false;
+    }
+    return true;
 }
 
 fn render_target(
     options: arguments::Options&, inventory: discovery::Inventory&, configuration: config::Configuration&,
-    target_index: i64, target: command::Target
+    target_index: i64, target: command::Target, fd: i32
 ) -> i32 {
     var records: discovery::MirrorRecord[>..] = [];
     var audit = discovery::new_mirror_audit(records);
@@ -236,7 +320,7 @@ fn render_target(
     discovery::set_target_name(manifest, target.name);
     discovery::inspect_project(audit, manifest, inventory, target_index);
     if options.command == arguments::Command.Test {
-        return command::run(options, manifest, audit, target);
+        return command::run_locked(options, manifest, audit, target, fd);
     }
     if options.command == arguments::Command.List {
         list_cases(manifest, selection_options(options), options.filter_seen || options.suite_seen);

@@ -265,6 +265,14 @@ static int verify_entry(int project, gt_stage_slice entry) {
     return error;
 }
 
+int32_t gt_stage_verify_entry(int32_t directory, gt_stage_slice entry) {
+    int project = openat(directory, "..", O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC);
+    if (project < 0) return -errno;
+    int error = verify_entry(project, entry);
+    if (close(project) < 0 && !error) error = errno;
+    return error ? -error : 0;
+}
+
 int32_t gt_stage_create(gt_stage_slice path, gt_stage_slice entry) {
     char name[PATH_MAX];
     int error = gt_stage_path(path, name, sizeof name, 0);

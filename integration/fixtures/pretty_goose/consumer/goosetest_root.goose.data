@@ -1,4 +1,5 @@
 // Authored package declarations stay outside generated artifacts.
+
 import goosetest from "../framework";
 import pretty_goose from "../vendor";
 

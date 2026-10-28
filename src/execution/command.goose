@@ -12,7 +12,6 @@ import src.execution.build;
 import src.generation.artifacts;
 import src.generation.model;
 import src.generation.runner;
-import src.platform.filesystem;
 import src.platform.process;
 import src.platform.staging;
 
@@ -21,8 +20,8 @@ struct Target {
     entry: const u8[:],
 }
 
-fn run(options: arguments::Options&, manifest: discovery::Manifest&, audit: discovery::MirrorAudit&,
-    target: Target) -> i32 {
+fn run_locked(options: arguments::Options&, manifest: discovery::Manifest&, audit: discovery::MirrorAudit&,
+    target: Target, fd: i32) -> i32 {
     var modules: generation::Module[>..] = [];
     var paths: u8[>..] = [];
     var sources: u8[>..] = [];
@@ -37,26 +36,14 @@ fn run(options: arguments::Options&, manifest: discovery::Manifest&, audit: disc
         write_stderr(str("ERROR: generation: ", output.error, "\nRun incomplete; no tests executed.\n"));
         return 2;
     }
-    let fd = staging::create(options.project, target.entry);
-    if fd < 0 {
-        write_stderr(str("ERROR: artifacts: native error ", -fd,
-            "; require regular goosetest_root.goose and writable, owned goosetest_generated/.\n",
-            "A concurrent invocation must release ownership before retrying. Run incomplete.\n"));
-        return 2;
-    }
-    let result = materialize(options, output, fd, target);
-    let closed = filesystem::close_project(fd);
-    if closed != 0 {
-        write_stderr(str("ERROR: artifact close: ", closed, "\nRun incomplete.\n"));
-        return 2;
-    }
-    return result;
+    return materialize(options, output, fd, target);
 }
 
 fn materialize(options: arguments::Options&, output: generation::Output&, fd: i32, target: Target) -> i32 {
     let published = artifacts::publish(fd, output, target.name);
     if published != 0 {
-        write_stderr(str("ERROR: artifact publication: ", published, "\nRun incomplete.\n"));
+        write_stderr(str("ERROR: artifact publication for target ", target_label(target), ": ",
+            published, "\nRun incomplete.\n"));
         return 2;
     }
     let binary_path: u8[>..] = if target.name.len == 0 {
@@ -71,7 +58,8 @@ fn materialize(options: arguments::Options&, output: generation::Output&, fd: i3
     };
     let reset = staging::reset(fd, binary_path, completion_path);
     if reset != 0 {
-        write_stderr(str("ERROR: stale execution artifact removal: ", reset, "\nRun incomplete.\n"));
+        write_stderr(str("ERROR: stale execution artifact removal for target ", target_label(target), ": ",
+            reset, "\nRun incomplete.\n"));
         return 2;
     }
     let cache_key: const u8[:] = if target.name.len == 0 {
@@ -87,9 +75,15 @@ fn materialize(options: arguments::Options&, output: generation::Output&, fd: i3
     let cache_ready = staging::cache_prepare(options.project, compiler_home);
     if cache_ready != 0 {
         write_stderr(str("ERROR: compiler cache directory creation: ", -cache_ready,
-            "; check --cache-root and directory permissions. Run incomplete.\n"));
+            " for target ", target_label(target), "; check --cache-root and directory permissions. ",
+            "Run incomplete.\n"));
         return 2;
     }
+    return build_and_execute(options, target, compiler_home, binary_path, completion_path, fd);
+}
+
+fn build_and_execute(options: arguments::Options&, target: Target, compiler_home: const u8[:],
+    binary_path: const u8[:], completion_path: const u8[:], fd: i32) -> i32 {
     let output_path = str("./goosetest_generated/", binary_path);
     var argv: const u8[:][>..] = [];
     build::append_arguments(argv, options.compiler, target.entry, output_path, options.profile, options.offline);
@@ -100,7 +94,7 @@ fn materialize(options: arguments::Options&, output: generation::Output&, fd: i3
         });
     let status = stage_status(built, false);
     if status != 0 {
-        diagnose("compilation", built);
+        diagnose("compilation", target, built);
         return status;
     }
     let execute_path = str("./goosetest_generated/", binary_path);
@@ -112,11 +106,16 @@ fn materialize(options: arguments::Options&, output: generation::Output&, fd: i3
         });
     let result = stage_status(ran, true);
     if result != 0 && result != 1 {
-        diagnose("execution", ran);
+        diagnose("execution", target, ran);
         return result;
     }
+    return record_completion(fd, completion_path, target, result);
+}
+
+fn record_completion(fd: i32, completion_path: const u8[:], target: Target, result: i32) -> i32 {
     if staging::completion_at(fd, completion_path, result) != 0 {
-        write_stderr("ERROR: execution ended without matching completion record; run incomplete.\n");
+        write_stderr(str("ERROR: execution for target ", target_label(target),
+            " ended without matching completion record; run incomplete.\n"));
         return 2;
     }
     return result;
@@ -138,12 +137,20 @@ fn stage_status(result: process::ProcessResult, execution: bool) -> i32 {
     return 2;
 }
 
-fn diagnose(stage: const u8[:], result: process::ProcessResult) {
+fn target_label(target: Target) -> const u8[:] {
+    if target.name.len == 0 {
+        return "default";
+    }
+    return target.name;
+}
+
+fn diagnose(stage: const u8[:], target: Target, result: process::ProcessResult) {
     if result.outcome == process::Outcome.Deadline {
-        write_stderr(str("ERROR: ", stage, " exceeded its deadline; run incomplete.\n"));
+        write_stderr(str("ERROR: ", stage, " for target ", target_label(target),
+            " exceeded its deadline; run incomplete.\n"));
     } else {
-        write_stderr(str("ERROR: ", stage, " failed; exit=", result.exit_code, " signal=", result.signal,
-            " native_error=", result.native_error, " cleanup_error=", result.cleanup_error,
-            "; run incomplete.\n"));
+        write_stderr(str("ERROR: ", stage, " for target ", target_label(target), " failed; exit=",
+            result.exit_code, " signal=", result.signal, " native_error=", result.native_error,
+            " cleanup_error=", result.cleanup_error, "; run incomplete.\n"));
     }
 }

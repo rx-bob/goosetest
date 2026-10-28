@@ -26,6 +26,7 @@ int gt_stage_read(int directory, const char *name, uint8_t **out, size_t *length
 int gt_stage_atomic(int directory, const char *name, gt_stage_slice source);
 int gt_stage_owned(int directory, const char *name);
 int gt_stage_writable(int directory, const char *name);
+int gt_stage_verify_entry(int directory, gt_stage_slice entry);
 int gt_stage_nested_regular(int directory, const char *name, int missing);
 int gt_stage_nested_remove(int directory, const char *name);
 int gt_stage_nested_read(int directory, const char *name, uint8_t **out, size_t *length, size_t limit);

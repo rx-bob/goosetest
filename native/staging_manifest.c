@@ -256,11 +256,45 @@ int gt_stage_owned(int directory, const char *name) {
     return error;
 }
 
+static int in_scope(const char *name, const char *target) {
+    const char *slash = strchr(name, '/');
+    if (!target[0]) return slash == NULL;
+    size_t length = strlen(target);
+    return slash == name + length && !memcmp(name, target, length);
+}
+
+static int merged_names(const stage_names *old, const stage_names *next, const char *target,
+                        stage_names *merged) {
+    memset(merged, 0, sizeof *merged);
+    size_t retained = 0;
+    for (size_t i = 0; i < old->count; ++i)
+        if (!in_scope(old->names[i], target)) ++retained;
+    if (retained > GT_NAMES_LIMIT - next->count) return EFBIG;
+    size_t capacity = retained + next->count;
+    merged->names = calloc(capacity + 1, sizeof *merged->names);
+    if (!merged->names) return ENOMEM;
+    for (size_t i = 0; i < old->count; ++i) {
+        if (!in_scope(old->names[i], target)) merged->names[merged->count++] = old->names[i];
+    }
+    for (size_t i = 0; i < next->count; ++i) merged->names[merged->count++] = next->names[i];
+    qsort(merged->names, merged->count, sizeof *merged->names, compare_names);
+    for (size_t i = 1; i < merged->count; ++i) {
+        if (!strcmp(merged->names[i - 1], merged->names[i])) {
+            free(merged->names);
+            memset(merged, 0, sizeof *merged);
+            return EINVAL;
+        }
+    }
+    return 0;
+}
+
 int32_t gt_stage_finish(int32_t directory, gt_stage_slice source) {
-    stage_names old = {0}, next = {0}, empty = {0};
+    stage_names old = {0}, next = {0}, merged = {0}, empty = {0};
+    char target[NAME_MAX + 1];
     int error = load_names(directory, &old);
     if (!error) error = parse_names(source, &next, 1);
     if (!error) error = ensure_target(directory, &next);
+    if (!error) error = target_prefix(&next, target, sizeof target, 1);
     if (!error) {
         for (size_t i = 0; i < next.count; ++i) {
             if (!has_name(&old, next.names[i])) { error = EINVAL; break; }
@@ -268,21 +302,23 @@ int32_t gt_stage_finish(int32_t directory, gt_stage_slice source) {
     }
     if (!error) {
         for (size_t i = 0; i < old.count; ++i) {
-            if (has_name(&next, old.names[i])) continue;
+            if (!in_scope(old.names[i], target) || has_name(&next, old.names[i])) continue;
             error = gt_stage_nested_regular(directory, old.names[i], 1);
             if (error) break;
         }
     }
     if (!error) {
         for (size_t i = 0; i < old.count; ++i) {
-            if (has_name(&next, old.names[i])) continue;
+            if (!in_scope(old.names[i], target) || has_name(&next, old.names[i])) continue;
             error = gt_stage_nested_remove(directory, old.names[i]);
             if (error) break;
         }
     }
-    if (!error) error = publish_names(directory, &next, &empty);
+    if (!error) error = merged_names(&old, &next, target, &merged);
+    if (!error) error = publish_names(directory, &merged, &empty);
     free_names(&old);
     free_names(&next);
+    free(merged.names);
     free_names(&prepared);
     prepared_fd = -1;
     return -error;

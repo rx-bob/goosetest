@@ -131,7 +131,8 @@ with tempfile.TemporaryDirectory(prefix="goosetest-execution-") as tmp:
                 proc.send_signal(signal.SIGINT)
             stdout, stderr = proc.communicate(timeout=15)
             assert proc.returncode == (130 if cancel else 2), (proc.returncode, stdout, stderr)
-            diagnostic = stage.encode() + (b" failed;" if cancel else b" exceeded its deadline")
+            diagnostic = stage.encode() + b" for target default" + (
+                b" failed;" if cancel else b" exceeded its deadline")
             assert diagnostic in stderr, (diagnostic, stdout, stderr)
             if cancel:
                 assert b"signal=2" in stderr and b"run incomplete" in stderr, stderr

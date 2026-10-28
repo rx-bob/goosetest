@@ -66,4 +66,3 @@ fn expect_fragment(t: goosetest::Test&, source: const u8[:], fragment: const u8[
     t.assert_eq(actual, second, "formatting is idempotent");
     assert_tokens_preserved(t, source, actual);
 }
-

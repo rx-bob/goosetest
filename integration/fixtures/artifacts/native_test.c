@@ -16,6 +16,7 @@ extern int32_t gt_stage_write(int32_t, slice, slice);
 extern int32_t gt_stage_finish(int32_t, slice);
 extern int32_t gt_stage_reset(int32_t, slice, slice);
 extern int32_t gt_stage_completion(int32_t, slice, int32_t);
+extern int32_t gt_stage_verify_entry(int32_t, slice);
 
 static slice text(const char *value) { return (slice){(const uint8_t *)value, (int64_t)strlen(value)}; }
 
@@ -110,6 +111,16 @@ int main(int argc, char **argv) {
     int nested_project = open(nested_path, O_RDONLY | O_DIRECTORY);
     assert(nested_project >= 0);
     put(nested_project, "goosetest_core.goose", "authored configured root unchanged");
+    put(nested_project, "goosetest_database.goose", "authored database entry unchanged");
+    put(nested_project, "goosetest_root.goose", "authored legacy entry unchanged");
+    assert(mkdirat(nested_project, "targets", 0700) == 0);
+    int targets = openat(nested_project, "targets", O_RDONLY | O_DIRECTORY | O_NOFOLLOW);
+    assert(targets >= 0 && mkdirat(targets, "nested", 0700) == 0);
+    int nested_entry_dir = openat(targets, "nested", O_RDONLY | O_DIRECTORY | O_NOFOLLOW);
+    assert(nested_entry_dir >= 0);
+    put(nested_entry_dir, "goosetest_nested.goose", "authored nested entry unchanged");
+    assert(close(nested_entry_dir) == 0);
+    assert(close(targets) == 0);
     assert(close(nested_project) == 0);
     int nested = gt_stage_create(text(nested_path), text("goosetest_core.goose"));
     assert(nested >= 0);
@@ -139,7 +150,42 @@ int main(int argc, char **argv) {
     assert(gt_stage_write(nested, text("core/case_0.goose"), text("recovered")) == 0);
     assert(gt_stage_finish(nested, text("core/case_0.goose\n")) == 0);
     assert(faccessat(core, "case_1.goose", F_OK, 0) < 0 && errno == ENOENT);
+    assert(gt_stage_verify_entry(nested, text("goosetest_database.goose")) == 0);
+    assert(gt_stage_verify_entry(nested, text("targets/nested/goosetest_nested.goose")) == 0);
+    assert(gt_stage_verify_entry(nested, text("missing_database.goose")) < 0);
     assert(close(core) == 0);
+    assert(close(nested) == 0);
+
+    int database = gt_stage_create(text(nested_path), text("goosetest_database.goose"));
+    assert(database >= 0);
+    assert(gt_stage_prepare(database,
+        text("database/case_0.goose\ndatabase/runner.goose\n")) == 0);
+    assert(gt_stage_write(database, text("database/case_0.goose"), text("database case")) == 0);
+    assert(gt_stage_write(database, text("database/runner.goose"), text("database runner")) == 0);
+    assert(gt_stage_finish(database,
+        text("database/case_0.goose\ndatabase/runner.goose\n")) == 0);
+    assert(faccessat(database, "core/case_0.goose", F_OK, 0) == 0);
+    assert(close(database) == 0);
+
+    int legacy = gt_stage_create(text(nested_path), text("goosetest_root.goose"));
+    assert(legacy >= 0);
+    assert(gt_stage_prepare(legacy, text("case_0.goose\nrunner.goose\n")) == 0);
+    assert(gt_stage_write(legacy, text("case_0.goose"), text("legacy case")) == 0);
+    assert(gt_stage_write(legacy, text("runner.goose"), text("legacy runner")) == 0);
+    assert(gt_stage_finish(legacy, text("case_0.goose\nrunner.goose\n")) == 0);
+    assert(faccessat(legacy, "core/case_0.goose", F_OK, 0) == 0);
+    assert(faccessat(legacy, "database/case_0.goose", F_OK, 0) == 0);
+    assert(close(legacy) == 0);
+
+    nested = gt_stage_create(text(nested_path), text("goosetest_core.goose"));
+    assert(nested >= 0);
+    assert(gt_stage_prepare(nested, text("core/case_0.goose\ncore/runner.goose\n")) == 0);
+    assert(gt_stage_write(nested, text("core/case_0.goose"), text("updated core case")) == 0);
+    assert(gt_stage_write(nested, text("core/runner.goose"), text("updated core runner")) == 0);
+    assert(gt_stage_finish(nested, text("core/case_0.goose\ncore/runner.goose\n")) == 0);
+    assert(faccessat(nested, "core/report.goose", F_OK, 0) < 0 && errno == ENOENT);
+    assert(faccessat(nested, "database/case_0.goose", F_OK, 0) == 0);
+    assert(faccessat(nested, "case_0.goose", F_OK, 0) == 0);
     assert(close(nested) == 0);
     puts("native artifact tests passed");
     return 0;

@@ -176,7 +176,7 @@ with tempfile.TemporaryDirectory(prefix="goosetest-artifacts-") as tmp:
         proc.send_signal(signal.SIGINT)
         stdout, stderr = proc.communicate(timeout=10)
         assert proc.returncode == 130, (proc.returncode, stdout, stderr)
-        assert b"compilation failed;" in stderr and b"signal=2" in stderr, stderr
+        assert b"compilation for target default failed;" in stderr and b"signal=2" in stderr, stderr
         until = time.monotonic() + 5
         while not all(stopped(pid, index > 0) for index, pid in enumerate(pids)) and time.monotonic() < until:
             time.sleep(.02)

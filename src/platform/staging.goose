@@ -15,6 +15,13 @@ fn create(project: const u8[:], entry: const u8[:] = "goosetest_root.goose") -> 
     return create_native(project, entry);
 }
 
+// Validate another authored entry while retaining the invocation's project lock.
+extern "gt_stage_verify_entry" fn verify_entry_native(fd: i32, entry: const u8[:]) -> i32;
+
+fn verify_entry(fd: i32, entry: const u8[:]) -> i32 {
+    return verify_entry_native(fd, entry);
+}
+
 // Claim a bounded newline-delimited list before writes; interrupted claims remain recoverable.
 extern "gt_stage_prepare" fn prepare(fd: i32, names: const u8[:]) -> i32;
 

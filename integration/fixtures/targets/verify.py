@@ -30,6 +30,11 @@ def entry(path, target):
         "fn main() { exit(goosetest_generated::run_all()); }\n")
 
 
+def artifact_snapshot(directory):
+    return {str(path.relative_to(directory)): (path.read_bytes(), path.stat().st_mtime_ns)
+            for path in sorted(directory.rglob("*")) if path.is_file()}
+
+
 with tempfile.TemporaryDirectory(prefix="goosetest-targets-") as temporary:
     work = Path(temporary)
     project = work / "consumer"
@@ -135,5 +140,112 @@ with tempfile.TemporaryDirectory(prefix="goosetest-targets-") as temporary:
                     "--filter", "::test_database"], work, env, contains=b"1 skipped")
     assert b"SKIP database::tests/database/bad_test.goose::database_test::test_database" in disabled.stdout
     assert b"external database is not installed" in disabled.stdout
+
+    # The real compiler associates a nested entry with its adjacent sidecar and
+    # resolves native source paths from that sidecar's directory.
+    nested_compiler_project = work / "nested compiler sidecar"
+    nested_entry_dir = nested_compiler_project / "targets/core"
+    (nested_entry_dir / "native").mkdir(parents=True)
+    nested_entry = nested_entry_dir / "goosetest_core.goose"
+    nested_entry.write_text(
+        'import goosetest from "../../../goosetest";\n'
+        'extern "nested_sidecar_value" fn value() -> i64;\n'
+        "fn main() { if value() != 42 { exit(1); } }\n")
+    nested_sidecar = nested_entry_dir / "goosetest_core.build"
+    nested_sidecar.write_text('c_sources = ["native/value.c"];\n')
+    nested_source = nested_entry_dir / "native/value.c"
+    nested_source.write_text("int nested_sidecar_value(void) { return 42; }\n")
+    nested_entry_bytes = nested_entry.read_bytes()
+    nested_sidecar_bytes = nested_sidecar.read_bytes()
+    nested_source_bytes = nested_source.read_bytes()
+    nested_binary = work / "nested-sidecar-test"
+    nested_build = subprocess.run(
+        ["goose", "build", str(nested_entry), "--debug", "-o", str(nested_binary)],
+        cwd=nested_compiler_project, env=env, capture_output=True, timeout=120)
+    assert nested_build.returncode == 0, (nested_build.stdout, nested_build.stderr)
+    subprocess.run([nested_binary], cwd=nested_compiler_project, env=env, check=True, timeout=30)
+    assert nested_entry.read_bytes() == nested_entry_bytes
+    assert nested_sidecar.read_bytes() == nested_sidecar_bytes
+    assert nested_source.read_bytes() == nested_source_bytes
+
+    # Per-target sidecars own direct native inputs; symbols stay isolated per executable.
+    native_project = work / "target sidecar consumer"
+    native_project.mkdir()
+    native_entries = (native_project / "targets")
+    core_dir = native_entries / "core"
+    database_dir = native_entries / "database"
+    for path in (core_dir / "native", database_dir / "native", native_project / "src/core",
+                 native_project / "src/database", native_project / "tests/core",
+                 native_project / "tests/database"):
+        path.mkdir(parents=True, exist_ok=True)
+    config = {"version": 1, "targets": [
+        {"name": "core", "entry": "goosetest_core.goose",
+         "tests": [{"path": "tests/core", "kind": "unit"}]},
+        {"name": "database", "entry": "goosetest_database.goose",
+         "tests": [{"path": "tests/database", "kind": "integration"}]},
+    ]}
+    (native_project / "goosetest.json").write_text(json.dumps(config))
+    for target_dir, target in ((core_dir, "core"), (database_dir, "database")):
+        (native_project / f"goosetest_{target}.goose").write_text(
+            'import goosetest from "../goosetest";\n'
+            f"import goosetest_generated.{target}.runner;\n"
+            "fn main() { exit(goosetest_generated::run_all()); }\n")
+        (native_project / f"src/{target}/production.goose").write_text(
+            "namespace production;\n"
+            'extern "shared_target_value" fn native_value() -> i64;\n'
+            "fn value() -> i64 { return native_value(); }\n")
+    (core_dir / "native/shared_symbol.c").write_text(
+        "int shared_target_value(void) { return 17; }\n")
+    (database_dir / "native/shared_symbol.c").write_text(
+        "extern int database_library_value(void);\n"
+        "int shared_target_value(void) { return database_library_value(); }\n")
+    optional_library = database_dir / "native/unavailable_optional.c"
+    optional_library.write_text("/* optional database library is unavailable */\n")
+    core_sidecar = native_project / "goosetest_core.build"
+    core_sidecar.write_text('c_sources = ["targets/core/native/shared_symbol.c"];\n')
+    database_sidecar = native_project / "goosetest_database.build"
+    database_sidecar.write_text(
+        'c_sources = ["targets/database/native/shared_symbol.c", '
+        '"targets/database/native/unavailable_optional.c"];\n')
+    (native_project / "tests/core/native_test.goose").write_text(
+        "namespace native_test;\nimport goosetest;\nimport src.core.production;\n"
+        "fn test_native_value(t: goosetest::Test&) { t.assert_eq(17, production::value()); }\n")
+    (native_project / "tests/database/native_test.goose").write_text(
+        "namespace native_test;\nimport goosetest;\nimport src.database.production;\n"
+        "fn test_native_value(t: goosetest::Test&) { t.assert_eq(29, production::value()); }\n")
+    core_entry_before = (native_project / "goosetest_core.goose").read_bytes()
+    core_sidecar_before = core_sidecar.read_bytes()
+    database_entry_before = (native_project / "goosetest_database.goose").read_bytes()
+    unavailable_sidecar_before = database_sidecar.read_bytes()
+    core_native_before = (core_dir / "native/shared_symbol.c").read_bytes()
+    database_native_before = (database_dir / "native/shared_symbol.c").read_bytes()
+    run(["test", "--project", str(native_project), "--target", "core"], work, env,
+        contains=b"1 passed")
+    core_artifacts = native_project / "goosetest_generated/core"
+    core_snapshot = artifact_snapshot(core_artifacts)
+    unavailable = run(["test", "--project", str(native_project), "--target", "database"], work, env,
+                      status=2, contains=b"compilation for target database")
+    assert b"core::" not in unavailable.stdout
+    assert artifact_snapshot(core_artifacts) == core_snapshot
+    assert not (native_project / "goosetest_generated/database/completion").exists()
+    assert database_sidecar.read_bytes() == unavailable_sidecar_before
+
+    optional_library.write_text("int database_library_value(void) { return 29; }\n")
+    run(["test", "--project", str(native_project), "--target", "database"], work, env,
+        contains=b"1 passed")
+    database_artifacts = native_project / "goosetest_generated/database"
+    database_snapshot = artifact_snapshot(database_artifacts)
+    assert artifact_snapshot(core_artifacts) == core_snapshot
+    run(["test", "--project", str(native_project), "--target", "core"], work, env,
+        contains=b"1 passed")
+    assert artifact_snapshot(database_artifacts) == database_snapshot
+    assert (core_artifacts / "tests").is_file()
+    assert (core_artifacts / "completion").read_bytes() == b"0\n"
+    assert (native_project / "goosetest_core.goose").read_bytes() == core_entry_before
+    assert core_sidecar.read_bytes() == core_sidecar_before
+    assert (native_project / "goosetest_database.goose").read_bytes() == database_entry_before
+    assert database_sidecar.read_bytes() == unavailable_sidecar_before
+    assert (database_dir / "native/shared_symbol.c").read_bytes() == database_native_before
+    assert (core_dir / "native/shared_symbol.c").read_bytes() == core_native_before
 
 print("target selection and preflight tests passed")
