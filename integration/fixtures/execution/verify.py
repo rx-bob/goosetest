@@ -48,9 +48,11 @@ with tempfile.TemporaryDirectory(prefix="goosetest-execution-") as tmp:
     result = run(failed, 1, b"FOLLOWING")
     assert b"NEVER" not in result.stdout
     run(project("compile", "unknown_function();"), 2, b"compilation")
-    run(project("abort", "assert(false);"), 2, b"execution")
-    for code in (0, 1, 7):
-        run(project(f"exit{code}", f"exit({code});"), 2, b"incomplete")
+    for profile in ("debug", "optimized"):
+        run(project("abort " + profile, "assert(false);"), 2, b"execution", ("--profile", profile))
+        for code in (0, 1, 7):
+            run(project(f"exit{code} {profile}", f"exit({code});"), 2, b"incomplete",
+                ("--profile", profile))
     bad = project("audit")
     (bad / "src/missing.goose").write_text("namespace missing;\n")
     run(bad, 2, b"no tests executed")

@@ -1,6 +1,8 @@
 """Independent profile argv, child-environment, and native-cache oracle."""
 import json
 import os
+import platform
+import re
 from pathlib import Path
 import shutil
 import subprocess
@@ -64,6 +66,49 @@ def write_case(project, test_root, expected_mode, empty_home=False):
         f"    t.assert_eq({expected_mode}, profile_mode());\n"
         f"    {home_assertion}\n"
         "    t.assert_eq(42, value::answer());\n}\n")
+
+
+def write_recovery_cases(project, expected_mode):
+    (project / "test/value_test.goose").write_text(
+        "namespace value_test;\nimport goosetest;\nimport src.value;\n"
+        'extern "gt_profile_mode" fn profile_mode() -> i64;\n'
+        'extern "gt_parent_home_matches" fn gt_parent_home_matches() -> bool;\n'
+        "struct Fixture { acquired: bool = false }\n"
+        "var next_case: i64 = 0;\nvar cleanup_count: i64 = 0;\n"
+        "fn before_each(t: goosetest::Test&, f: Fixture&) {\n"
+        "    next_case += 1;\n"
+        "    if next_case == 1 { print(\"EVENT BEFORE A\"); }\n"
+        "    else if next_case == 2 { print(\"EVENT BEFORE B\"); }\n"
+        "    else if next_case == 3 { f.acquired = true; print(\"EVENT ACQUIRE C\"); }\n"
+        "    else { print(\"EVENT BEFORE D\"); }\n}\n"
+        "fn after_each(t: goosetest::Test&, f: Fixture&) {\n"
+        "    if f.acquired { cleanup_count += 1; f.acquired = false; print(\"EVENT CLEANUP C\"); }\n"
+        "    else if next_case == 1 { print(\"EVENT AFTER A\"); }\n"
+        "    else if next_case == 2 { print(\"EVENT AFTER B\"); }\n"
+        "    else { print(\"EVENT AFTER D\"); }\n}\n"
+        "fn test_case_a(t: goosetest::Test&, f: Fixture&) {\n"
+        "    t.assert_eq(4, 2 + 2);\n"
+        f"    t.assert_eq({expected_mode}, profile_mode());\n"
+        "    t.assert_true(gt_parent_home_matches());\n"
+        "    t.assert_eq(42, value::answer());\n}\n"
+        "fn test_case_b(t: goosetest::Test&, f: Fixture&) {\n"
+        "    t.check_eq(99, 4, \"soft check failure\");\n"
+        "    print(\"EVENT SOFT CONTINUES\");\n"
+        "    t.assert_eq(5, 2 + 2, \"case_b hard failure\");\n"
+        "    print(\"NEVER CASE B\");\n}\n"
+        "fn test_case_c(t: goosetest::Test&, f: Fixture&) {\n"
+        "    print(\"EVENT BODY C\");\n"
+        "    t.fail(\"case_c body failure\");\n"
+        "    print(\"NEVER CASE C\");\n}\n"
+        "fn test_case_d(t: goosetest::Test&, f: Fixture&) {\n"
+        "    print(\"EVENT BODY D\");\n"
+        "    t.assert_eq(1, cleanup_count);\n}\n")
+    (project / "test/disabled_test.goose").write_text(
+        "namespace disabled_test;\nimport goosetest;\n"
+        "fn before_all() { print(\"NEVER DISABLED SUITE SETUP\"); }\n"
+        "fn after_all() { print(\"NEVER DISABLED SUITE CLEANUP\"); }\n"
+        "// @Disabled(\"profile disabled fixture\")\n"
+        "fn test_disabled(t: goosetest::Test&) { print(\"NEVER DISABLED BODY\"); t.fail(\"disabled\"); }\n")
 
 
 def compiler_record(log, label):
@@ -188,4 +233,93 @@ with tempfile.TemporaryDirectory(prefix="goosetest-profile-") as temporary:
     assert b"compilation" in failed.stderr
     assert not binary.exists(), "failed offline compilation left a stale test executable"
 
-print("profile cache partition and child environment tests passed")
+    # The same recovery and hook contract must hold in debug and optimized C builds.
+    recovery = work / "recovery consumer"
+    recovery_entry, recovery_tests = make_project(recovery, "../package")
+    (recovery / "src/disabled.goose").write_text("namespace disabled;\n")
+    write_recovery_cases(recovery, 0)
+    recovery_cache = work / "recovery compiler cache"
+    recovery_output = "./goosetest_generated/tests"
+    case_ids = {
+        "test/value_test.goose::value_test::test_case_a": b"PASS",
+        "test/value_test.goose::value_test::test_case_b": b"FAIL",
+        "test/value_test.goose::value_test::test_case_c": b"FAIL",
+        "test/value_test.goose::value_test::test_case_d": b"PASS",
+        "test/disabled_test.goose::disabled_test::test_disabled": b"SKIP",
+    }
+    for profile, mode, optimize, debug in (
+        ("debug", 0, "-O0", "--debug"), ("optimized", 1, "-O2", None),
+    ):
+        write_recovery_cases(recovery, mode)
+        expected_argv = ["build", recovery_entry, optimize]
+        if debug:
+            expected_argv.append(debug)
+        expected_argv.extend(["-o", recovery_output])
+        result = run(["test", "--project", str(recovery), "--profile", profile,
+                      "--cache-root", str(recovery_cache), "--compiler", str(compiler)], work, env, 1)
+        record = compiler_record(log, expected_argv)
+        assert record["home"] == str(recovery_cache / "default" / profile), record
+        reports = {identity.decode(): status for status, identity in
+                   re.findall(rb"^(PASS|FAIL|SKIP|NOT RUN|ERROR) ([^ ]+) ", result.stdout, re.M)}
+        assert reports == case_ids, (profile, reports, result.stdout)
+        events = [line.decode() for line in result.stdout.splitlines() if line.startswith(b"EVENT ")]
+        assert events == [
+            "EVENT BEFORE A", "EVENT AFTER A", "EVENT BEFORE B", "EVENT SOFT CONTINUES",
+            "EVENT AFTER B", "EVENT ACQUIRE C", "EVENT BODY C", "EVENT CLEANUP C",
+            "EVENT BEFORE D", "EVENT BODY D", "EVENT AFTER D",
+        ], (profile, events, result.stdout)
+        assert b"soft check failure" in result.stdout and b"case_b hard failure" in result.stdout
+        assert b"case_c body failure" in result.stdout
+        assert b"expected: <5>" in result.stdout and b"actual: <4>" in result.stdout, result.stdout
+        assert b"NEVER CASE B" not in result.stdout and b"NEVER CASE C" not in result.stdout
+        assert b"NEVER DISABLED" not in result.stdout
+        assert b"Cases: 2 passed, 2 failed, 1 skipped, 0 errors, 0 not run" in result.stdout
+
+        fail_fast = run(["test", "--project", str(recovery), "--profile", profile,
+                         "--cache-root", str(recovery_cache), "--compiler", str(compiler),
+                         "--fail-fast"], work, env, 1)
+        compiler_record(log, expected_argv)
+        stopped = {identity.decode(): status.decode() for status, identity in
+                   re.findall(rb"^(PASS|FAIL|SKIP|NOT RUN|ERROR) ([^ ]+) ", fail_fast.stdout, re.M)}
+        assert stopped["test/value_test.goose::value_test::test_case_a"] == "PASS"
+        assert stopped["test/value_test.goose::value_test::test_case_b"] == "FAIL"
+        assert stopped["test/value_test.goose::value_test::test_case_c"] == "NOT RUN"
+        assert stopped["test/value_test.goose::value_test::test_case_d"] == "NOT RUN"
+        assert stopped["test/disabled_test.goose::disabled_test::test_disabled"] == "SKIP"
+        stopped_events = [line.decode() for line in fail_fast.stdout.splitlines()
+                          if line.startswith(b"EVENT ")]
+        assert stopped_events == ["EVENT BEFORE A", "EVENT AFTER A", "EVENT BEFORE B",
+                                  "EVENT SOFT CONTINUES", "EVENT AFTER B"], (profile, stopped_events)
+        disabled_only = run(["test", "--project", str(recovery), "--profile", profile,
+                             "--cache-root", str(recovery_cache), "--compiler", str(compiler),
+                             "--filter", "::test_disabled"], work, env)
+        compiler_record(log, expected_argv)
+        assert b"0 passed, 0 failed, 1 skipped" in disabled_only.stdout
+        assert b"NEVER DISABLED" not in disabled_only.stdout
+        assert not any(line.startswith(b"EVENT ") for line in disabled_only.stdout.splitlines())
+
+    fatal = work / "fatal recovery consumer"
+    fatal_entry, fatal_tests = make_project(fatal, "../package")
+    write_case(fatal, fatal_tests, 0)
+    (fatal / fatal_tests / "value_test.goose").write_text(
+        "namespace value_test;\nimport goosetest;\n"
+        "fn test_fatal(t: goosetest::Test&) { assert(false); }\n")
+    fatal_cache = work / "fatal compiler cache"
+    fatal_binary = fatal / "goosetest_generated/tests"
+    fatal_completion = fatal / "goosetest_generated/completion"
+    for profile, optimize, debug in (("debug", "-O0", "--debug"), ("optimized", "-O2", None)):
+        fatal_argv = ["build", fatal_entry, optimize]
+        if debug:
+            fatal_argv.append(debug)
+        fatal_argv.extend(["-o", recovery_output])
+        result = run(["test", "--project", str(fatal), "--profile", profile,
+                      "--cache-root", str(fatal_cache), "--compiler", str(compiler)], work, env, 2)
+        compiler_record(log, fatal_argv)
+        assert b"execution" in result.stderr and b"incomplete" in result.stderr
+        assert not re.search(rb"^(?:PASS|FAIL) ", result.stdout, re.M), result.stdout
+        assert fatal_binary.exists()
+        assert not fatal_completion.exists()
+
+    version = subprocess.run(["goose", "version"], check=True, capture_output=True, text=True,
+                             timeout=15).stdout.strip()
+    print(f"profile recovery/cache tests passed with {version} on {platform.system()} {platform.machine()}")

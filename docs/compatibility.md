@@ -189,3 +189,15 @@ and its pre-existing Git status matched before and after this work, including
 its unchanged Taskfile. No original test command was run there. See the
 [adoption guide](adopting_pretty_goose.md) for provenance and the deliberately
 limited package-boundary migration recipe.
+
+## E2.S3 profile recovery verification — 2026-10-28
+
+The recovery and lifecycle consumer passed under both debug (`-O0`) and
+optimized (`-O2`) profiles with Goose runtime `4d3da949e563`, Apple clang
+17.0.0, on macOS arm64. Each run confirmed soft-check continuation, hard
+assertion recovery, one cleanup after partial fixture setup, stable case IDs,
+fail-fast reporting, and disabled-only selection without suite hooks or body
+execution. Fatal `assert(false)` remained a status-2 execution failure with no
+completed test inventory in both profiles. The independent execution matrix also
+passed abort and explicit-exit process checks in both profiles. These compiler
+and platform results are verified; other platforms are not implied.
