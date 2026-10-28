@@ -135,4 +135,49 @@ with tempfile.TemporaryDirectory(prefix="goosetest-lifecycle-") as tmp:
     out, err = run(aborting, 2)
     assert events(out) == ["EVENT CONSTRUCT 1", "EVENT SETUP", "EVENT BODY"], (out, err)
     assert b"execution" in err and b"incomplete" in err, err
+
+    # Resource ownership is safe after partial setup and closes an acquired
+    # descriptor once after a recoverable body assertion failure.
+    (project / "resource.c").write_text(
+        '#include <fcntl.h>\n#include <stdio.h>\n#include <unistd.h>\n'
+        'static void record(const char *event, int fd) {\n'
+        '    FILE *log = fopen("resource-events", "a");\n'
+        '    if (!log) _exit(110);\n'
+        '    if (fprintf(log, "%s %d\\n", event, fd) < 0 || fclose(log) != 0) _exit(111);\n'
+        '}\n'
+        'int gt_lifecycle_open_resource(void) {\n'
+        '    int fd = open("/dev/null", O_RDONLY);\n'
+        '    if (fd >= 0) record("OPEN", fd);\n'
+        '    return fd;\n'
+        '}\n'
+        'int gt_lifecycle_close_resource(int fd) {\n'
+        '    record("CLOSE", fd);\n'
+        '    return close(fd);\n'
+        '}\n')
+    (project / "goosetest_root.build").write_text('c_sources = ["resource.c"];\n')
+    resource_source = (
+        "namespace lifecycle_resource_test;\nimport goosetest;\n"
+        'extern "gt_lifecycle_open_resource" fn open_resource() -> i32;\n'
+        'extern "gt_lifecycle_close_resource" fn close_resource(fd: i32) -> i32;\n'
+        "var next_id: i32 = 0;\n"
+        "fn new_id() -> i32 { next_id += 1; return next_id; }\n"
+        "struct Fixture { fd: i32 = -1, id: i32 = new_id() }\n"
+        "fn before_each(t: goosetest::Test&, f: Fixture&) {\n"
+        '    if f.id == 1 { t.fail("partial setup"); }\n'
+        "    f.fd = open_resource();\n"
+        "    t.assert_true(f.fd >= 0);\n"
+        "}\n"
+        "fn after_each(t: goosetest::Test&, f: Fixture&) {\n"
+        "    if f.fd >= 0 { t.assert_eq(0, close_resource(f.fd)); f.fd = -1; }\n"
+        "}\n"
+        "fn test_a_partial_setup(t: goosetest::Test&, f: Fixture&) { print(\"NEVER PARTIAL BODY\"); }\n"
+        'fn test_b_body_failure(t: goosetest::Test&, f: Fixture&) { t.fail("body failure"); }\n')
+    out, err = run(resource_source, 1)
+    assert all(value in out for value in (b"[setup]", b"partial setup", b"[test]", b"body failure")), (out, err)
+    assert b"NEVER PARTIAL BODY" not in out
+    assert (project / "resource-events").read_text().splitlines()[0].startswith("OPEN ")
+    resource_events = (project / "resource-events").read_text().splitlines()
+    assert len(resource_events) == 2, resource_events
+    opened_fd = resource_events[0].split()[1]
+    assert resource_events == [f"OPEN {opened_fd}", f"CLOSE {opened_fd}"], resource_events
 print("lifecycle process tests passed")

@@ -160,6 +160,10 @@ state. Put a hazardous suite in its own target when it needs process isolation;
 goosetest does not reset state between individual cases or suites. A fatal child
 failure may be followed by another target only after its owned process group has
 been cleaned up and the direct child reaped; cleanup failure stops the run.
+This boundary does not clean detached descendants, external services, or shared
+database state. Keep disposable resource setup in authored target code and do not
+point test fixtures at a shared production database. Framework hooks are not run
+after a target is terminated by a deadline, cancellation, or fatal process error.
 
 The authored entry remains untouched. The runner creates `goosetest_generated/`
 with an ownership marker and manifest, or reuses a directory with valid ownership

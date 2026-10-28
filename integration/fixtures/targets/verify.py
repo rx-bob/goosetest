@@ -1,11 +1,13 @@
 """Verify selected target inventories, stable IDs, and all-target preflight."""
 import json
 import os
+import signal
 from pathlib import Path
 import shutil
 import subprocess
 import sys
 import tempfile
+import time
 
 cli = str(Path(sys.argv[1]).resolve())
 repo = Path(__file__).resolve().parents[3]
@@ -33,6 +35,25 @@ def entry(path, target):
 def artifact_snapshot(directory):
     return {str(path.relative_to(directory)): (path.read_bytes(), path.stat().st_mtime_ns)
             for path in sorted(directory.rglob("*")) if path.is_file()}
+
+
+def stopped(pid, allow_zombie=False):
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return True
+    if not allow_zombie:
+        return False
+    state = subprocess.run(["/bin/ps", "-p", str(pid), "-o", "stat="], capture_output=True,
+                           text=True, timeout=3).stdout.strip()
+    return not state or state.startswith("Z")
+
+
+def wait_tree_stopped(pids):
+    deadline = time.monotonic() + 5
+    while not all(stopped(pid, index > 0) for index, pid in enumerate(pids)):
+        assert time.monotonic() < deadline, ("owned process survived", pids)
+        time.sleep(.02)
 
 
 with tempfile.TemporaryDirectory(prefix="goosetest-targets-") as temporary:
@@ -393,5 +414,102 @@ with tempfile.TemporaryDirectory(prefix="goosetest-targets-") as temporary:
                     contains=b"completion record")
     assert b"TARGET evidence PROFILE debug: incomplete (status 2)" in malformed.stdout
     assert (evidence / "goosetest_generated/evidence/completion").read_bytes() == b"bad\n"
+
+    # A run deadline must release a descendant-owned listening socket before
+    # the next target begins and default mode must continue to that target.
+    timeout_project = work / "target timeout socket"
+    timeout_project.mkdir()
+    shutil.copyfile(fixture, timeout_project / "process_fixture.c")
+    timeout_config = {"version": 1, "targets": []}
+    for name in ("alpha", "beta"):
+        (timeout_project / f"tests/{name}").mkdir(parents=True)
+        entry(timeout_project, name)
+        (timeout_project / f"goosetest_{name}.build").write_text('c_sources = ["process_fixture.c"];\n')
+        timeout_config["targets"].append({
+            "name": name,
+            "entry": f"goosetest_{name}.goose",
+            "tests": [{"path": f"tests/{name}", "kind": "unit"}],
+        })
+    (timeout_project / "goosetest.json").write_text(json.dumps(timeout_config))
+    (timeout_project / "tests/alpha/alpha_test.goose").write_text(
+        'namespace alpha_test;\nimport goosetest;\n'
+        'extern "goosetest_fixture_socket_wait" fn socket_wait();\n'
+        "fn test_socket_owner(t: goosetest::Test&) { socket_wait(); }\n")
+    (timeout_project / "tests/beta/beta_test.goose").write_text(
+        'namespace beta_test;\nimport goosetest;\n'
+        'extern "goosetest_fixture_rebind_socket" fn rebind_socket() -> i32;\n'
+        "fn test_socket_released(t: goosetest::Test&) { t.assert_eq(1, rebind_socket()); }\n")
+    timed_out = run(["test", "--project", str(timeout_project), "--run-timeout-seconds", "1"],
+                    work, env, status=2, contains=b"TARGET beta PROFILE debug: passed (status 0)")
+    assert b"TARGET alpha PROFILE debug: incomplete (status 2)" in timed_out.stdout
+    timeout_pids = [int(value) for value in (timeout_project / "owned-pids").read_text().split()]
+    wait_tree_stopped(timeout_pids)
+
+    # Interrupt both the first and a later selected target with SIGINT/SIGTERM.
+    # The cancelled invocation must skip gamma and release the lock for reuse.
+    cancel_project = work / "target cancellation"
+    cancel_project.mkdir()
+    shutil.copyfile(fixture, cancel_project / "process_fixture.c")
+    cancel_config = {"version": 1, "targets": []}
+    for name in ("alpha", "beta", "gamma"):
+        (cancel_project / f"tests/{name}").mkdir(parents=True)
+        entry(cancel_project, name)
+        cancel_config["targets"].append({
+            "name": name,
+            "entry": f"goosetest_{name}.goose",
+            "tests": [{"path": f"tests/{name}", "kind": "unit"}],
+        })
+    (cancel_project / "goosetest.json").write_text(json.dumps(cancel_config))
+    (cancel_project / "tests/alpha/alpha_test.goose").write_text(
+        suite("alpha_test", "test_before_cancel"))
+    (cancel_project / "goosetest_beta.build").write_text('c_sources = ["process_fixture.c"];\n')
+    (cancel_project / "tests/beta/beta_test.goose").write_text(
+        'namespace beta_test;\nimport goosetest;\n'
+        'extern "goosetest_fixture_socket_wait" fn socket_wait();\n'
+        "fn test_wait_for_cancellation(t: goosetest::Test&) { socket_wait(); }\n")
+    (cancel_project / "tests/gamma/gamma_test.goose").write_text(
+        'namespace gamma_test;\nimport goosetest;\nimport os;\n'
+        'fn test_must_not_run(t: goosetest::Test&) { t.assert_true(write_file("gamma-ran", "yes")); }\n')
+
+    for selected_first in (True, False):
+        for cancel_signal in (signal.SIGINT, signal.SIGTERM):
+            (cancel_project / "gamma-ran").unlink(missing_ok=True)
+            (cancel_project / "owned-pids").unlink(missing_ok=True)
+            (cancel_project / "owned-port").unlink(missing_ok=True)
+            selectors = ["--target", "beta", "--target", "gamma"] if selected_first else []
+            command = [cli, "test", "--project", str(cancel_project), "--run-timeout-seconds", "30",
+                       *selectors]
+            running = subprocess.Popen(command, cwd=work, env=env, stdout=subprocess.PIPE,
+                                       stderr=subprocess.PIPE)
+            try:
+                ready_by = time.monotonic() + 40
+                while not (cancel_project / "owned-pids").exists():
+                    assert running.poll() is None, running.communicate()
+                    assert time.monotonic() < ready_by, "target process tree did not become ready"
+                    time.sleep(.02)
+                cancelled_pids = [int(value) for value in
+                                  (cancel_project / "owned-pids").read_text().split()]
+                running.send_signal(cancel_signal)
+                stdout, stderr = running.communicate(timeout=20)
+                expected = 128 + cancel_signal
+                assert running.returncode == expected, (running.returncode, stdout, stderr)
+                assert f"Aggregate status: {expected}".encode() in stdout, stdout
+                assert f"signal={cancel_signal}".encode() in stderr and b"run incomplete" in stderr, stderr
+                assert b"TARGET beta PROFILE debug: cancelled" in stdout, stdout
+                assert b"TARGET gamma PROFILE debug: NOT RUN" in stdout, stdout
+                if not selected_first:
+                    assert b"TARGET alpha PROFILE debug: passed" in stdout, stdout
+                assert not (cancel_project / "gamma-ran").exists()
+                wait_tree_stopped(cancelled_pids)
+            finally:
+                if running.poll() is None:
+                    running.kill()
+                    running.communicate(timeout=5)
+
+            # A fresh command proves cancellation closed the project lock.
+            reacquired = run(["test", "--project", str(cancel_project), "--target", "gamma"],
+                             work, env, contains=b"TARGET gamma PROFILE debug: passed (status 0)")
+            assert b"1 passed" in reacquired.stdout
+            assert (cancel_project / "gamma-ran").read_text() == "yes"
 
 print("target selection and preflight tests passed")

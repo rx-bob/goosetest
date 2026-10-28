@@ -33,6 +33,8 @@ phases is still one failed case, with each assertion counted once.
 Default and partially initialized fixture states **must be safe to clean up**.
 For example, initialize resource-ownership flags to false, set them only when
 acquisition succeeds, and let cleanup test those flags before releasing anything.
+For a native descriptor, initialize `fd` to `-1`; after a successful open, assign
+the returned descriptor, then close it only when `fd >= 0` and restore `-1`.
 Do not assume setup reached its last statement. Failed cleanup does not erase
 an earlier cause.
 
@@ -42,8 +44,11 @@ phase; the original terminal error remains and status is 2. Subsequent cases do
 not construct fixtures once the run is incomplete.
 
 There is no cleanup guarantee after fatal Goose checks, constructor failure,
-process exit, native crashes, deadlines or process termination. This mechanism
-uses explicit recovery boundaries, not `defer` or process isolation.
+process exit, native crashes, deadlines or process termination. Parent-side
+fixtures own and remove their scratch files after verification. Hooks cannot
+clean detached descendants or external services, and tests must not share a
+production database. This mechanism uses explicit recovery boundaries, not
+`defer` or process isolation.
 
 The generator uses `execute_fixture` for record ownership/finalization and
 `run_phase` for phase labels and recovery. These are qualified runtime helpers;
