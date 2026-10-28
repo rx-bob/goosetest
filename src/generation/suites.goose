@@ -50,14 +50,14 @@ fn emit_case(output: Output&, manifest: discovery::Manifest&, index: i64, execut
             namespace_name, "::", function_name, "(t);\n    }\n}\n\n");
     }
     emit_suite_helpers(out, manifest, index);
-    emit_text(out, "source_path", path);
+    emit_text(out, "source_path", source_identity_path(manifest, path));
     emit_text(out, "source_namespace", namespace_name);
     emit_text(out, "source_function", function_name);
     emit_text(out, "source_display", discovery::manifest_text(manifest, entry.display_name));
     if entry.disabled {
         emit_text(out, "source_reason", discovery::manifest_text(manifest, entry.disabled_reason));
     }
-    add_module(output, str("case_", index, ".goose"), out);
+    add_module(output, generated_module_path(manifest, str("case_", index, ".goose")), out);
 }
 
 // Preserve the whole unselected call path, but retain no executed/skipped record.

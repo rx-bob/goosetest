@@ -57,7 +57,8 @@ unit/integration kind, stable `<path>::<namespace>::<function>` identity and
 indented following lines. Backslashes are doubled; control bytes are escaped as
 `\xNN` so decoded metadata cannot create fake rows. Case IDs never depend on labels.
 The summary counts all discovered, executable and disabled cases; listing does
-not execute them. A disabled-only project remains valid.
+not execute them. Configured case IDs start with `<target>::`; legacy IDs remain
+`<path>::<namespace>::<function>`. A disabled-only project remains valid.
 
 `check-mirror` prints each successful correspondence and matched/missing/orphaned
 counts, bad-filename count and independent integration-suite count. These measure
@@ -96,14 +97,17 @@ entries, types, modes, sizes, content hashes and modification times (not access
 times). Invalid production code and enabled write-sentinel bodies remain untouched;
 the parent always removes its disposable fixtures after success or failure.
 
-## One-command execution (E3.S3)
+## One-command execution
 
 `goosetest test --project PATH` validates the complete inventory, generates all
-modules in memory, writes them, builds `goosetest_root.goose` using
-`goose build --debug`, and executes `./goosetest_generated/tests`. Both child
-stages use the project directory. The authored root must import generated
-`runner` and exit with `goosetest_generated::run_all()` as in the basic example.
-Compiler and test stdout/stderr are inherited without capture.
+modules in memory, publishes them, builds the authored entry with
+`goose build --debug`, and executes the generated test binary. Both child stages
+use the project directory. Legacy projects use `goosetest_root.goose` and
+`goosetest_generated/tests`. A configured project currently supports one target;
+for target `core`, author `goosetest_core.goose` to import
+`goosetest_generated.core.runner` and exit with
+`goosetest_generated::run_all()`. Its binary and completion record live under
+`goosetest_generated/core/`. Compiler and test stdout/stderr are inherited.
 
 `--compiler PATH` defaults to `goose` through PATH. An explicit relative path
 containing `/` is relative to the project directory; use an absolute path when
@@ -118,10 +122,10 @@ Generated execution writes a completion record after reporting; missing or
 mismatched evidence rejects early `exit(0)` and `exit(1)`. This detects accidental
 premature termination, not deliberately forged results by project code.
 
-`goosetest_root.goose` remains authored and is never rewritten. The runner creates
-`goosetest_generated/` with an ownership marker and manifest, or reuses a directory
-with valid ownership metadata. Preexisting unowned directories and symlinks fail
-without deletion. A nonblocking exclusive directory lock spans publication,
+The authored entry remains untouched. The runner creates `goosetest_generated/`
+with an ownership marker and manifest, or reuses a directory with valid ownership
+metadata. Configured targets use an owned target subdirectory. Preexisting unowned
+directories and symlinks fail without deletion. A nonblocking exclusive directory lock spans publication,
 compilation, execution, and child cleanup. Concurrent runs fail with status 2;
 closing the descriptor or process death releases the lock without stale lockfiles.
 

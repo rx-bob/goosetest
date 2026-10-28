@@ -4,11 +4,16 @@ namespace artifacts;
 import src.generation.model;
 import src.platform.staging;
 
-fn publish(fd: i32, output: generation::Output&) -> i32 {
+fn publish(fd: i32, output: generation::Output&, target_name: u8[:] = "") -> i32 {
     if generation::status(output) != 0 {
-        return - 1;
+        return -1;
     }
     var names: u8[>..] = [];
+    let runner_path: u8[>..] = if target_name.len == 0 {
+        "runner.goose"
+    } else {
+        str(target_name, "/runner.goose")
+    };
     for module in output.modules {
         names.append(generation::module_path(output, module));
         names.push('\n');
@@ -18,7 +23,7 @@ fn publish(fd: i32, output: generation::Output&) -> i32 {
         return prepared;
     }
     for module in output.modules {
-        if generation::module_path(output, module) != "runner.goose" {
+        if generation::module_path(output, module) != runner_path {
             let error = write_module(fd, output, module);
             if error != 0 {
                 return error;
@@ -26,7 +31,7 @@ fn publish(fd: i32, output: generation::Output&) -> i32 {
         }
     }
     for module in output.modules {
-        if generation::module_path(output, module) == "runner.goose" {
+        if generation::module_path(output, module) == runner_path {
             let error = write_module(fd, output, module);
             if error != 0 {
                 return error;

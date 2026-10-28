@@ -82,7 +82,7 @@ def main():
             run_owned('build ' + source, ['goose', 'build', '--debug', REPO / source, '-o', binary], env, work)
         matrices = [
             ('self_host', [cli]), ('cli', [cli, oracle]), ('execution', [cli]),
-            ('artifacts', [cli]), ('limits', [cli]), ('disabled', [cli]),
+            ('artifacts', [cli]), ('limits', [cli]), ('configured', [cli]), ('disabled', [cli]),
             ('selection', [cli]), ('lifecycle', [cli]), ('suite', [cli]),
             ('pretty_goose', [cli]),
         ]

@@ -15,7 +15,13 @@ import src.platform.filesystem;
 import src.platform.process;
 import src.platform.staging;
 
-fn run(options: arguments::Options&, manifest: discovery::Manifest&, audit: discovery::MirrorAudit&) -> i32 {
+struct Target {
+    name: const u8[:],
+    entry: const u8[:],
+}
+
+fn run(options: arguments::Options&, manifest: discovery::Manifest&, audit: discovery::MirrorAudit&,
+    target: Target) -> i32 {
     var modules: generation::Module[>..] = [];
     var paths: u8[>..] = [];
     var sources: u8[>..] = [];
@@ -30,14 +36,14 @@ fn run(options: arguments::Options&, manifest: discovery::Manifest&, audit: disc
         write_stderr(str("ERROR: generation: ", output.error, "\nRun incomplete; no tests executed.\n"));
         return 2;
     }
-    let fd = staging::create(options.project);
+    let fd = staging::create(options.project, target.entry);
     if fd < 0 {
-        write_stderr(str("ERROR: artifacts: native error ", - fd,
+        write_stderr(str("ERROR: artifacts: native error ", -fd,
             "; require regular goosetest_root.goose and writable, owned goosetest_generated/.\n",
             "A concurrent invocation must release ownership before retrying. Run incomplete.\n"));
         return 2;
     }
-    let result = materialize(options, output, fd);
+    let result = materialize(options, output, fd, target);
     let closed = filesystem::close_project(fd);
     if closed != 0 {
         write_stderr(str("ERROR: artifact close: ", closed, "\nRun incomplete.\n"));
@@ -46,19 +52,29 @@ fn run(options: arguments::Options&, manifest: discovery::Manifest&, audit: disc
     return result;
 }
 
-fn materialize(options: arguments::Options&, output: generation::Output&, fd: i32) -> i32 {
-    let published = artifacts::publish(fd, output);
+fn materialize(options: arguments::Options&, output: generation::Output&, fd: i32, target: Target) -> i32 {
+    let published = artifacts::publish(fd, output, target.name);
     if published != 0 {
         write_stderr(str("ERROR: artifact publication: ", published, "\nRun incomplete.\n"));
         return 2;
     }
-    let reset = staging::reset(fd);
+    let binary_path: u8[>..] = if target.name.len == 0 {
+        "tests"
+    } else {
+        str(target.name, "/tests")
+    };
+    let completion_path: u8[>..] = if target.name.len == 0 {
+        "completion"
+    } else {
+        str(target.name, "/completion")
+    };
+    let reset = staging::reset(fd, binary_path, completion_path);
     if reset != 0 {
         write_stderr(str("ERROR: stale execution artifact removal: ", reset, "\nRun incomplete.\n"));
         return 2;
     }
-    let argv: const u8[:][6] = [options.compiler, "build", "--debug", "goosetest_root.goose", "-o",
-        "./goosetest_generated/tests"];
+    let output_path = str("./goosetest_generated/", binary_path);
+    let argv: const u8[:][6] = [options.compiler, "build", "--debug", target.entry, "-o", output_path];
     let built = process::run(argv, options.project,
         process::Limits {
             deadline_ms: options.compile_timeout_seconds * 1000,
@@ -69,7 +85,8 @@ fn materialize(options: arguments::Options&, output: generation::Output&, fd: i3
         diagnose("compilation", built);
         return status;
     }
-    let execute: const u8[:][2] = ["./goosetest_generated/tests", "--goosetest-completion"];
+    let execute_path = str("./goosetest_generated/", binary_path);
+    let execute: const u8[:][2] = [execute_path, "--goosetest-completion"];
     let ran = process::run(execute, options.project,
         process::Limits {
             deadline_ms: options.run_timeout_seconds * 1000,
@@ -80,7 +97,7 @@ fn materialize(options: arguments::Options&, output: generation::Output&, fd: i3
         diagnose("execution", ran);
         return result;
     }
-    if staging::completion(fd, result) != 0 {
+    if staging::completion_at(fd, completion_path, result) != 0 {
         write_stderr("ERROR: execution ended without matching completion record; run incomplete.\n");
         return 2;
     }

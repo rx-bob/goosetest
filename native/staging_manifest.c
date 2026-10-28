@@ -22,15 +22,65 @@ static int has_name(const stage_names *names, const char *name) {
                                    sizeof *names->names, compare_names) != NULL;
 }
 
-static int valid_name(const char *name) {
+static int valid_component(const char *name, int target) {
     size_t length = strlen(name);
-    if (!length || length > NAME_MAX || name[0] == '.') return 0;
+    if (!length || length > NAME_MAX || name[0] == '.' || name[0] == '-') return 0;
+    if (target && !(name[0] >= 'a' && name[0] <= 'z')) return 0;
     for (size_t i = 0; i < length; ++i) {
         unsigned char c = (unsigned char)name[i];
-        if (!(c >= 'a' && c <= 'z') && !(c >= '0' && c <= '9') && c != '_' && c != '.') return 0;
+        int alpha = c >= 'a' && c <= 'z';
+        int digit = c >= '0' && c <= '9';
+        if (target) {
+            if (!alpha && !digit && c != '_') return 0;
+        } else if (!alpha && !digit && c != '_' && c != '.') return 0;
     }
+    return 1;
+}
+
+static int valid_leaf(const char *name) {
+    if (!valid_component(name, 0)) return 0;
+    size_t length = strlen(name);
     return !strcmp(name, "tests") || !strcmp(name, "completion") ||
            (length > 6 && !strcmp(name + length - 6, ".goose"));
+}
+
+static int valid_name(const char *name) {
+    size_t length = strlen(name);
+    if (!length || length > PATH_MAX) return 0;
+    const char *slash = strchr(name, '/');
+    if (!slash) return valid_leaf(name);
+    if (strchr(slash + 1, '/') || slash == name || !slash[1]) return 0;
+    char target[NAME_MAX + 1];
+    size_t target_length = (size_t)(slash - name);
+    if (target_length > NAME_MAX) return 0;
+    memcpy(target, name, target_length);
+    target[target_length] = 0;
+    return valid_component(target, 1) && valid_leaf(slash + 1);
+}
+
+static int target_prefix(const stage_names *names, char *target, size_t capacity, int require_only) {
+    target[0] = 0;
+    for (size_t i = 0; i < names->count; ++i) {
+        const char *slash = strchr(names->names[i], '/');
+        if (!slash) {
+            if (require_only && target[0]) return EINVAL;
+            continue;
+        }
+        size_t length = (size_t)(slash - names->names[i]);
+        if (length + 1 > capacity) return ENAMETOOLONG;
+        if (!target[0]) {
+            memcpy(target, names->names[i], length);
+            target[length] = 0;
+        } else if (strlen(target) != length || memcmp(target, names->names[i], length)) {
+            return EINVAL;
+        }
+        if (require_only) {
+            for (size_t j = 0; j < names->count; ++j) {
+                if (!strchr(names->names[j], '/')) return EINVAL;
+            }
+        }
+    }
+    return 0;
 }
 
 static int parse_names(gt_stage_slice source, stage_names *names, int reserved) {
@@ -41,7 +91,7 @@ static int parse_names(gt_stage_slice source, stage_names *names, int reserved) 
     size_t count = reserved ? 2 : 0;
     for (int64_t i = 0; i < source.len; ++i) if (source.data[i] == '\n') ++count;
     if (count > GT_NAMES_LIMIT) return EFBIG;
-    names->bytes = malloc((size_t)source.len + 32);
+    names->bytes = malloc((size_t)source.len + 2 * (NAME_MAX + 16));
     names->names = calloc(count + 1, sizeof *names->names);
     if (!names->bytes || !names->names) { free_names(names); return ENOMEM; }
     if (source.len) memcpy(names->bytes, source.data, (size_t)source.len);
@@ -55,10 +105,25 @@ static int parse_names(gt_stage_slice source, stage_names *names, int reserved) 
         start = i + 1;
     }
     if (reserved) {
+        char target[NAME_MAX + 1];
+        int error = target_prefix(names, target, sizeof target, 1);
+        if (error) { free_names(names); return error; }
         char *extra = (char *)names->bytes + source.len;
-        memcpy(extra, "tests\0completion\0", 17);
-        names->names[names->count++] = extra;
-        names->names[names->count++] = extra + 6;
+        if (target[0]) {
+            size_t length = strlen(target);
+            memcpy(extra, target, length);
+            extra[length] = '/';
+            memcpy(extra + length + 1, "tests\0", 6);
+            names->names[names->count++] = extra;
+            memcpy(extra + length + 7, target, length);
+            extra[length * 2 + 7] = '/';
+            memcpy(extra + length * 2 + 8, "completion\0", 11);
+            names->names[names->count++] = extra + length + 7;
+        } else {
+            memcpy(extra, "tests\0completion\0", 17);
+            names->names[names->count++] = extra;
+            names->names[names->count++] = extra + 6;
+        }
     }
     qsort(names->names, names->count, sizeof *names->names, compare_names);
     for (size_t i = 1; i < names->count; ++i) {
@@ -74,6 +139,39 @@ static int load_names(int directory, stage_names *names) {
     if (error == ENOENT) error = 0;
     if (!error) error = parse_names((gt_stage_slice){bytes, (int64_t)length}, names, 0);
     free(bytes);
+    return error;
+}
+
+static int ensure_target(int directory, const stage_names *names) {
+    char target[NAME_MAX + 1];
+    int error = target_prefix(names, target, sizeof target, 0);
+    if (error || !target[0]) return error;
+    char path[NAME_MAX * 2 + 2];
+    int length = snprintf(path, sizeof path, "%s/runner.goose", target);
+    if (length < 0 || (size_t)length >= sizeof path) return ENAMETOOLONG;
+    int fd = -1;
+    char leaf[NAME_MAX + 1];
+    error = gt_stage_target_open(directory, path, 1, &fd, leaf, sizeof leaf);
+    if (!error && fd != directory && close(fd) < 0) error = errno;
+    return error;
+}
+
+static int nested_stat(int directory, const char *name, struct stat *info, int *exists) {
+    int target = -1;
+    char leaf[NAME_MAX + 1];
+    int error = gt_stage_target_open(directory, name, 0, &target, leaf, sizeof leaf);
+    if (error == ENOENT) {
+        *exists = 0;
+        return 0;
+    }
+    if (error) return error;
+    if (fstatat(target, leaf, info, AT_SYMLINK_NOFOLLOW) < 0) {
+        if (errno == ENOENT) *exists = 0;
+        else error = errno;
+    } else {
+        *exists = 1;
+    }
+    if (target != directory && close(target) < 0 && !error) error = errno;
     return error;
 }
 
@@ -101,10 +199,10 @@ static int publish_names(int directory, const stage_names *a, const stage_names 
 static int preflight(int directory, const stage_names *old, const stage_names *next) {
     for (size_t i = 0; i < next->count; ++i) {
         struct stat info;
-        if (fstatat(directory, next->names[i], &info, AT_SYMLINK_NOFOLLOW) < 0) {
-            if (errno == ENOENT) continue;
-            return errno;
-        }
+        int exists = 0;
+        int error = nested_stat(directory, next->names[i], &info, &exists);
+        if (error) return error;
+        if (!exists) continue;
         if (!has_name(old, next->names[i])) return EEXIST;
         if (!S_ISREG(info.st_mode) || info.st_nlink != 1) return EINVAL;
     }
@@ -119,6 +217,7 @@ int32_t gt_stage_prepare(int32_t directory, gt_stage_slice source) {
     int error = fstat(directory, &info) < 0 ? errno : 0;
     if (!error) error = load_names(directory, &old);
     if (!error) error = parse_names(source, &next, 1);
+    if (!error) error = ensure_target(directory, &next);
     if (!error) error = preflight(directory, &old, &next);
     if (!error) error = publish_names(directory, &old, &next);
     free_names(&old);
@@ -144,8 +243,13 @@ int gt_stage_owned(int directory, const char *name) {
     if (fstat(directory, &info) < 0) return errno;
     if (directory == prepared_fd && info.st_dev == prepared_device && info.st_ino == prepared_inode)
         return has_name(&prepared, name) ? 0 : EINVAL;
+    int target = -1;
+    char leaf[NAME_MAX + 1];
+    int error = gt_stage_target_open(directory, name, 0, &target, leaf, sizeof leaf);
+    if (error) return error;
+    if (target != directory && close(target) < 0) return errno;
     stage_names names = {0};
-    int error = load_names(directory, &names);
+    error = load_names(directory, &names);
     if (!error && !has_name(&names, name)) error = EINVAL;
     free_names(&names);
     return error;
@@ -155,6 +259,7 @@ int32_t gt_stage_finish(int32_t directory, gt_stage_slice source) {
     stage_names old = {0}, next = {0}, empty = {0};
     int error = load_names(directory, &old);
     if (!error) error = parse_names(source, &next, 1);
+    if (!error) error = ensure_target(directory, &next);
     if (!error) {
         for (size_t i = 0; i < next.count; ++i) {
             if (!has_name(&old, next.names[i])) { error = EINVAL; break; }
@@ -163,14 +268,14 @@ int32_t gt_stage_finish(int32_t directory, gt_stage_slice source) {
     if (!error) {
         for (size_t i = 0; i < old.count; ++i) {
             if (has_name(&next, old.names[i])) continue;
-            error = gt_stage_regular(directory, old.names[i], 1);
+            error = gt_stage_nested_regular(directory, old.names[i], 1);
             if (error) break;
         }
     }
     if (!error) {
         for (size_t i = 0; i < old.count; ++i) {
             if (has_name(&next, old.names[i])) continue;
-            error = gt_stage_remove(directory, old.names[i]);
+            error = gt_stage_nested_remove(directory, old.names[i]);
             if (error) break;
         }
     }

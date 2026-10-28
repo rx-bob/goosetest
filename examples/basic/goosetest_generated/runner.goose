@@ -24,5 +24,5 @@ fn run_all() -> i32 {
     };
     goosetest_generated_dispatch_0_0::run(t);
     goosetest_generated_report::report(results, 4);
-    return goosetest_generated_completion::finish(goosetest::run_status(results));
+    return goosetest_generated_completion::finish(goosetest::run_status(results), "goosetest_generated/completion");
 }

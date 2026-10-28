@@ -1,11 +1,11 @@
 // Generation is deterministic and rejects incomplete inputs or exhausted output budgets.
 namespace runner_test;
 
-import goosetest;
 import std;
-import src.discovery.selection;
 
+import goosetest;
 import src.discovery.manifest;
+import src.discovery.selection;
 import src.generation.model;
 import src.generation.runner;
 import test_support.generation;
@@ -20,11 +20,13 @@ fn test_deterministic_and_limits(outer: goosetest::Test&) {
             generation_support::with_output() {
                 first =>
                 generation::generate(first, manifest, audit);
-                assert(generation::status(first) == 0 && first.modules.len == 4);
+                assert(generation::status(first) == 0);
+                assert(first.modules.len == 4);
                 generation_support::with_output() {
                     second =>
                     generation::generate(second, manifest, audit);
-                    assert(first.paths == second.paths && first.sources == second.sources);
+                    assert(first.paths == second.paths);
+                    assert(first.sources == second.sources);
                 }
                 let exact = generation::Limits {
                     max_files: first.modules.len,
@@ -50,10 +52,38 @@ fn test_deterministic_and_limits(outer: goosetest::Test&) {
                     generation_support::with_output(below) {
                         output =>
                         generation::generate(output, manifest, audit);
-                        assert(generation::status(output) == 2 && output.error.len > 0);
+                        assert(generation::status(output) == 2);
+                        assert(output.error.len > 0);
                         assert(output.sources.len <= below.max_source_bytes);
                     }
                 }
+            }
+        }
+    }
+}
+
+fn test_target_module_paths_and_identity(outer: goosetest::Test&) {
+    syntax_support::with_manifest() {
+        manifest =>
+        discovery::set_target_name(manifest, "core");
+        syntax_support::parse(manifest, "namespace sample; fn test_x(t: goosetest::Test&) {}");
+        assert(discovery::manifest_text(manifest, manifest.cases[0].identity)
+            == "core::test/example_test.goose::sample::test_x");
+        generation_support::with_audit() {
+            audit =>
+            generation_support::with_output() {
+                output =>
+                generation::generate(output, manifest, audit);
+                assert(generation::status(output) == 0);
+                assert(generation::module_path(output, output.modules[0]) == "core/case_0.goose");
+                assert(generation::module_path(output, output.modules[1]) == "core/runner.goose");
+                let case = generation::module_source(output, output.modules[0]);
+                assert(find(case, "source_path() -> u8[>..]") >= 0);
+                assert(find(case, "text.append(\"core::test/example_test.goose\")") >= 0);
+                let runner = generation::module_source(output, output.modules[1]);
+                assert(find(runner, "goosetest_generated.core.case_0") >= 0);
+                assert(find(runner, "goosetest_generated.core.completion") >= 0);
+                assert(find(runner, "goosetest_generated/core/completion") >= 0);
             }
         }
     }
@@ -67,14 +97,16 @@ fn test_incomplete(outer: goosetest::Test&) {
             generation_support::with_output() {
                 output =>
                 generation::generate(output, manifest, audit);
-                assert(generation::status(output) == 2 && output.modules.len == 0);
+                assert(generation::status(output) == 2);
+                assert(output.modules.len == 0);
             }
             syntax_support::parse(manifest, "namespace x; fn test_x(t: goosetest::Test&) {}");
             audit.complete = false;
             generation_support::with_output() {
                 output =>
                 generation::generate(output, manifest, audit);
-                assert(generation::status(output) == 2 && output.modules.len == 0);
+                assert(generation::status(output) == 2);
+                assert(output.modules.len == 0);
             }
         }
     }
@@ -167,7 +199,8 @@ fn test_zero_selection_and_budget(outer: goosetest::Test&) {
                         filter: "absent",
                         ..
                     });
-                assert(generation::status(output) == 2 && output.modules.len == 0);
+                assert(generation::status(output) == 2);
+                assert(output.modules.len == 0);
                 assert(find(output.error[..], "selection matched no cases") >= 0);
             }
         }

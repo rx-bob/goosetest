@@ -245,7 +245,7 @@ Required src/ and test/: src/path/name.goose <-> test/path/name_test.goose.
 Optional integration/: independent named *_test.goose suites. Every suite needs a test.
 Put helpers in test_support/. Root entries/facades and generated output are not audited.
 Selection never weakens the full audit or typechecking. list and check-mirror never compile or run tests.
-All commands validate the whole project; empty projects and incomplete discovery fail.
+Configured projects currently support one target end to end; multi-target execution arrives in a later release.
 Only @DisplayName and @Disabled metadata are supported; disabled cases compile but never execute.
 
 Default finite limits (bytes unless stated):
@@ -253,7 +253,7 @@ Filesystem: 65536 entries, depth 64, 4096 per path, 8388608 retained path bytes,
 1048576 per file, 67108864 total source bytes. Symlinks under scanned roots are errors.
 Syntax: 1048576 per file, 67108864 total, 262144 tokens/file, nesting 128,
 4096 suites, 65536 cases, 8388608 retained metadata bytes.
-Discovery limits are fixed. goosetest.json is bounded and validated; configured discovery follows in later stories.
+Discovery limits are fixed. goosetest.json is bounded and validated; one configured target is supported.
 Exit: 0 valid list/audit/help or completed passing tests; 1 executed assertion failures;
 2 usage, discovery, generation, compilation, process, deadline or incomplete-run error.
 Cancellation preserves conventional interruption status. Mirror counts are not code coverage.

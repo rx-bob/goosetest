@@ -38,6 +38,19 @@ fn run(options: arguments::Options&) -> i32 {
         incomplete();
         return 2;
     }
+    if configuration.configured && configuration.targets.len != 1 {
+        write_stderr("ERROR: configured commands currently support exactly one target.\n");
+        incomplete();
+        return 2;
+    }
+    var target = command::Target {
+        name: "",
+        entry: "goosetest_root.goose",
+    };
+    if configuration.configured {
+        target.name = config::text_value(configuration, configuration.targets[0].name);
+        target.entry = config::text_value(configuration, configuration.targets[0].entry);
+    }
     var files: discovery::SourceFile[>..] = [];
     var roots: discovery::RootRecord[>..] = [];
     var exclusions: discovery::ExclusionRule[>..] = [];
@@ -63,10 +76,10 @@ fn run(options: arguments::Options&) -> i32 {
         incomplete();
         return 2;
     }
-    return inspect(options, inventory);
+    return inspect(options, inventory, target);
 }
 
-fn inspect(options: arguments::Options&, inventory: discovery::Inventory&) -> i32 {
+fn inspect(options: arguments::Options&, inventory: discovery::Inventory&, target: command::Target) -> i32 {
     var records: discovery::MirrorRecord[>..] = [];
     var audit = discovery::new_mirror_audit(records);
     var suites: discovery::Suite[>..] = [];
@@ -74,6 +87,7 @@ fn inspect(options: arguments::Options&, inventory: discovery::Inventory&) -> i3
     var text: u8[>..] = [];
     var error_path: u8[>..] = [];
     var manifest = discovery::new_manifest(suites, cases, text, error_path);
+    discovery::set_target_name(manifest, target.name);
     discovery::inspect_project(audit, manifest, inventory);
     if audit.disabled && options.command == arguments::Command.CheckMirror {
         write_stderr(cli_output::mirror_summary(audit));
@@ -107,7 +121,7 @@ fn inspect(options: arguments::Options&, inventory: discovery::Inventory&) -> i3
         return 2;
     }
     if options.command == arguments::Command.Test {
-        return command::run(options, manifest, audit);
+        return command::run(options, manifest, audit, target);
     }
     if options.command == arguments::Command.List {
         list_cases(manifest, selected, options.filter_seen || options.suite_seen);

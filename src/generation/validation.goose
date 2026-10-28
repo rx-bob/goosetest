@@ -15,7 +15,7 @@ fn validate(output: Output&, manifest: discovery::Manifest&) {
         if !identifier(name) || (name.len >= 19 && name[..19] == "goosetest_generated") {
             fail(output, path, "invalid namespace: maximum 48 bytes; goosetest_generated* is reserved");
         }
-        if !valid_path(path, suite.kind) {
+        if !valid_path(path, suite.kind, manifest.target_name.length > 0) {
             fail(output, path, "invalid or overlong test module path (maximum 100 bytes)");
         }
     }
@@ -39,19 +39,19 @@ fn identifier(value: u8[:]) -> bool {
     return value.len <= 48 && discovery::import_segment(value);
 }
 
-fn valid_path(path: u8[:], kind: discovery::RootKind) -> bool {
+fn valid_path(path: u8[:], kind: discovery::RootKind, configured: bool = false) -> bool {
     if path.len > 100 || !discovery::test_filename(path) {
         return false;
     }
-    if kind == discovery::RootKind.Unit {
+    if !configured && kind == discovery::RootKind.Unit {
         if path.len < 5 || path[..5] != "test/" {
             return false;
         }
-    } else if kind == discovery::RootKind.Integration {
+    } else if !configured && kind == discovery::RootKind.Integration {
         if path.len < 12 || path[..12] != "integration/" {
             return false;
         }
-    } else {
+    } else if kind == discovery::RootKind.Source {
         return false;
     }
     let stem = path[..path.len - 6];

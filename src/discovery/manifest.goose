@@ -33,7 +33,7 @@ struct Suite {
     },
     first_case: i64,
     case_count: i64 = 0,
-    source_file: i64 = - 1,
+    source_file: i64 = -1,
     kind: RootKind,
 }
 struct Case {
@@ -65,11 +65,21 @@ struct Manifest {
     cases: Case[>..]&,
     text: u8[>..]&,
     error_path: u8[>..]&,
+    target_name: Span = Span {
+    },
     limits: SyntaxLimits,
     error: ScanError = ScanError {
     },
     scanned_bytes: i64 = 0,
     complete: bool = false,
+}
+
+fn set_target_name(manifest: Manifest&, name: u8[:]) {
+    if name.len == 0 {
+        return;
+    }
+    manifest.target_name = own_text(manifest, name, "", SourceLocation {
+        });
 }
 
 fn new_manifest(

@@ -10,12 +10,12 @@
 #include <unistd.h>
 
 typedef struct { const uint8_t *data; int64_t len; } slice;
-extern int32_t gt_stage_create(slice);
+extern int32_t gt_stage_create(slice, slice);
 extern int32_t gt_stage_prepare(int32_t, slice);
 extern int32_t gt_stage_write(int32_t, slice, slice);
 extern int32_t gt_stage_finish(int32_t, slice);
-extern int32_t gt_stage_reset(int32_t);
-extern int32_t gt_stage_completion(int32_t, int32_t);
+extern int32_t gt_stage_reset(int32_t, slice, slice);
+extern int32_t gt_stage_completion(int32_t, slice, int32_t);
 
 static slice text(const char *value) { return (slice){(const uint8_t *)value, (int64_t)strlen(value)}; }
 
@@ -41,7 +41,7 @@ static void interrupted(slice path, int fd) {
     assert(gt_stage_write(fd, text("case_1.goose"), text("partial")) == 0);
     put(fd, ".write-tmp", "interrupted atomic write");
     assert(close(fd) == 0);
-    fd = gt_stage_create(path);
+    fd = gt_stage_create(path, text("goosetest_root.goose"));
     assert(fd >= 0);
     assert(faccessat(fd, ".write-tmp", F_OK, 0) < 0 && errno == ENOENT);
     assert(gt_stage_prepare(fd, text("case_0.goose\n")) == 0);
@@ -49,15 +49,15 @@ static void interrupted(slice path, int fd) {
     assert(gt_stage_finish(fd, text("case_0.goose\n")) == 0);
     assert(faccessat(fd, "case_1.goose", F_OK, 0) < 0 && errno == ENOENT);
     put(fd, "completion", "0\n");
-    assert(gt_stage_completion(fd, 0) == 0);
-    assert(gt_stage_completion(fd, 1) < 0);
-    assert(gt_stage_reset(fd) == 0);
-    assert(gt_stage_completion(fd, 0) < 0);
+    assert(gt_stage_completion(fd, text("completion"), 0) == 0);
+    assert(gt_stage_completion(fd, text("completion"), 1) < 0);
+    assert(gt_stage_reset(fd, text("tests"), text("completion")) == 0);
+    assert(gt_stage_completion(fd, text("completion"), 0) < 0);
     assert(close(fd) == 0);
 }
 
 static void unsafe_names(slice path) {
-    int fd = gt_stage_create(path);
+    int fd = gt_stage_create(path, text("goosetest_root.goose"));
     assert(fd >= 0);
     put(fd, "case_2.goose", "user-owned");
     assert(gt_stage_prepare(fd, text("case_0.goose\ncase_2.goose\n")) == -EEXIST);
@@ -88,11 +88,11 @@ int main(int argc, char **argv) {
     assert(argc == 2);
     int project = open(argv[1], O_RDONLY | O_DIRECTORY);
     assert(project >= 0);
-    assert(gt_stage_create(text(argv[1])) < 0);
+    assert(gt_stage_create(text(argv[1]), text("goosetest_root.goose")) < 0);
     put(project, "goosetest_root.goose", "authored root unchanged");
-    int fd = gt_stage_create(text(argv[1]));
+    int fd = gt_stage_create(text(argv[1]), text("goosetest_root.goose"));
     assert(fd >= 0);
-    assert(gt_stage_create(text(argv[1])) == -EWOULDBLOCK);
+    assert(gt_stage_create(text(argv[1]), text("goosetest_root.goose")) == -EWOULDBLOCK);
     assert(gt_stage_write(fd, text("case_0.goose"), text("one")) < 0);
     assert(gt_stage_prepare(fd, text("case_0.goose\n")) == 0);
     assert(gt_stage_write(fd, text("case_0.goose"), text("one")) == 0);
@@ -102,6 +102,44 @@ int main(int argc, char **argv) {
     interrupted(text(argv[1]), fd);
     unsafe_names(text(argv[1]));
     assert(close(project) == 0);
+
+    char nested_path[4096];
+    assert(snprintf(nested_path, sizeof nested_path, "%s/nested", argv[1]) < (int)sizeof nested_path);
+    assert(mkdir(nested_path, 0700) == 0);
+    int nested_project = open(nested_path, O_RDONLY | O_DIRECTORY);
+    assert(nested_project >= 0);
+    put(nested_project, "goosetest_core.goose", "authored configured root unchanged");
+    assert(close(nested_project) == 0);
+    int nested = gt_stage_create(text(nested_path), text("goosetest_core.goose"));
+    assert(nested >= 0);
+    assert(gt_stage_prepare(nested, text("core/case_0.goose\ncore/runner.goose\ncore/report.goose\ncore/completion.goose\n")) == 0);
+    assert(gt_stage_write(nested, text("core/case_0.goose"), text("namespace case;")) == 0);
+    assert(gt_stage_write(nested, text("core/report.goose"), text("namespace report;")) == 0);
+    assert(gt_stage_write(nested, text("core/completion.goose"), text("namespace completion;")) == 0);
+    assert(gt_stage_write(nested, text("core/runner.goose"), text("namespace runner;")) == 0);
+    assert(gt_stage_finish(nested, text("core/case_0.goose\ncore/runner.goose\ncore/report.goose\ncore/completion.goose\n")) == 0);
+    int core = openat(nested, "core", O_RDONLY | O_DIRECTORY | O_NOFOLLOW);
+    assert(core >= 0);
+    put(core, "completion", "0\n");
+    assert(gt_stage_completion(nested, text("core/completion"), 0) == 0);
+    assert(gt_stage_reset(nested, text("core/tests"), text("core/completion")) == 0);
+    assert(gt_stage_completion(nested, text("core/completion"), 0) < 0);
+    assert(gt_stage_prepare(nested, text("core/case_0.goose\ncore/case_1.goose\n")) == 0);
+    assert(gt_stage_write(nested, text("core/case_1.goose"), text("partial")) == 0);
+    put(core, ".write-tmp", "interrupted nested write");
+    assert(close(core) == 0);
+    assert(close(nested) == 0);
+    nested = gt_stage_create(text(nested_path), text("goosetest_core.goose"));
+    assert(nested >= 0);
+    assert(gt_stage_prepare(nested, text("core/case_0.goose\n")) == 0);
+    core = openat(nested, "core", O_RDONLY | O_DIRECTORY | O_NOFOLLOW);
+    assert(core >= 0);
+    assert(faccessat(core, ".write-tmp", F_OK, 0) < 0 && errno == ENOENT);
+    assert(gt_stage_write(nested, text("core/case_0.goose"), text("recovered")) == 0);
+    assert(gt_stage_finish(nested, text("core/case_0.goose\n")) == 0);
+    assert(faccessat(core, "case_1.goose", F_OK, 0) < 0 && errno == ENOENT);
+    assert(close(core) == 0);
+    assert(close(nested) == 0);
     puts("native artifact tests passed");
     return 0;
 }

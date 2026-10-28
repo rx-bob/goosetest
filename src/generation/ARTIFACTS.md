@@ -3,7 +3,8 @@
 `artifacts::publish` joins bounded generation with the CLI-only native staging
 boundary. The importable assertion runtime has no artifact or native dependency.
 
-The authored `goosetest_root.goose` is checked as a regular file, never written.
+The authored configured entry, or legacy `goosetest_root.goose`, is checked as a
+regular file, never written.
 The generated directory must be new or carry the exact `.owner` version marker
 and valid bounded `.manifest`. Preexisting unowned directories are not adopted.
 A nonblocking directory lock is held through build, run, and child cleanup;
@@ -17,7 +18,8 @@ obsolete names in the manifest and then publishes the desired manifest. Unknown
 files are preserved, and a newly generated name colliding with an unlisted file
 fails. No recursive deletion or user-root rewriting occurs.
 
-`tests` and `completion` are reserved, manifest-owned execution outputs. Both are
+`tests` and `completion` are reserved, manifest-owned execution outputs. In a
+configured target they are stored inside its owned subdirectory. Both are
 removed before compilation, so successful old runs cannot supply new execution
 or completion evidence. Any publication/reset error prevents compilation;
 compiler failure prevents execution. Generated sources remain after failures.
@@ -40,10 +42,12 @@ beside it in `native_test.c`.
 The marker is exactly `goosetest artifacts v1\n`. A missing manifest beneath a
 valid marker means empty ownership, allowing interruption during initialization
 to recover; it does not authorize replacement of existing source files. The
-manifest stores sorted, newline-delimited flat filenames, at most 8 MiB and
+manifest stores sorted, newline-delimited generated paths, at most 8 MiB and
 140004 names (the old/new union). Names are at most `NAME_MAX` bytes, use lowercase
-ASCII letters, digits, underscores or dots, and are `.goose` files or the two
-reserved execution outputs. Duplicates, malformed names, symlinks and hardlinks
+ASCII letters, digits, underscores or dots, with at most one target-directory
+separator. Files are `.goose` modules or the two reserved execution outputs.
+Target subdirectories carry a checked owner marker. Duplicates, malformed names,
+symlinks and hardlinks
 are rejected. Source writes are limited to 65536 bytes each. The reserved
 `.write-tmp` file is recovered only after marker validation and exclusive locking.
 A brief project-directory lock serializes initial directory creation; the output

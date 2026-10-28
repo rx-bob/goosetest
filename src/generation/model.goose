@@ -3,6 +3,8 @@ namespace generation;
 
 import std;
 
+import src.discovery.manifest;
+
 struct Span {
     offset: i64 = 0,
     length: i64 = 0
@@ -28,7 +30,10 @@ struct Output {
 fn new_output(modules: Module[>..]&, paths: u8[>..]&, sources: u8[>..]&, error: u8[>..]&,
     limits: Limits = Limits {
     }) -> Output {
-    assert(modules.len == 0 && paths.len == 0 && sources.len == 0 && error.len == 0);
+    assert(modules.len == 0);
+    assert(paths.len == 0);
+    assert(sources.len == 0);
+    assert(error.len == 0);
     var output = Output {
         modules: modules,
         paths: paths,
@@ -92,6 +97,38 @@ fn module_path(output: Output&, module: Module) -> const u8[:] {
 
 fn module_source(output: Output&, module: Module) -> const u8[:] {
     return output.sources[module.source.offset..module.source.offset + module.source.length];
+}
+
+fn generated_module_path(manifest: discovery::Manifest&, name: u8[:]) -> u8[>..] {
+    let target = discovery::manifest_text(manifest, manifest.target_name);
+    if target.len == 0 {
+        return str(name);
+    }
+    return str(target, "/", name);
+}
+
+fn generated_import_path(manifest: discovery::Manifest&, name: u8[:]) -> u8[>..] {
+    let target = discovery::manifest_text(manifest, manifest.target_name);
+    if target.len == 0 {
+        return str("goosetest_generated.", name);
+    }
+    return str("goosetest_generated.", target, ".", name);
+}
+
+fn source_identity_path(manifest: discovery::Manifest&, path: u8[:]) -> u8[>..] {
+    let target = discovery::manifest_text(manifest, manifest.target_name);
+    if target.len == 0 {
+        return str(path);
+    }
+    return str(target, "::", path);
+}
+
+fn completion_path(manifest: discovery::Manifest&) -> u8[>..] {
+    let target = discovery::manifest_text(manifest, manifest.target_name);
+    if target.len == 0 {
+        return "goosetest_generated/completion";
+    }
+    return str("goosetest_generated/", target, "/completion");
 }
 
 fn status(output: Output&) -> i32 {

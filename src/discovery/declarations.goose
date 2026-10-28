@@ -10,9 +10,9 @@ import src.discovery.model;
 import src.discovery.signatures;
 
 fn parse_file(
-    manifest: Manifest&, path: u8[:], source: u8[:], kind: RootKind, source_file: i64 = - 1
+    manifest: Manifest&, path: u8[:], source: u8[:], kind: RootKind, source_file: i64 = -1
 ) {
-    assert( !manifest.complete);
+    assert(!manifest.complete);
     if manifest.error.issue != SyntaxIssue.None {
         return;
     }
@@ -63,8 +63,7 @@ fn parse_top_level(parser: Parser&) {
         let token = parser.tokens[parser.at];
         if is_comment(token) {
             top_comment(parser);
-        }
-        else {
+        } else {
             if !parser.prefix_started && has_metadata(parser.metadata)
                 && token.location.line > parser.metadata.end_line + 1 {
                 parse_error(parser, SyntaxIssue.OrphanAnnotation);
@@ -142,11 +141,9 @@ fn top_declaration(parser: Parser&) {
     }
     if text == "namespace" {
         parse_namespace(parser);
-    }
-    else if text == "struct" {
+    } else if text == "struct" {
         parse_struct(parser);
-    }
-    else {
+    } else {
         skip_declaration(parser);
     }
     reset_prefix(parser);
@@ -254,8 +251,7 @@ fn parse_function(parser: Parser&) {
     }
     if is_test {
         append_case(parser, spelling, location, signature.count == 2);
-    }
-    else {
+    } else {
         append_hook(parser, spelling, location, signature);
     }
 }
@@ -272,7 +268,12 @@ fn append_case(parser: Parser&, name: u8[:], location: SourceLocation, fixture: 
         return;
     }
     let path = parser_path(parser);
-    let id = str(path, "::", manifest_text(manifest, suite.namespace_name), "::", name);
+    let target_name = manifest_text(manifest, manifest.target_name);
+    let id = if target_name.len > 0 {
+        str(target_name, "::", path, "::", manifest_text(manifest, suite.namespace_name), "::", name)
+    } else {
+        str(path, "::", manifest_text(manifest, suite.namespace_name), "::", name)
+    };
     let stored_name = own_text(manifest, name, path, location);
     let stored_id = own_text(manifest, id, path, location);
     if manifest.error.issue != SyntaxIssue.None {
@@ -310,16 +311,13 @@ fn append_hook(parser: Parser&, name: u8[:], location: SourceLocation, signature
     if name == "before_each" {
         duplicate = suite.before_each.present;
         suite.before_each = hook;
-    }
-    else if name == "after_each" {
+    } else if name == "after_each" {
         duplicate = suite.after_each.present;
         suite.after_each = hook;
-    }
-    else if name == "before_all" {
+    } else if name == "before_all" {
         duplicate = suite.before_all.present;
         suite.before_all = hook;
-    }
-    else {
+    } else {
         duplicate = suite.after_all.present;
         suite.after_all = hook;
     }
@@ -341,8 +339,7 @@ fn skip_declaration(parser: Parser&) {
         }
         if text == "(" || text == "[" {
             skip_group(parser);
-        }
-        else {
+        } else {
             parser.at += 1;
         }
     }
