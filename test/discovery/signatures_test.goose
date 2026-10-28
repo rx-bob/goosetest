@@ -1,13 +1,12 @@
 // Signature rejection is independent from compiler type checking of test bodies.
 namespace signatures_test;
 
-import goosetest;
+import std;
 
+import goosetest;
 import src.discovery.manifest;
 import src.discovery.model;
 import test_support.syntax;
-
-import std;
 
 fn test_bad_parameters(outer: goosetest::Test&) {
     check("fn test_x() {}", discovery::SyntaxIssue.TestSignature);

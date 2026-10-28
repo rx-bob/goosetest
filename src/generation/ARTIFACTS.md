@@ -24,6 +24,13 @@ removed before compilation, so successful old runs cannot supply new execution
 or completion evidence. Any publication/reset error prevents compilation;
 compiler failure prevents execution. Generated sources remain after failures.
 
+Legacy generated modules and execution outputs live directly in
+`goosetest_generated/`. Configured targets keep their modules, binary output and
+completion record under `goosetest_generated/<target>/`; each target's compiler
+cache is separately partitioned by profile. The authored entry and its adjacent
+`goosetest_<target>.build` remain consumer-owned. Selecting another target does
+not rewrite or claim either file.
+
 `cache` is reserved against target names and generated module paths. The default
 compiler caches live below `goosetest_generated/cache/<target-or-default>/<profile>`;
 they are outside the source manifest and are never pruned by generation. Compiler

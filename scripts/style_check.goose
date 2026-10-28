@@ -18,7 +18,7 @@ recursive fn directory(path: u8[:], recurse: bool, depth: i64, checked: i64&) ->
     let fd = if handle > 0 {
         filesystem::directory_fd(handle)
     } else {
-            - 1
+        -1
     };
     var valid = handle > 0;
     var child: u8[..4096] = [];
@@ -52,7 +52,7 @@ recursive fn directory(path: u8[:], recurse: bool, depth: i64, checked: i64&) ->
 }
 
 fn open_handle(path: u8[:]) -> i64 {
-    var split: i64 = - 1;
+    var split: i64 = -1;
     for byte,
     index in path {
         if byte == '/' {
@@ -74,7 +74,7 @@ fn open_handle(path: u8[:]) -> i64 {
         if handle > 0 {
             filesystem::close_directory(handle);
         }
-        return - 1;
+        return -1;
     }
     return handle;
 }
@@ -110,7 +110,7 @@ fn next_path(fd: i32, handle: i64, path: u8[:], child: u8[..4096]&) -> i32 {
         return next as i32;
     }
     if path.len + 1 + name.len > 4096 {
-        return - 1;
+        return -1;
     }
     child.append(path);
     child.push('/');

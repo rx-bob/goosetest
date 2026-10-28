@@ -2,7 +2,6 @@
 namespace literals_test;
 
 import goosetest;
-
 import src.generation.literals;
 
 fn test_bytes(outer: goosetest::Test&) {
@@ -27,8 +26,7 @@ fn test_function_bounds(outer: goosetest::Test&) {
         if byte == '\n' {
             lines += 1;
             column = 0;
-        }
-        else {
+        } else {
             column += 1;
             assert(column <= 120);
         }

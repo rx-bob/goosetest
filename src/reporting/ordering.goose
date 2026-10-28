@@ -8,7 +8,7 @@ fn compare_bytes(left: u8[:], right: u8[:]) -> i32 {
     var index: i64 = 0;
     while index < left.len && index < right.len {
         if left[index] < right[index] {
-            return - 1;
+            return -1;
         }
         if left[index] > right[index] {
             return 1;
@@ -16,7 +16,7 @@ fn compare_bytes(left: u8[:], right: u8[:]) -> i32 {
         index += 1;
     }
     if left.len < right.len {
-        return - 1;
+        return -1;
     }
     if left.len > right.len {
         return 1;

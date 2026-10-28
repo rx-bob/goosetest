@@ -120,8 +120,7 @@ fn parameter(parser: Parser&) -> i32 {
     } else if text_at(parser) == "Fixture" {
         parser.at += 1;
         kind = 2;
-    }
-    else {
+    } else {
         parse_error(parser, SyntaxIssue.ParameterType);
         return 0;
     }

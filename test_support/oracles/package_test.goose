@@ -1,5 +1,6 @@
 // Independent oracle: parent supplies captured child output and actual process status.
 // No import of goosetest; builtin assertions determine whether verification succeeds.
+
 import os;
 
 fn main() {

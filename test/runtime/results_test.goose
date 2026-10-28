@@ -46,7 +46,7 @@ fn test_case_limit(outer: goosetest::Test&) {
         goosetest::execute_case(t) {
             reached = true;
         }
-        assert( !reached);
+        assert(!reached);
         assert(t.results.incomplete);
         assert(t.results.terminal == goosetest::TerminalError.CaseLimit);
         assert(t.results.cases.len == 1);
@@ -104,19 +104,19 @@ fn test_skipped_only(outer: goosetest::Test&) {
 fn test_invalid_limits(outer: goosetest::Test&) {
     let limits: goosetest::Limits[4] = [
         goosetest::Limits {
-            cases: - 1,
+            cases: -1,
             ..
         },
         goosetest::Limits {
-            failures: - 1,
+            failures: -1,
             ..
         },
         goosetest::Limits {
-            diagnostic_bytes: - 1,
+            diagnostic_bytes: -1,
             ..
         },
         goosetest::Limits {
-            metadata_bytes: - 1,
+            metadata_bytes: -1,
             ..
         },
     ];
@@ -127,7 +127,7 @@ fn test_invalid_limits(outer: goosetest::Test&) {
             goosetest::execute_case(t) {
                 reached = true;
             }
-            assert( !reached);
+            assert(!reached);
             assert(t.results.cases.len == 0);
             assert(t.results.incomplete);
             assert(goosetest::run_status(t.results) == 2);
@@ -144,7 +144,8 @@ fn test_not_run_without_failure(outer: goosetest::Test&) {
                 ..
             });
         assert(t.results.totals.not_run == 1);
-        assert(t.results.totals.passed == 0 && t.results.totals.skipped == 0);
+        assert(t.results.totals.passed == 0);
+        assert(t.results.totals.skipped == 0);
         assert(goosetest::run_status(t.results) == 2);
     }
 }

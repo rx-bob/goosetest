@@ -2,7 +2,6 @@
 namespace errors_test;
 
 import goosetest;
-
 import src.discovery.errors;
 import src.discovery.model;
 import test_support.filesystem;

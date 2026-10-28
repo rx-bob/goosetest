@@ -15,4 +15,3 @@ fn assert_eq<T>(t: Test&, expected: T, actual: T, message: u8[:] = "") {
         return from goosetest::run_case;
     }
 }
-

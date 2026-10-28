@@ -2,7 +2,6 @@
 namespace syntax_errors_test;
 
 import goosetest;
-
 import src.discovery.manifest;
 import src.discovery.model;
 import test_support.syntax;

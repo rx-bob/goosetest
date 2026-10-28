@@ -1,11 +1,11 @@
 // Phase recovery, result retention and rendering must agree on incomplete runs.
 namespace failure_contract_integration_test;
 
+import std;
+
 import goosetest;
 import src.reporting.console;
 import test_support.runtime;
-
-import std;
 
 fn test_resource_failure_still_cleans_up(outer: goosetest::Test&) {
     runtime_support::with_test(goosetest::Limits {
@@ -24,7 +24,8 @@ fn test_resource_failure_still_cleans_up(outer: goosetest::Test&) {
                 cleaned = true;
             }
         }
-        assert(cleaned && !continued);
+        assert(cleaned);
+        assert(!continued);
         assert(t.results.cases.len == 1);
         assert(t.results.cases[0].outcome == goosetest::Outcome.RunnerError);
         assert(t.results.failures.len == 0);

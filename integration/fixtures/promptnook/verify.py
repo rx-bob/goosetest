@@ -81,9 +81,8 @@ with tempfile.TemporaryDirectory(prefix="goosetest-promptnook-adoption-") as tem
 
     # Core remains independent from the deliberately absent database link input.
     for profile in ("debug", "optimized"):
-        args = [cli, "test", "--project", project, "--target", "core", "--profile", profile]
-        if profile == "optimized":
-            args.append("--offline")
+        args = [cli, "test", "--project", project, "--target", "core", "--profile", profile,
+                "--offline"]
         result = run(args, work, env)
         assert f"PASS {DOMAIN_ID} (".encode() in result.stdout, (profile, result.stdout)
         assert b"1 passed, 0 failed" in result.stdout

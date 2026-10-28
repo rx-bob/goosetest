@@ -1,14 +1,13 @@
 // Adapter probes verify bounded reads, missing-entry distinctions, and no-follow opens.
 namespace filesystem_test;
 
-import goosetest;
-import test_support.selfhost;
-
-import src.platform.filesystem;
-import test_support.filesystem;
-
 import os;
 import std;
+
+import goosetest;
+import src.platform.filesystem;
+import test_support.filesystem;
+import test_support.selfhost;
 
 fn test_adapter(outer: goosetest::Test&) {
     let parent = selfhost_support::scratch(outer);
@@ -23,7 +22,7 @@ fn test_adapter(outer: goosetest::Test&) {
     assert(filesystem::kind(fd, "data") == filesystem::FILE);
     assert(filesystem::kind(fd, "linked_file") == filesystem::SYMLINK);
     assert(filesystem::missing(filesystem::kind(fd, "absent")) != 0);
-    assert(filesystem::missing(filesystem::kind( - 1, "absent")) == 0);
+    assert(filesystem::missing(filesystem::kind(-1, "absent")) == 0);
     assert(filesystem::open_directory(fd, "linked_directory") < 0);
     var exact: u8[>..] = [];
     assert(filesystem::read(fd, "data", exact, 3) == 0);

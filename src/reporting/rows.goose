@@ -62,8 +62,7 @@ fn failure_rows<F>(results: goosetest::Results&, indices: i64[:], suite: bool) {
                 if !heading {
                     if suite {
                         F("Suite-hook errors:\n");
-                    }
-                    else {
+                    } else {
                         F("Failures:\n");
                     }
                     heading = true;

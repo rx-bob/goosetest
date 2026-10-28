@@ -1,10 +1,9 @@
 // Lifecycle hooks follow signatures; disabled wrappers retain typed but unreachable calls.
 namespace suites_test;
 
-import goosetest;
-
 import std;
 
+import goosetest;
 import src.discovery.manifest;
 import src.generation.model;
 import src.generation.runner;
@@ -15,8 +14,8 @@ import test_support.syntax;
 fn test_rejections(outer: goosetest::Test&) {
     reject("namespace goosetest_generated; fn test_x(t: goosetest::Test&) {}");
     reject("namespace goosetest_generated_extra; fn test_x(t: goosetest::Test&) {}");
-    assert( !generation::identifier("x; injected"));
-    assert( !generation::identifier("namespace"));
+    assert(!generation::identifier("x; injected"));
+    assert(!generation::identifier("namespace"));
     assert(generation::identifier("test_valid"));
 }
 
@@ -31,7 +30,8 @@ fn reject(source: u8[:]) {
                 output =>
                 generation::generate(output, manifest, audit);
                 assert(generation::status(output) == 2);
-                assert(output.modules.len == 0 && output.error.len > 0);
+                assert(output.modules.len == 0);
+                assert(output.error.len > 0);
             }
         }
     }
@@ -76,8 +76,10 @@ fn test_plain(t: goosetest::Test&) {}
                 assert(find(fixture, "Phase.Cleanup") > find(fixture, "Phase.Body"));
                 assert(find(plain, "goosetest::execute_case(t, identity)") >= 0);
                 assert(find(plain, "sample::test_plain(t)") >= 0);
-                assert(find(plain, "Fixture") < 0 && find(plain, "before_each") < 0);
-                assert(find(plain, "after_each") < 0 && find(plain, "execute_fixture") < 0);
+                assert(find(plain, "Fixture") < 0);
+                assert(find(plain, "before_each") < 0);
+                assert(find(plain, "after_each") < 0);
+                assert(find(plain, "execute_fixture") < 0);
             }
         }
     }
@@ -167,7 +169,8 @@ fn test_last(t: goosetest::Test&) {}
                 assert(find(first, "sample::before_all(t);") >= 0);
                 assert(find(first, "Phase.SuiteSetup") >= 0);
                 assert(find(first, "sample::after_all") < 0);
-                assert(find(middle, "before_suite") < 0 && find(middle, "after_suite") < 0);
+                assert(find(middle, "before_suite") < 0);
+                assert(find(middle, "after_suite") < 0);
                 assert(find(middle, "run_selected(t);") >= 0);
                 assert(find(middle, "if !t.suite_active") < 0);
                 assert(find(last, "after_suite(t);") > find(last, "run_selected(t);"));

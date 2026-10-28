@@ -2,7 +2,6 @@
 namespace paths_test;
 
 import goosetest;
-
 import src.discovery.paths;
 
 fn test_segments(outer: goosetest::Test&) {
@@ -14,16 +13,16 @@ fn test_segments(outer: goosetest::Test&) {
         "", "1a", "bad-name", "a b", "a.b", "a/b", "a\\b", "é", "if", "i64", "self", "true",
     ];
     for name in invalid {
-        assert( !discovery::import_segment(name));
+        assert(!discovery::import_segment(name));
     }
     for name in discovery::KEYWORDS {
-        assert( !discovery::import_segment(name));
+        assert(!discovery::import_segment(name));
     }
     assert(discovery::goose_file("a.goose"));
-    assert( !discovery::goose_file("a.goose.data"));
-    assert( !discovery::goose_file("a.Goose"));
+    assert(!discovery::goose_file("a.goose.data"));
+    assert(!discovery::goose_file("a.Goose"));
     assert(discovery::join_path("src/a", "b.goose") == "src/a/b.goose");
     assert(discovery::bytewise_less("src/A.goose", "src/a.goose"));
     assert(discovery::bytewise_less("src/a", "src/aa"));
-    assert( !discovery::bytewise_less("same", "same"));
+    assert(!discovery::bytewise_less("same", "same"));
 }

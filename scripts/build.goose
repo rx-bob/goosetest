@@ -1,4 +1,5 @@
 // Compiler v2026.3 supports -o only; no long --output spelling exists.
+
 import goosetest from "..";
 
 import os;

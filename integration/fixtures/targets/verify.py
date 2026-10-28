@@ -163,6 +163,9 @@ with tempfile.TemporaryDirectory(prefix="goosetest-targets-") as temporary:
     assert b"SKIP database::tests/database/bad_test.goose::database_test::test_database" in disabled.stdout
     assert b"external database is not installed" in disabled.stdout
     assert b"TARGET database PROFILE debug: skipped (all cases disabled)" in disabled.stdout
+    all_fail_fast = run(["test", "--project", str(project), "--target", "all", "--fail-fast"],
+                        work, env, contains=b"Aggregate status: 0")
+    assert b"PASS core::" in all_fail_fast.stdout and b"PASS http::" in all_fail_fast.stdout
 
     # The real compiler associates a nested entry with its adjacent sidecar and
     # resolves native source paths from that sidecar's directory.

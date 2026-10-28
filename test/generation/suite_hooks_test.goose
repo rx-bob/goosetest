@@ -1,10 +1,9 @@
 // Disabled calls remain compiler-visible while runtime paths only record skips.
 namespace suite_hooks_test;
 
-import goosetest;
-
 import std;
 
+import goosetest;
 import src.discovery.manifest;
 import src.generation.model;
 import src.generation.runner;
@@ -105,7 +104,8 @@ fn test_reason_bound(outer: goosetest::Test&) {
                     if length == 1024 {
                         assert(generation::status(output) == 0);
                     } else {
-                        assert(generation::status(output) == 2 && output.modules.len == 0);
+                        assert(generation::status(output) == 2);
+                        assert(output.modules.len == 0);
                         assert(find(output.error[..], "disabled reason") >= 0);
                     }
                 }

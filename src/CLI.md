@@ -49,6 +49,108 @@ Successful output goes to stdout; failures and usage diagnostics go to stderr.
 Status 0 means a valid list/audit/help request. Status 2 means invalid usage,
 layout, read, discovery or resource failure. Status 1 reports executed assertion failures. Failure output explicitly says discovery is incomplete.
 
+## Configured projects
+
+Place one version 1 `goosetest.json` at the project root. This minimal form keeps
+the test root at its existing path and disables source mirror checks:
+
+```json
+{
+  "version": 1,
+  "targets": [{
+    "name": "core",
+    "entry": "goosetest_core.goose",
+    "tests": [{"path": "tests/request", "kind": "unit"}],
+    "mirror": {"policy": "off", "pairs": []}
+  }]
+}
+```
+
+The authored entry imports `goosetest_generated.core.runner`. A `core` test ID
+starts with `core::`; source modules do not need to move under `src/`.
+For a consumer beside the goosetest checkout, the complete core entry is:
+
+```goose
+import goosetest from "../goosetest";
+import goosetest_generated.core.runner;
+
+fn main() { exit(goosetest_generated::run_all()); }
+```
+
+For strict unit correspondence, configure one exact pair per unit root:
+
+```json
+{
+  "version": 1,
+  "targets": [{
+    "name": "core",
+    "entry": "goosetest_core.goose",
+    "tests": [{"path": "tests/request", "kind": "unit"}],
+    "mirror": {
+      "policy": "strict",
+      "pairs": [{"source": "src/request", "tests": "tests/request"}]
+    }
+  }]
+}
+```
+
+Strict pairs compare relative module stems; test roots must be unit roots. Every
+unit root needs one pair. Integration roots do not have pairs. `check-mirror`
+reports disabled enforcement and exits 2 for an `off` target; it never presents
+an empty correspondence list as coverage.
+
+Use distinct targets when native dependencies differ. Each entry has its own
+optional adjacent sidecar (`goosetest_core.build`, `goosetest_database.build`):
+
+```json
+{
+  "version": 1,
+  "targets": [
+    {"name": "core", "entry": "goosetest_core.goose",
+     "tests": [{"path": "tests/core", "kind": "unit"}],
+     "mirror": {"policy": "off", "pairs": []}},
+    {"name": "database", "entry": "goosetest_database.goose",
+     "tests": [{"path": "tests/database", "kind": "integration"}],
+     "mirror": {"policy": "off", "pairs": []}}
+  ]
+}
+```
+
+For example, `goosetest_database.build` can own
+`c_sources = ["db/adapter.c"]` while `goosetest_core.build` lists only core
+sources. Selecting `core` excludes the database root, entry and sidecar from
+discovery and compilation. Dependencies imported by the selected entry or its
+shared helpers still belong to that target's build; place helpers deliberately
+when their imports are optional.
+
+`goosetest_core.build`:
+
+```text
+c_sources = ["native/core.c"];
+```
+
+`goosetest_database.build`:
+
+```text
+c_sources = ["db/adapter.c"];
+```
+
+```sh
+goosetest list --project . --target core
+goosetest test --project . --target core --profile debug --offline
+goosetest test --project . --target core --profile optimized --offline
+goosetest test --project . --target all --fail-fast
+```
+
+`--target NAME` is repeatable; omission and `--target all` select every target
+in bytewise name order, and `all` cannot be combined with a name. A filter never
+narrows syntax or type checking inside a selected target. A selected target with
+matching cases builds the full target; a target with no matches is skipped when
+another selected target has matches. If the entire selection matches zero cases,
+the command exits 2. See [discovery roots](discovery/README.md),
+[mirror policy](discovery/MIRRORS.md), and
+[artifact ownership](generation/ARTIFACTS.md).
+
 ## Output contract
 
 Listing follows sorted relative paths and declaration order. Each case includes

@@ -1,10 +1,10 @@
 // Exercise the public assertion vocabulary using independent builtin assertions.
 namespace assertions_test;
 
+import std;
+
 import goosetest;
 import test_support.runtime;
-
-import std;
 
 var formatted_values: i64 = 0;
 

@@ -1,13 +1,13 @@
 // Prepared ownership constrains writes and completion accepts only an exact status record.
 namespace staging_test;
 
+import os;
+import std;
+
 import goosetest;
 import src.platform.filesystem;
 import src.platform.staging;
 import test_support.selfhost;
-
-import os;
-import std;
 
 fn test_claimed_names(outer: goosetest::Test&) {
     let root = selfhost_support::scratch(outer);
@@ -20,7 +20,7 @@ fn test_claimed_names(outer: goosetest::Test&) {
     assert(staging::write(fd, "runner.goose", "namespace generated;\n") == 0);
     assert(staging::finish(fd, "runner.goose\n") == 0);
     assert(filesystem::close_project(fd) == 0);
-    assert( !file_exists(str(root, "/escape.goose")));
+    assert(!file_exists(str(root, "/escape.goose")));
 }
 
 fn test_completion_bytes(outer: goosetest::Test&) {

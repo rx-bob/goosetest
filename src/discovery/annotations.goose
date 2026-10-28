@@ -71,8 +71,7 @@ fn attach_value(
     if name == "DisplayName" {
         metadata.has_display = true;
         metadata.display_name = span;
-    }
-    else {
+    } else {
         metadata.disabled = true;
         metadata.disabled_reason = span;
     }
@@ -93,14 +92,11 @@ fn decode_string(quoted: u8[:]) -> u8[>..] {
                 at += 2;
             } else if byte == 'n' {
                 byte = '\n';
-            }
-            else if byte == 'r' {
+            } else if byte == 'r' {
                 byte = '\r';
-            }
-            else if byte == 't' {
+            } else if byte == 't' {
                 byte = '\t';
-            }
-            else if byte == '0' {
+            } else if byte == '0' {
                 byte = 0;
             }
         }

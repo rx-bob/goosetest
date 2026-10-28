@@ -55,3 +55,34 @@ state.
 The self-contained verifier and provenance ledger live in
 [`integration/fixtures/silly`](../integration/fixtures/silly/README.md). It uses
 source snapshots and does not depend on a developer-specific Silly checkout.
+
+## Follow-on Silly migration
+
+The nested `tests/goosetest/` project and `goosetest_compiler.goose` adapter
+proposed in Silly's older `test_plan.md` are superseded by configured targets and
+profiles. Do not add empty `src/` or `test/` roots to that nested layout. Instead,
+add a configured `core` target at Silly's Goose project root and keep the existing
+subsystem suite paths:
+
+```json
+{
+  "version": 1,
+  "targets": [{
+    "name": "core",
+    "entry": "goosetest_core.goose",
+    "tests": [
+      {"path": "tests/request", "kind": "unit"},
+      {"path": "tests/http", "kind": "unit"}
+    ],
+    "mirror": {"policy": "off", "pairs": []}
+  }]
+}
+```
+
+The maintained fixture already converts six URL and HTTP checks with exact IDs.
+Next, use a migration ledger to move another bounded subsystem batch; keep every
+remaining standalone executable explicitly assigned to Silly's existing runner.
+Invoke goosetest directly for debug and optimized profiles. Keep native, service,
+and externally managed groups in their current owner until a target can give them
+an isolated dependency and disposable resource boundary. This is incremental
+adoption, not a request to move all historical executables.

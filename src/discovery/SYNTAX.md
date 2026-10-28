@@ -1,12 +1,13 @@
-# Test declaration scanning (E2.S2)
+# Test declaration scanning
 
 `discover(manifest, inventory)` consumes a successful source inventory and scans
-`*_test.goose` files in `test/` and `integration/`. Source files are excluded.
-Other `.goose` files in either test root are rejected;
-helpers belong in `test_support/`. Every discovered suite must contain at least one
-valid test (disabled cases count). [MIRRORS.md](MIRRORS.md) documents full-project
-validation. Generation and CLI integration belong to later stories. The syntax
-layer needs no native adapter.
+its admitted test files. Legacy inventories use `*_test.goose` under
+`test/` and `integration/`, and reject other Goose files under those roots.
+Configured inventories select `*_test.goose` from declared roots; ordinary
+helpers remain importable but are not parsed as suites. Exclusions have already
+been applied by inventory. Every discovered suite needs a valid test declaration
+(disabled cases count). [MIRRORS.md](MIRRORS.md) documents full-project
+validation. The syntax layer needs no native adapter.
 
 ## Authoring subset
 
@@ -47,11 +48,13 @@ lines and byte columns. Literal/comment bodies cannot create declarations.
 Matched delimiter indices skip nested bodies without recursion. Each scanning
 loop advances or reports an error.
 
-Case identity is `<relative path>::<namespace>::<function>`. Display names and
-parameter names never change it. Duplicate case IDs and suite namespaces fail
-before completion, regardless of selection. Case order follows inventory path
-order and declaration order. Duplicate detection sorts temporary indices once;
-it does not reorder the manifest or perform all-pairs comparisons.
+Legacy case identity is `<relative path>::<namespace>::<function>`. Configured
+identity prefixes the selected target:
+`<target>::<relative path>::<namespace>::<function>`. Display names and parameter
+names never change identity. Duplicate IDs and suite namespaces fail before
+completion, regardless of case filter. Case order follows sorted target, inventory
+path, and declaration order. Duplicate detection sorts temporary indices once; it
+does not reorder the manifest or perform all-pairs comparisons.
 
 ## Ownership, limits and diagnostics
 

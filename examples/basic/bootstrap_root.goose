@@ -1,4 +1,5 @@
 // Consumer root owns package declarations and propagates the real process status.
+
 import goosetest from "../..";
 
 import test_support.bootstrap;

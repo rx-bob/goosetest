@@ -1,8 +1,9 @@
 # goosetest
 
 Goose assertions and a test runner that discovers ordinary `test_*` functions.
-Unit tests mirror production modules; integration suites cover behavior across
-modules. Tests need no registration list.
+Legacy unit tests mirror production modules; integration suites cover behavior
+across modules. Configured projects can instead keep suites at existing paths and
+select named build targets. Tests need no registration list.
 
 The supported baseline is **Goose v2026.3 on macOS arm64**. Install its `goose`
 compiler, Apple command-line tools (`clang`), Python 3, `goosefmt`, and Task on
@@ -30,6 +31,41 @@ to Goose scripts in `scripts/`; these verification targets do not install or pub
 The [isolated pretty-goose consumer](docs/adopting_pretty_goose.md) demonstrates
 lexer and formatter adoption against preserved production snapshots. Its original
 repository and test commands remain unchanged.
+
+## Configured projects and consumer adoption
+
+Keep application modules in their current directories and opt into named targets
+with `<project>/goosetest.json`. Minimum target admits existing test paths with
+mirror enforcement disabled:
+
+```json
+{
+  "version": 1,
+  "targets": [{
+    "name": "core",
+    "entry": "goosetest_core.goose",
+    "tests": [{"path": "tests/request", "kind": "unit"}],
+    "mirror": {"policy": "off", "pairs": []}
+  }]
+}
+```
+
+Run the configured workflow:
+
+```sh
+goosetest list --project . --target core
+goosetest test --project . --target core --profile debug --offline
+goosetest test --project . --target core --profile optimized --offline
+goosetest test --project . --target all --fail-fast
+```
+
+With mirror policy `off`, `check-mirror --target core` says enforcement is
+disabled and exits 2; it does not report coverage. A matching case filter still
+compiles its target. A target selector keeps unselected target roots and sidecars
+out of the build; dependencies imported by selected entries or shared helpers
+remain in that build. See [CLI examples](src/CLI.md#configured-projects),
+[Silly adoption](docs/adopting_silly.md), and
+[Promptnook adoption](docs/adopting_promptnook.md).
 
 ## Install the CLI and share the package
 
@@ -123,8 +159,9 @@ Use the built CLI against your project:
 /path/to/goosetest/build/goosetest test --project /path/to/project
 ```
 
-`list` and `check-mirror` do not compile or execute tests. `test` audits, generates,
-builds with `goose build --debug`, and executes the authored root. The CLI owns
+`list` and `check-mirror` do not compile or execute tests. Legacy `test` audits,
+generates, builds with `goose build --debug`, and executes the authored root.
+Configured targets can select debug or optimized profiles. The CLI owns
 its files in `goosetest_generated/`; do not hand-edit those files.
 
 ## Author tests
@@ -137,7 +174,7 @@ test_support/                 helper modules outside discovery
 goosetest_root.goose           authored test entry point
 ```
 
-Every `.goose` module under `src/` needs a corresponding `_test.goose` under
+In legacy mode, every `.goose` module under `src/` needs a corresponding `_test.goose` under
 `test/`, and every unit suite needs its production counterpart. Integration suites
 need no unit mirror. Each suite declares a namespace and at least one test. Keep
 helpers outside the scanned roots; store invalid source fixtures as `.goose.data`
@@ -241,10 +278,12 @@ See [architecture and finite budgets](docs/architecture.md) and [CLI details](sr
 ## Scope
 
 Unsupported: tags, repetitions, parameterized cases, nested describe DSL,
-contained-worker APIs, per-case crash isolation, parallel runs, property testing,
-snapshots, watch mode, exporters, and unverified operating systems. The assertion
-runtime uses Goose's standard library; CLI discovery, process management, and
-artifact ownership use the macOS native boundary.
+arbitrary command/database provisioning targets, per-case crash isolation,
+parallel target runs, property testing, snapshots, watch mode, exporters, and
+unverified operating systems. Application credentials, migrations, reset policy,
+deployed service readiness, and external HTTP comparisons stay application-owned.
+The assertion runtime uses Goose's standard library; CLI discovery, process
+management, and artifact ownership use the macOS native boundary.
 
 `poc/` is historical research, not a second supported implementation. Its syntax,
 style, performance claims, and cleanup assumptions are not release guarantees.

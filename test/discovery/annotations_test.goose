@@ -1,13 +1,12 @@
 // Metadata requires exact spelling, supported escapes, and contiguous attachment to a test.
 namespace annotations_test;
 
-import goosetest;
+import std;
 
+import goosetest;
 import src.discovery.manifest;
 import src.discovery.model;
 import test_support.syntax;
-
-import std;
 
 fn test_bad_annotations(outer: goosetest::Test&) {
     check("// @Tag(\"x\")", discovery::SyntaxIssue.UnknownAnnotation);

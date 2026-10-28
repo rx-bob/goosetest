@@ -1,11 +1,10 @@
 // Independent explicit runtime oracle retained alongside generated orchestration.
 namespace basic_bootstrap;
 
-import goosetest;
-
 import os;
 import std;
 
+import goosetest;
 import test.calculator_test;
 
 fn run() -> i32 {

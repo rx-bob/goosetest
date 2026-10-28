@@ -1,7 +1,8 @@
 // Standalone bootstrap oracle, independent of the future goosetest runtime.
-import goosetest from "../compatibility/contract";
 
+import goosetest from "../compatibility/contract";
 import probes from "../compatibility";
+
 import probes.scenarios;
 
 fn main() {

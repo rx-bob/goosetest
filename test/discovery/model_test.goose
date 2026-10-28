@@ -2,7 +2,6 @@
 namespace model_test;
 
 import goosetest;
-
 import src.discovery.files;
 import src.discovery.model;
 import test_support.filesystem;
@@ -10,24 +9,24 @@ import test_support.filesystem;
 fn test_invalid_limits(outer: goosetest::Test&) {
     let limits: discovery::Limits[6] = [
         discovery::Limits {
-            max_entries: - 1,
+            max_entries: -1,
             ..
         }, discovery::Limits {
-            max_depth: - 1,
+            max_depth: -1,
             ..
         },
         discovery::Limits {
-            max_path_bytes: - 1,
+            max_path_bytes: -1,
             ..
         }, discovery::Limits {
-            max_path_storage_bytes: - 1,
+            max_path_storage_bytes: -1,
             ..
         },
         discovery::Limits {
-            max_file_bytes: - 1,
+            max_file_bytes: -1,
             ..
         }, discovery::Limits {
-            max_source_bytes: - 1,
+            max_source_bytes: -1,
             ..
         },
     ];

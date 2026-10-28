@@ -44,11 +44,16 @@ int32_t gt_selfhost_prepare(void) {
     return 0;
 }
 
-int64_t gt_selfhost_root(gt_selfhost_slice path) {
+int64_t gt_selfhost_root_length(void) {
     size_t length = strlen(owned_root);
-    if (owned_fd < 0 || path.len <= 0 || length >= (uint64_t)path.len) return -1;
-    memcpy(path.data, owned_root, length);
+    if (owned_fd < 0) return -1;
     return (int64_t)length;
+}
+
+int32_t gt_selfhost_root_byte(int64_t index) {
+    size_t length = strlen(owned_root);
+    if (owned_fd < 0 || index < 0 || (uint64_t)index >= length) return -1;
+    return (unsigned char)owned_root[index];
 }
 
 static int remove_contents(int fd, unsigned depth, unsigned *entries);

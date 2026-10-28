@@ -1,18 +1,17 @@
 // Filesystem-to-manifest checks use parent-owned disposable projects and builtin assertions.
 namespace discovery_integration_test;
 
-import goosetest;
-import test_support.selfhost;
-
 import os;
 import std;
 
+import goosetest;
 import src.discovery.files;
 import src.discovery.manifest;
 import src.discovery.mirror;
 import src.discovery.model;
 import test_support.filesystem;
 import test_support.mirror;
+import test_support.selfhost;
 import test_support.syntax;
 
 fn test_project(outer: goosetest::Test&) {
@@ -44,8 +43,10 @@ fn test_project(outer: goosetest::Test&) {
                 manifest =>
                 discovery::inspect_project(audit, manifest, inventory);
                 assert(discovery::project_status(audit, manifest) == 2);
-                assert(audit.matched == 2 && audit.missing == 1);
-                assert(manifest.cases.len == 0 && !manifest.complete);
+                assert(audit.matched == 2);
+                assert(audit.missing == 1);
+                assert(manifest.cases.len == 0);
+                assert(!manifest.complete);
             }
         }
     }
@@ -61,8 +62,10 @@ fn check_valid(project: u8[:]) {
                 manifest =>
                 discovery::inspect_project(audit, manifest, inventory);
                 assert(discovery::project_status(audit, manifest) == 0);
-                assert(audit.matched == 2 && audit.integration_files == 1);
-                assert(manifest.cases.len == 3 && manifest.suites.len == 3);
+                assert(audit.matched == 2);
+                assert(audit.integration_files == 1);
+                assert(manifest.cases.len == 3);
+                assert(manifest.suites.len == 3);
                 assert(discovery::manifest_text(manifest, manifest.cases[0].identity)
                     == "integration/cross_test.goose::cross::test_cross");
             }
@@ -116,7 +119,9 @@ fn test_original_poc(outer: goosetest::Test&) {
             audit =>
             discovery::audit_mirrors(audit, inventory);
             assert(discovery::mirror_status(audit) == 2);
-            assert(audit.matched == 2 && audit.missing == 1 && audit.orphaned == 0);
+            assert(audit.matched == 2);
+            assert(audit.missing == 1);
+            assert(audit.orphaned == 0);
             var found = false;
             for record in audit.records {
                 if record.kind == discovery::MirrorKind.MissingTest {

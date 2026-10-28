@@ -1,16 +1,18 @@
-# Read-only source inventory (E2.S1)
+# Read-only source inventory
 
-`discovery::scan(inventory, project_path)` inventories required `src/` and `test/`
-and optional `integration/`. An absent integration directory is valid; only
-`ENOENT` counts as absence. Missing required roots, non-directory roots, permission
-errors, invalid import segments, special files, and symlinks are errors.
+`discovery::scan(inventory, project_path)` preserves legacy discovery: required
+`src/` and `test/`, plus optional `integration/`. With
+`discovery::scan_configured`, the CLI inventories only the roots of selected
+targets from `goosetest.json`; strict targets also scan their declared source
+roots. An absent legacy integration directory is valid; only `ENOENT` counts as
+absence. Missing selected roots, non-directory roots, permission errors, invalid
+import segments, special files, and symlinks are errors.
 
 This layer provides inventory and source bytes. Declaration parsing and owned
-metadata manifests are described in [SYNTAX.md](SYNTAX.md) (E2.S2). Complete mirror
+metadata manifests are described in [SYNTAX.md](SYNTAX.md). Complete mirror
 auditing and project validation are described in
-[MIRRORS.md](MIRRORS.md) (E2.S3). The CLI follows in E2.S4. `main.build` wires the
-filesystem adapter for the forthcoming CLI root. The test executable has its own
-sidecar today. The public assertion facade `goosetest.goose` imports no discovery
+[MIRRORS.md](MIRRORS.md). `main.build` wires the filesystem and process adapters
+for the CLI. The public assertion facade `goosetest.goose` imports no discovery
 or native filesystem code and has no native sidecar.
 
 ## Ownership and results
@@ -44,11 +46,21 @@ ordinary directories, not hidden exclusions.
 `complete` becomes true only after all roots close successfully and records are
 sorted once by unsigned path bytes. Successful path order is independent of
 creation order. Arena offsets reflect traversal order and are not stable IDs.
-Configured roots retain target and pair identity for mirror matching. Legacy
-roots retain the `src`/`test`/`integration` behavior. Explicit exclusions are
-checked before parsing or directory descent, so excluded symlinks and contents
-are not opened. Test roots admit only names ending in `_test.goose`; this helper
-filter is configured-mode behavior. `.goose.data` is ignored in every mode.
+Configured roots retain target and pair identity for mirror matching and
+target-qualified case IDs. Legacy roots retain `src/`/`test/`/`integration/`
+behavior. Explicit configured exclusions match an exact file or a
+slash-terminated directory prefix and are checked before opening files or
+descending, so excluded symlinks and contents are not opened. Configured test
+roots admit only names ending in `_test.goose`; ordinary `.goose` helpers remain
+importable but are not discovered. In legacy mode, non-test `.goose` files under
+test roots remain layout errors. `.goose.data` is ignored in every mode.
+
+Configured inventories are built only for selected targets. A target selector
+therefore excludes unselected roots and their entries from scanning. A case
+filter is applied after complete discovery and syntax validation; it does not
+prune the selected target's source graph or type checking. A selected target with
+no matching cases may be skipped when another selected target has matches.
+Targets and roots are sorted deterministically before results are exposed.
 
 `status(inventory)` is 0 only for a completed, error-free scan, including valid
 empty roots. Otherwise it is 2. Partial records remain available for diagnosis but

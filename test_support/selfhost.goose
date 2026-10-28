@@ -1,24 +1,28 @@
 // Owned scratch space and native process fixture for the generated self-host suite.
 namespace selfhost_support;
 
-import goosetest;
 import os;
 import std;
+
+import goosetest;
 import src.platform.process;
 
 extern "gt_selfhost_prepare" fn native_prepare() -> i32;
-extern "gt_selfhost_root"fn native_root(path: u8[:]) -> i64;
-extern "gt_selfhost_cleanup"fn native_cleanup() -> i32;
+
+extern "gt_selfhost_root_length" fn native_root_length() -> i64;
+
+extern "gt_selfhost_root_byte" fn native_root_byte(index: i64) -> i32;
+
+extern "gt_selfhost_cleanup" fn native_cleanup() -> i32;
 
 fn root() -> u8[>..] {
-    var bytes: u8[>..] = [];
-    for index in 0..4096 {
-        bytes.push(0);
-    }
-    let length = native_root(bytes);
-    assert(length > 0 && length < bytes.len);
+    let length = native_root_length();
+    assert(length > 0);
+    assert(length < 4096);
     var path: u8[>..] = [];
-    path.append(bytes[0..length]);
+    for index in 0..length {
+        path.push(native_root_byte(index)as u8);
+    }
     return path;
 }
 

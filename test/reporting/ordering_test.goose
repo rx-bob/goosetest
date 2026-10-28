@@ -34,8 +34,8 @@ fn test_declaration_before_function(outer: goosetest::Test&) {
                 ..
             }, "earlier");
         assert(reporting::case_less(t.results, 1, 0));
-        assert( !reporting::case_less(t.results, 0, 1));
-        assert( !reporting::case_less(t.results, 0, 0));
+        assert(!reporting::case_less(t.results, 0, 1));
+        assert(!reporting::case_less(t.results, 0, 0));
         assert(t.results.cases[0].identity.declaration_line == 20);
     }
 }
@@ -48,7 +48,7 @@ fn test_duplicate_reason_tiebreak(outer: goosetest::Test&) {
         goosetest::skip_case(t.results, goosetest::CaseIdentity {
             }, "a");
         assert(reporting::case_less(t.results, 1, 0));
-        assert( !reporting::case_less(t.results, 0, 1));
+        assert(!reporting::case_less(t.results, 0, 1));
     }
 }
 

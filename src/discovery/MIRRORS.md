@@ -1,26 +1,38 @@
-# Complete project validation (E2.S3)
+# Project validation and mirror policy
 
-After a successful filesystem `scan`, call `inspect_project(audit, manifest,
-inventory)`. It audits the complete inventory before scanning declarations.
-Only `project_status(audit, manifest) == 0` admits a project to later selection,
-generation or listing. Neither this layer nor the syntax layer executes project
-code, writes files or invokes a compiler. CLI wiring follows in E2.S4.
+After a successful inventory, `inspect_project` validates roots, configured
+mirror policy and declarations before listing or generation. Only status 0 admits
+the complete selected inventory. Neither this layer nor syntax scanning executes
+project code, writes files or invokes a compiler. The CLI selects configured
+targets before scanning; filters are applied only after discovery and declaration
+validation.
 
 ## Layout contract
 
-Every `src/<path>/<name>.goose` needs exactly
-`test/<path>/<name>_test.goose`, and every unit suite needs its source counterpart.
-Nested paths and similarly prefixed names match exactly. There are no exclusion
-globs or file exemptions. Root entries and facades, `native/`, `test_support/` and
-`goosetest_generated/` are outside the scanned roots. Placing a helper under
-`test/` or `integration/` does not exempt it.
+Legacy projects use strict correspondence: every
+`src/<path>/<name>.goose` needs exactly `test/<path>/<name>_test.goose`, and
+every unit suite needs its source counterpart. Configured targets choose
+`mirror.policy` `strict` or `off`. Strict targets declare source/test root pairs;
+matching uses relative module stems, independent of the root names. Each unit
+test root needs exactly one pair, and each configured source root must have an
+unambiguous pair. Integration roots have no mirror pair. Off targets do not scan
+production roots and do not claim source correspondence.
+
+Configured `exclude` entries name exact project-relative files or
+slash-terminated directory prefixes. Exclusion happens before opening a file or
+descending a directory; excluded content is not syntax-checked. There are no
+globs. Root entries, facades, native sources, `test_support/` and
+`goosetest_generated/` are outside discovery unless explicitly placed under a
+configured root.
 
 Integration suites need no source counterpart and may import multiple production
-modules. Both test roots admit only `.goose` files with a nonempty name before
-`_test.goose`. Other file types remain governed by the inventory layer; invalid
-fixture source should retain a data suffix until materialized in a disposable
-project. Every suite must contain at least one valid test declaration. Disabled
-tests count. A project with no discovered cases fails full validation.
+modules. In legacy roots, non-test `.goose` files under `test/` or
+`integration/` are layout errors. Configured test roots discover only filenames
+ending in `_test.goose`; ordinary helpers remain available to imports but are
+not suites. Other file types follow inventory rules. Invalid source fixtures
+should use a data suffix until materialized in a disposable project. Every
+admitted suite needs a valid test declaration. Disabled tests count. An empty
+configured target remains invalid even when another target has cases.
 
 ## Audit results and ownership
 
@@ -38,11 +50,13 @@ for violations or incomplete inventory, and 0 only for valid correspondence.
 An empty path-only audit is valid; full validation additionally requires cases.
 
 The coordinator stops before syntax if layout fails, preserving every layout
-record. Otherwise syntax errors retain the existing first-error path and location.
+record. Otherwise syntax errors retain the first-error path and location.
 On an incomplete filesystem scan, report the inventory error; on layout failure,
 report audit records; on syntax failure, report `manifest_error_text`. All such
-outcomes have project status 2. No selection parameter exists at this boundary;
-future filtering must consume the completed result, not prune the inventory.
+outcomes have project status 2. Configured target selection controls which roots
+enter this boundary. Case and suite filters consume the complete admitted
+manifest; they do not hide malformed selected suites or reduce type checking for
+a target that has matching cases.
 
 Temporary source/unit indices are sorted by relative module stem, then merged
 linearly. Sorting full filenames would be incorrect: adding `_test` changes order

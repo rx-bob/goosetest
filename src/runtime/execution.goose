@@ -52,7 +52,8 @@ fn run_phase<F>(t: Test&, phase: Phase) -> bool {
 
 // Suite hooks own failures and metadata without reserving an ordinary case record.
 fn run_suite_hook<F>(t: Test&, identity: CaseIdentity, phase: Phase, executable: bool = true) -> bool {
-    assert( !t.active && !t.results.active);
+    assert(!t.active);
+    assert(!t.results.active);
     assert(phase == Phase.SuiteSetup || phase == Phase.SuiteCleanup);
     if !executable {
         return true;

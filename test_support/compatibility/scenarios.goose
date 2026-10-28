@@ -1,11 +1,10 @@
 // Runtime checks for the pinned compiler contract.
 namespace compatibility_test;
 
-import goosetest;
-import goosetest.src.execution;
-
 import.users.alpha;
 import.users.beta;
+import goosetest;
+import goosetest.src.execution;
 
 fn test_bridge_recovery() {
     var failed = goosetest::Test {
@@ -15,14 +14,14 @@ fn test_bridge_recovery() {
         failed.reached = true;
     }
     assert(failed.failed);
-    assert( !failed.reached);
+    assert(!failed.reached);
 
     var passed = goosetest::Test {
     };
     goosetest::run_case(passed) {
         beta_test::test_pass(passed);
     }
-    assert( !passed.failed);
+    assert(!passed.failed);
     assert(passed.reached);
 }
 
@@ -39,9 +38,9 @@ fn test_nested_boundary() {
         outer.reached = true;
     }
     assert(inner.failed);
-    assert( !inner.reached);
+    assert(!inner.reached);
     assert(outer.reached);
-    assert( !outer.failed);
+    assert(!outer.failed);
 }
 
 fn first_byte(bytes: u8[:]) -> u8 {
@@ -64,4 +63,3 @@ fn test_storage() {
     assert(first_byte("constant") == 'c');
     assert(first_byte(bytes) == 'c');
 }
-

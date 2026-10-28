@@ -27,7 +27,7 @@ fn run_cases(t: goosetest::Test&, should_fail: bool) {
         reached = true;
     }
     if t.results.incomplete {
-        assert( !reached);
+        assert(!reached);
         assert(t.results.cases.len == 1);
         assert(goosetest::run_status(t.results) == 2);
         return;

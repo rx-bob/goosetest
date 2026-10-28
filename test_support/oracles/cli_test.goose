@@ -1,4 +1,5 @@
 // Independent child-process oracle: parent passes captured bytes and actual exit status.
+
 import os;
 
 fn main() {

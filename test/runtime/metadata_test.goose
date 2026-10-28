@@ -61,7 +61,7 @@ fn test_metadata_limit(outer: goosetest::Test&) {
             }) {
             reached = true;
         }
-        assert( !reached);
+        assert(!reached);
         assert(t.results.metadata == "abc");
         assert(t.results.cases.len == 1);
         assert(t.results.totals.passed == 1);

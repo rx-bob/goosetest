@@ -41,8 +41,8 @@ fn test_empty_failure_sections(outer: goosetest::Test&) {
         assert(text.len == 0);
         assert(reporting::suite_phase(goosetest::Phase.SuiteSetup));
         assert(reporting::suite_phase(goosetest::Phase.SuiteCleanup));
-        assert( !reporting::suite_phase(goosetest::Phase.Setup));
-        assert( !reporting::suite_phase(goosetest::Phase.Cleanup));
-        assert( !reporting::suite_phase(goosetest::Phase.Body));
+        assert(!reporting::suite_phase(goosetest::Phase.Setup));
+        assert(!reporting::suite_phase(goosetest::Phase.Cleanup));
+        assert(!reporting::suite_phase(goosetest::Phase.Body));
     }
 }

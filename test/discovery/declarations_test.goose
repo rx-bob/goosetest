@@ -1,15 +1,14 @@
 // Ordinary authoring survives multiline syntax and lexical decoys; malformed declarations fail explicitly.
 namespace declarations_test;
 
-import goosetest;
+import std;
 
+import goosetest;
 import src.discovery.catalog;
 import src.discovery.declarations;
 import src.discovery.manifest;
 import src.discovery.model;
 import test_support.syntax;
-
-import std;
 
 fn test_authoring(outer: goosetest::Test&) {
     syntax_support::with_manifest() {
@@ -23,7 +22,7 @@ fn test_authoring(outer: goosetest::Test&) {
         assert(first.location.line == 14);
         assert(second.location.line == 26);
         assert(first.uses_fixture);
-        assert( !second.uses_fixture);
+        assert(!second.uses_fixture);
         assert(discovery::manifest_text(manifest, first.identity)
             == "test/example_test.goose::sample_test::test_fixture");
         assert(discovery::manifest_text(manifest, first.display_name) == "quoted \"label\" A\t\\");
@@ -31,11 +30,11 @@ fn test_authoring(outer: goosetest::Test&) {
         assert(first.disabled);
         let suite = manifest.suites[0];
         assert(suite.before_each.present);
-        assert( !suite.before_each.uses_context);
+        assert(!suite.before_each.uses_context);
         assert(suite.after_each.uses_context);
         assert(suite.after_each.uses_fixture);
         assert(suite.before_all.present);
-        assert( !suite.before_all.uses_context);
+        assert(!suite.before_all.uses_context);
         assert(suite.after_all.uses_context);
     }
 }

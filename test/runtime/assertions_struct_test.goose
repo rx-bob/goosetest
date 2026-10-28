@@ -1,10 +1,10 @@
 // Top-level field diagnostics preserve declaration order and one-operation accounting.
 namespace assertions_struct_test;
 
+import std;
+
 import goosetest;
 import test_support.runtime;
-
-import std;
 
 struct Decision {
     allowed: bool,
@@ -59,7 +59,8 @@ fn test_equal_and_const(outer: goosetest::Test&) {
             };
             t.assert_struct_eq(empty, empty);
         }
-        assert(t.assertions == 2 && t.failures == 0);
+        assert(t.assertions == 2);
+        assert(t.failures == 0);
         assert(goosetest::run_status(t.results) == 0);
         assert(t.results.diagnostics.len == 0);
     }
@@ -81,8 +82,9 @@ fn test_multiple_and_single(outer: goosetest::Test&) {
             t.assert_struct_eq(expected, actual, "permissions");
             reached = true;
         }
-        assert( !reached);
-        assert(t.assertions == 1 && t.failures == 1);
+        assert(!reached);
+        assert(t.assertions == 1);
+        assert(t.failures == 1);
         assert(t.results.failures.len == 1);
         assert(t.results.totals.failed == 1);
         assert(goosetest::case_diagnostics(t) == str("permissions: struct fields differ:\n",
@@ -94,7 +96,8 @@ fn test_multiple_and_single(outer: goosetest::Test&) {
         }
         assert(goosetest::case_diagnostics(t) == str("struct fields differ:\n",
             ".reason expected: <allowed> actual: <viewer_cannot_write>\n"));
-        assert(t.results.failures.len == 2 && t.results.totals.failed == 2);
+        assert(t.results.failures.len == 2);
+        assert(t.results.totals.failed == 2);
         actual.reason = "allowed";
         goosetest::execute_case(t) {
             t.assert_struct_eq(expected, actual);
@@ -124,10 +127,12 @@ fn test_nested_format_hook(outer: goosetest::Test&) {
             t.assert_struct_eq(expected, actual);
         }
         assert(format_calls == 2);
-        assert(t.assertions == 1 && t.failures == 1);
+        assert(t.assertions == 1);
+        assert(t.failures == 1);
         assert(goosetest::case_diagnostics(t) == str("struct fields differ:\n",
             ".nested expected: <nested=1> actual: <nested=2>\n"));
-        assert(t.results.totals.passed == 1 && t.results.totals.failed == 1);
+        assert(t.results.totals.passed == 1);
+        assert(t.results.totals.failed == 1);
     }
 }
 
@@ -151,7 +156,8 @@ fn test_slice_fields(outer: goosetest::Test&) {
         goosetest::execute_case(t) {
             t.assert_struct_eq(expected, actual);
         }
-        assert(t.assertions == 1 && t.failures == 1);
+        assert(t.assertions == 1);
+        assert(t.failures == 1);
         assert(goosetest::case_diagnostics(t) == str("struct fields differ:\n",
             ".numbers expected: <[1, 2, 3]> actual: <[1, 2, 4]>\n"));
     }
@@ -179,14 +185,17 @@ fn test_struct_budget(outer: goosetest::Test&) {
                 t.assert_struct_eq(expected, actual, "limit");
                 reached = true;
             }
-            assert( !reached && t.assertions == 1);
+            assert(!reached);
+            assert(t.assertions == 1);
             if budget == text.len {
                 assert(t.results.diagnostics == text);
-                assert(t.failures == 1 && t.results.failures.len == 1);
+                assert(t.failures == 1);
+                assert(t.results.failures.len == 1);
                 assert(goosetest::run_status(t.results) == 1);
             } else {
                 assert(t.results.terminal == goosetest::TerminalError.DiagnosticLimit);
-                assert(t.results.diagnostics.len == 0 && t.results.failures.len == 0);
+                assert(t.results.diagnostics.len == 0);
+                assert(t.results.failures.len == 0);
                 assert(goosetest::run_status(t.results) == 2);
             }
         }
@@ -276,10 +285,12 @@ fn test_nested_slice_identity(outer: goosetest::Test&) {
         goosetest::execute_case(t) {
             t.assert_struct_eq(expected_container, actual_container);
         }
-        assert(t.failures == 1 && t.results.failures.len == 1);
+        assert(t.failures == 1);
+        assert(t.results.failures.len == 1);
         let text = str("struct fields differ:\n.detail expected: <", expected,
             "> actual: <", actual, ">\n");
         assert(goosetest::case_diagnostics(t) == text);
-        assert(t.results.totals.passed == 1 && t.results.totals.failed == 1);
+        assert(t.results.totals.passed == 1);
+        assert(t.results.totals.failed == 1);
     }
 }

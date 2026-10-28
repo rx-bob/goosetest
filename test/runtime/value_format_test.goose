@@ -1,10 +1,10 @@
 // Framework-owned rendering stops at byte limits; custom hooks remain user code.
 namespace value_format_test;
 
+import std;
+
 import goosetest;
 import test_support.runtime;
-
-import std;
 
 var calls: i64 = 0;
 struct Value {
@@ -41,7 +41,8 @@ fn test_large_text(outer: goosetest::Test&) {
         }
         assert(t.assertions == 1);
         assert(t.results.terminal == goosetest::TerminalError.DiagnosticLimit);
-        assert(t.results.diagnostics.len == 0 && t.results.failures.len == 0);
+        assert(t.results.diagnostics.len == 0);
+        assert(t.results.failures.len == 0);
         assert(goosetest::run_status(t.results) == 2);
     }
 }
@@ -70,9 +71,11 @@ fn test_collection_stops_formatting(outer: goosetest::Test&) {
         goosetest::execute_case(t) {
             t.assert_eq(expected[..], actual[..]);
         }
-        assert(calls > 0 && calls < 10);
+        assert(calls > 0);
+        assert(calls < 10);
         assert(t.results.terminal == goosetest::TerminalError.DiagnosticLimit);
-        assert(t.results.diagnostics.len == 0 && t.results.failures.len == 0);
+        assert(t.results.diagnostics.len == 0);
+        assert(t.results.failures.len == 0);
         assert(goosetest::run_status(t.results) == 2);
     }
 }
@@ -93,7 +96,8 @@ fn test_custom_hook_limit(outer: goosetest::Test&) {
         }
         assert(calls == 1);
         assert(t.results.terminal == goosetest::TerminalError.DiagnosticLimit);
-        assert(t.results.diagnostics.len == 0 && t.results.failures.len == 0);
+        assert(t.results.diagnostics.len == 0);
+        assert(t.results.failures.len == 0);
         assert(goosetest::run_status(t.results) == 2);
     }
 }

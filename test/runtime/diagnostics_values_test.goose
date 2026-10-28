@@ -40,7 +40,7 @@ fn test_invalid_tolerance_boundary(outer: goosetest::Test&) {
             }) {
             t =>
             goosetest::execute_case(t) {
-                t.assert_near(1.0, 1.0, - 1.0, "near");
+                t.assert_near(1.0, 1.0, -1.0, "near");
             }
             if budget == expected.len {
                 assert(t.results.diagnostics == expected);

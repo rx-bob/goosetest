@@ -8,7 +8,7 @@ struct Test {
     assertions: i64 = 0,
     failures: i64 = 0,
     phase: Phase = Phase.Body,
-    current_case: i64 = - 1,
+    current_case: i64 = -1,
     diagnostic_start: i64 = 0,
     active: bool = false,
     suite_hook: bool = false,
@@ -21,7 +21,7 @@ struct Test {
 }
 
 fn reset(t: Test&) {
-    assert( !t.active);
+    assert(!t.active);
     t.assertions = 0;
     t.failures = 0;
     t.phase = Phase.Body;
@@ -29,7 +29,7 @@ fn reset(t: Test&) {
     t.suite_identity = CaseId {
         ..
     };
-    t.current_case = - 1;
+    t.current_case = -1;
     t.diagnostic_start = t.results.diagnostics.len;
 }
 

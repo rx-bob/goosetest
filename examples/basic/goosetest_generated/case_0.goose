@@ -2,7 +2,6 @@
 namespace goosetest_generated_case_0;
 
 import goosetest;
-
 import integration.arithmetic_test;
 
 fn run(t: goosetest::Test&) {

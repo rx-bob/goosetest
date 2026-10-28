@@ -16,7 +16,7 @@ fn test_incomplete_output_rejected(outer: goosetest::Test&) {
     generation_support::with_output() {
         output =>
         generation::add_module(output, "runner.goose", "namespace generated;\n");
-        assert(artifacts::publish( - 1, output) == - 1);
+        assert(artifacts::publish(-1, output) == -1);
     }
 }
 

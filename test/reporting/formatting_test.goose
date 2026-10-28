@@ -2,7 +2,6 @@
 namespace formatting_test;
 
 import goosetest;
-
 import src.reporting.formatting;
 import src.runtime.results;
 
@@ -45,7 +44,8 @@ fn test_chunk_bound(outer: goosetest::Test&) {
     var calls: i64 = 0;
     reporting::escape(source) {
         part =>
-        assert(part.len > 0 && part.len <= 4096);
+        assert(part.len > 0);
+        assert(part.len <= 4096);
         assert(part.len % 4 == 0);
         for index in 0..part.len / 4 {
             assert(part[index * 4..index * 4 + 4] == "\\x00");
@@ -53,5 +53,6 @@ fn test_chunk_bound(outer: goosetest::Test&) {
         total += part.len;
         calls += 1;
     }
-    assert(total == 20000 && calls == 5);
+    assert(total == 20000);
+    assert(calls == 5);
 }

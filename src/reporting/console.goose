@@ -9,13 +9,13 @@ import src.reporting.ordering;
 import src.reporting.rows;
 import src.runtime.results;
 
-fn report(results: goosetest::Results&, planned_cases: i64 = - 1) {
+fn report(results: goosetest::Results&, planned_cases: i64 = -1) {
     render(results, planned_cases) {
         text => write_stdout(text);
     }
 }
 
-fn render<F>(results: goosetest::Results&, planned_cases: i64 = - 1) {
+fn render<F>(results: goosetest::Results&, planned_cases: i64 = -1) {
     var indices: i64[>..] = [];
     var totals = goosetest::Totals {
     };

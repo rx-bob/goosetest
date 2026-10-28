@@ -1,10 +1,10 @@
 // Exact budgets preserve complete failures and produce a separate terminal error.
 namespace diagnostics_test;
 
+import std;
+
 import goosetest;
 import test_support.runtime;
-
-import std;
 
 let FAILURE_TEXT = "expected: <1> actual: <2>\n";
 var format_calls: i64 = 0;
@@ -28,14 +28,14 @@ fn test_failure_limit(outer: goosetest::Test&) {
             t.check_eq(1, 2);
         }
         assert(t.results.failures.len == 2);
-        assert( !t.results.incomplete);
+        assert(!t.results.incomplete);
         assert(goosetest::run_status(t.results) == 1);
         var reached = false;
         goosetest::execute_case(t) {
             t.check_eq(3, 4);
             reached = true;
         }
-        assert( !reached);
+        assert(!reached);
         assert(t.results.failures.len == 2);
         assert(t.results.diagnostics.len == FAILURE_TEXT.len * 2);
         assert(t.results.cases.len == 2);
@@ -60,11 +60,11 @@ fn test_byte_limit(outer: goosetest::Test&) {
         goosetest::execute_case(t) {
             t.check_eq(1, 2);
             assert(t.results.diagnostics.len == FAILURE_TEXT.len);
-            assert( !t.results.incomplete);
+            assert(!t.results.incomplete);
             t.check_eq(3, 4);
             reached = true;
         }
-        assert( !reached);
+        assert(!reached);
         assert(t.results.diagnostics == FAILURE_TEXT);
         assert(t.results.failures.len == 1);
         assert(t.results.cases[0].failure_count == 1);
@@ -179,7 +179,7 @@ fn test_format_budget(outer: goosetest::Test&) {
             goosetest::execute_case(t) {
                 reached = true;
             }
-            assert( !reached);
+            assert(!reached);
             assert(t.results.cases.len == 1);
             assert(t.results.terminal == goosetest::TerminalError.DiagnosticLimit);
         }

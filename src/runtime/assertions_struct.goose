@@ -10,8 +10,8 @@ import src.runtime.value_format;
 fn assert_struct_eq<T>(t: Test&, expected: const T&, actual: const T&, message: u8[:] = "") {
     t.assertions += 1;
     var different = false;
-    const for < N,
-    A > in fields<T> {
+    const for <N,
+    A> in fields<T> {
         if expected.A != actual.A {
             different = true;
         }
@@ -31,8 +31,8 @@ fn record_struct<T>(t: Test&, expected: const T&, actual: const T&, message: u8[
     var text: u8[>..] = [];
     format_message(text, message);
     text.append(header);
-    const for < N,
-    A > in fields<T> {
+    const for <N,
+    A> in fields<T> {
         if expected.A != actual.A {
             if !append_field(text, N, expected.A, actual.A, limit) {
                 stop_run(t.results, TerminalError.DiagnosticLimit);

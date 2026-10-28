@@ -2,7 +2,6 @@
 namespace goosetest_generated_case_3;
 
 import goosetest;
-
 import test.calculator_test;
 
 fn run(t: goosetest::Test&) {
@@ -18,7 +17,7 @@ fn run(t: goosetest::Test&) {
         namespace_name: namespace_name,
         function_name: function_name,
         display_name: display_name,
-        declaration_line: 16,
+        declaration_line: 15,
     };
     if t.results.fail_fast_stop {
         goosetest::not_run_case(t.results, identity, "fail-fast");

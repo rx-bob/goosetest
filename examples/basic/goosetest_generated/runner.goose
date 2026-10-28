@@ -2,7 +2,6 @@
 namespace goosetest_generated;
 
 import goosetest;
-
 import goosetest_generated.completion;
 import goosetest_generated.dispatch_0_0;
 import goosetest_generated.report;

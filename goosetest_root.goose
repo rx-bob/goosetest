@@ -1,7 +1,8 @@
 // Run the framework through the same generated entry point as consumer projects.
-import goosetest;
+
 import os;
 
+import goosetest;
 import goosetest_generated.runner;
 import test_support.selfhost;
 

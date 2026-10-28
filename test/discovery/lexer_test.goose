@@ -2,7 +2,6 @@
 namespace lexer_test;
 
 import goosetest;
-
 import src.discovery.lexer;
 import src.discovery.model;
 

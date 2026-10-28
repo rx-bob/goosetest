@@ -6,9 +6,12 @@ CLI's native filesystem or process adapters.
 
 ## Execution flow
 
-1. `src/discovery/` inventories `src/`, `test/`, and optional `integration/` with
-   explicit entry, path, source, and recursion budgets. It rejects symlinks in
-   scanned roots and validates strict unit mirrors before producing a manifest.
+1. `src/config/` loads the bounded project config, if present. Legacy projects
+   inventory `src/`, `test/`, and optional `integration/`; configured projects
+   inventory only roots belonging to selected targets, applying exclusions before
+   visiting entries. Strict targets audit declared unit pairs; off targets do not
+   scan production roots. All inventories use explicit entry, path, source, and
+   recursion budgets and reject symlinks in visited roots.
 2. The lexer and declaration parser recognize real source structure, comments,
    strings, signatures, and supported metadata. Stable case IDs combine relative
    source path, namespace, and function name. Display labels do not affect IDs.
@@ -19,16 +22,22 @@ CLI's native filesystem or process adapters.
    locks exclude concurrent writes. Atomic writes and ownership metadata support
    interrupted-run recovery without claiming or deleting arbitrary user files.
 5. The CLI invokes the configured compiler with `build --debug` on the unchanged
-   authored `goosetest_root.goose`, then runs the new executable in the project
-   directory. The old executable is removed before compilation. Failed builds
-   never fall back to old test output.
+   authored legacy root or configured target entry, then runs each target's new
+   executable in the project directory. Debug and optimized profiles map to
+   `--debug -O0` and `-O2`. Each selected target has an independent entry sidecar
+   and child process; unselected target sidecars are not compiled. Old execution
+   output is removed before compilation. Failed builds never fall back to stale
+   test output.
 6. Generated wrappers call the runtime through case and phase recovery boundaries.
    The console reporter consumes finalized records; the root propagates status.
 
-The authored root declares the package source and imports generated orchestration.
-Its optional `.build` sidecar declares executable-specific native sources. Package
-and native paths retain their authored resolution; the generator does not copy a
-production entry point or infer package declarations from imports.
+Each authored entry declares package imports and generated orchestration. Its
+optional adjacent `.build` sidecar declares executable-specific native sources.
+Configured target names determine the generated directory, binary, completion
+record, and child cache partition. Package and native paths retain authored
+resolution; the generator does not copy a production entry point or infer package
+declarations from imports. Dependencies reached through imports in the selected
+entry or its shared helpers remain part of that target's build.
 
 ## Runtime ownership and failures
 
@@ -85,13 +94,18 @@ integration suites. Supporting modules and standalone oracles live outside
 scanned roots in `test_support/`; invalid source is inert fixture data.
 
 A separate Python parent compares lexical source inventory, CLI listing, and
-actual PASS rows, then injects a failure into a disposable copy and checks status
-1. Other matrices verify statuses, diagnostics, ownership, lifecycle, cold code,
-and old fixed-capacity boundaries. Parent-owned temporary directories and bounded
-process waits keep verification artifacts separate from authored source. See the
+actual PASS rows, then injects failures into disposable copies and checks exact
+statuses and diagnostics. Independent matrices cover legacy and configured
+discovery, both profiles, target/native isolation, ownership, lifecycle, process
+cancellation, and finite boundaries. Silly and Promptnook adoption fixtures use
+recorded source snapshots; they do not mutate or require those application
+checkouts. Parent-owned temporary directories and bounded process waits keep
+verification artifacts separate from authored source. See the
 [external verification matrix](../integration/fixtures/README.md).
 
-The [pretty-goose consumer](adopting_pretty_goose.md) adds an isolated adoption
-check: byte-preserved production modules, original builtin-assert baselines,
-mirrored public-package tests, and an externally verified failing expectation.
-It demonstrates a small package boundary, not a migration of the original repository.
+The [pretty-goose consumer](adopting_pretty_goose.md) demonstrates a public package
+boundary. [Silly adoption](adopting_silly.md) keeps URL/HTTP suites in subsystem
+paths with an optional native target. [Promptnook adoption](adopting_promptnook.md)
+separates deterministic domain cases from a disposable native target. These
+fixtures prove framework boundaries, not full consumer migrations or database
+parity.

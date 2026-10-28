@@ -19,7 +19,7 @@ struct Token {
     span: Span,
     location: SourceLocation,
     end_line: i64,
-    mate: i64 = - 1,
+    mate: i64 = -1,
     standalone: bool = false,
     raw: bool = false,
 }
@@ -116,17 +116,14 @@ fn lex_next(state: LexState&) {
     if begins(state, "//") {
         kind = TokenKind.LineComment;
         scan_line_comment(state);
-    }
-    else if begins(state, "/*") {
+    } else if begins(state, "/*") {
         kind = TokenKind.BlockComment;
         scan_block_comment(state, location);
-    }
-    else if begins(state, "\"\"\"") {
+    } else if begins(state, "\"\"\"") {
         kind = TokenKind.String;
         raw = true;
         scan_raw(state, location);
-    }
-    else if byte == '"' || byte == '\'' {
+    } else if byte == '"' || byte == '\'' {
         kind = if byte == '"' {
             TokenKind.String
         } else {
@@ -136,17 +133,14 @@ fn lex_next(state: LexState&) {
     } else if identifier_start(byte) {
         kind = TokenKind.Identifier;
         scan_identifier(state);
-    }
-    else if byte >= '0' && byte <= '9' {
+    } else if byte >= '0' && byte <= '9' {
         kind = TokenKind.Number;
         scan_number(state);
-    }
-    else {
+    } else {
         advance(state);
         if byte == ':' && begins(state, ":") {
             advance(state);
-        }
-        else if byte == '-' && begins(state, ">") {
+        } else if byte == '-' && begins(state, ">") {
             advance(state);
         }
     }
@@ -289,7 +283,7 @@ fn hex_value(byte: u8) -> i64 {
     if byte >= 'A' && byte <= 'F' {
         return (byte - 'A')as i64 + 10;
     }
-    return - 1;
+    return -1;
 }
 
 fn scan_quoted(state: LexState&, quote: u8, location: SourceLocation) {
@@ -311,8 +305,7 @@ fn scan_quoted(state: LexState&, quote: u8, location: SourceLocation) {
         characters += 1;
         if byte == '\\' {
             scan_escape(state, location);
-        }
-        else {
+        } else {
             advance(state);
         }
         if state.error.issue != SyntaxIssue.None {

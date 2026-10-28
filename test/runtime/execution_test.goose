@@ -12,7 +12,7 @@ fn test_hard_stop(outer: goosetest::Test&) {
             hard_helper(t);
             reached = true;
         }
-        assert( !reached);
+        assert(!reached);
         assert(t.assertions == 1);
         assert(t.failures == 1);
         assert(goosetest::case_status(t) == 1);
@@ -102,7 +102,8 @@ fn test_phase_failures(outer: goosetest::Test&) {
                     events.push(5);
                 }
             }
-            assert(t.phase == goosetest::Phase.Body && !t.active);
+            assert(t.phase == goosetest::Phase.Body);
+            assert(!t.active);
             assert(t.results.cases.len == 1);
             if mode == 0 {
                 assert(events == [1, 2, 3, 4, 5]);
@@ -125,8 +126,7 @@ fn test_phase_failures(outer: goosetest::Test&) {
             }
             if mode == 0 {
                 assert(goosetest::run_status(t.results) == 0);
-            }
-            else {
+            } else {
                 assert(goosetest::run_status(t.results) == 1);
             }
         }
@@ -154,7 +154,8 @@ fn test_cleanup_after_limit(outer: goosetest::Test&) {
                 cleaned = true;
             }
         }
-        assert(cleaned && !body);
+        assert(cleaned);
+        assert(!body);
         assert(t.results.terminal == goosetest::TerminalError.DiagnosticLimit);
         assert(t.results.cases[0].outcome == goosetest::Outcome.RunnerError);
         assert(goosetest::run_status(t.results) == 2);
@@ -162,7 +163,7 @@ fn test_cleanup_after_limit(outer: goosetest::Test&) {
         goosetest::execute_fixture(t) {
             constructed = true;
         }
-        assert( !constructed);
+        assert(!constructed);
     }
 }
 
@@ -181,15 +182,20 @@ fn test_suite_failures_are_separate(outer: goosetest::Test&) {
         t =>
         t.suite_active = true;
         let ready = goosetest::run_suite_hook(t, suite_identity("before_all", 12), goosetest::Phase.SuiteSetup) {
-            assert(t.results.active_suite && t.results.active);
+            assert(t.results.active_suite);
+            assert(t.results.active);
             t.check_eq(1, 2, "first setup cause");
             t.fail("second setup cause");
         };
-        assert( !ready && !t.active && !t.results.active_suite);
-        assert(t.results.cases.len == 0 && t.results.failures.len == 2);
+        assert(!ready);
+        assert(!t.active);
+        assert(!t.results.active_suite);
+        assert(t.results.cases.len == 0);
+        assert(t.results.failures.len == 2);
         assert(t.results.totals.suite_failures == 1);
         assert(t.results.totals.suite_assertions == 2);
-        assert(t.results.failures[0].is_suite && t.results.failures[1].is_suite);
+        assert(t.results.failures[0].is_suite);
+        assert(t.results.failures[1].is_suite);
         assert(t.results.failures[0].phase == goosetest::Phase.SuiteSetup);
         let id = t.results.failures[0].identity;
         assert(goosetest::metadata_text(t.results, id.function_name) == "before_all");
@@ -198,11 +204,13 @@ fn test_suite_failures_are_separate(outer: goosetest::Test&) {
         let cleaned = goosetest::run_suite_hook(t, suite_identity("after_all", 20), goosetest::Phase.SuiteCleanup) {
             t.fail("cleanup cause");
         };
-        assert( !cleaned);
+        assert(!cleaned);
         assert(t.results.totals.suite_failures == 2);
-        assert(t.results.totals.failed == 0 && t.results.totals.skipped == 1);
+        assert(t.results.totals.failed == 0);
+        assert(t.results.totals.skipped == 1);
         assert(t.results.failures[2].phase == goosetest::Phase.SuiteCleanup);
-        assert(t.suite_active && t.phase == goosetest::Phase.Body);
+        assert(t.suite_active);
+        assert(t.phase == goosetest::Phase.Body);
         assert(goosetest::run_status(t.results) == 1);
     }
 }
@@ -220,7 +228,7 @@ fn test_suite_cleanup_and_next_suite(outer: goosetest::Test&) {
         let cleaned = goosetest::run_suite_hook(t, suite_identity("after_all", 20), goosetest::Phase.SuiteCleanup) {
             t.fail("after all failure");
         };
-        assert( !cleaned);
+        assert(!cleaned);
         let next = goosetest::run_suite_hook(t, suite_identity("next_before_all", 40), goosetest::Phase.SuiteSetup) {
             t.assert_true(true);
         };
@@ -228,14 +236,19 @@ fn test_suite_cleanup_and_next_suite(outer: goosetest::Test&) {
         goosetest::execute_case(t) {
             t.assert_true(true);
         }
-        assert(t.failures == 0 && !t.suite_hook);
+        assert(t.failures == 0);
+        assert(!t.suite_hook);
         assert(t.results.cases.len == 2);
-        assert(t.results.totals.passed == 2 && t.results.totals.failed == 0);
-        assert(t.results.totals.suite_failures == 1 && t.results.totals.suite_assertions == 3);
+        assert(t.results.totals.passed == 2);
+        assert(t.results.totals.failed == 0);
+        assert(t.results.totals.suite_failures == 1);
+        assert(t.results.totals.suite_assertions == 3);
         assert(t.results.totals.assertions == 5);
         assert(goosetest::run_status(t.results) == 1);
-        assert(t.results.cases[0].failure_count == 0 && t.results.cases[1].failure_count == 0);
-        assert(t.results.failures.len == 1 && t.results.failures[0].is_suite);
+        assert(t.results.cases[0].failure_count == 0);
+        assert(t.results.cases[1].failure_count == 0);
+        assert(t.results.failures.len == 1);
+        assert(t.results.failures[0].is_suite);
     }
 }
 
@@ -250,11 +263,16 @@ fn test_suite_empty_selection(outer: goosetest::Test&) {
             goosetest::Phase.SuiteCleanup, false) {
             called = true;
         };
-        assert(setup && cleanup && !called);
-        assert(t.results.metadata.len == 0 && t.results.failures.len == 0 && t.results.cases.len == 0);
+        assert(setup);
+        assert(cleanup);
+        assert(!called);
+        assert(t.results.metadata.len == 0);
+        assert(t.results.failures.len == 0);
+        assert(t.results.cases.len == 0);
         goosetest::skip_case(t.results, suite_identity("test_disabled", 30), "disabled");
         assert(goosetest::run_status(t.results) == 0);
-        assert(t.results.totals.suite_assertions == 0 && t.results.totals.suite_failures == 0);
+        assert(t.results.totals.suite_assertions == 0);
+        assert(t.results.totals.suite_failures == 0);
     }
 }
 
@@ -272,9 +290,13 @@ fn test_suite_limit_cleanup(outer: goosetest::Test&) {
         let cleanup = goosetest::run_suite_hook(t, suite_identity("after_all", 20), goosetest::Phase.SuiteCleanup) {
             cleanup_called = true;
         };
-        assert( !setup && !cleanup && !setup_called && cleanup_called);
+        assert(!setup);
+        assert(!cleanup);
+        assert(!setup_called);
+        assert(cleanup_called);
         assert(t.results.terminal == goosetest::TerminalError.MetadataLimit);
-        assert(t.results.cases.len == 0 && t.results.failures.len == 0);
+        assert(t.results.cases.len == 0);
+        assert(t.results.failures.len == 0);
         assert(goosetest::run_status(t.results) == 2);
     }
 }
@@ -288,21 +310,25 @@ fn test_fail_fast_finalization(outer: goosetest::Test&) {
             goosetest::run_phase(t, goosetest::Phase.Body) {
                 t.fail("body");
             }
-            assert( !t.results.fail_fast_stop);
+            assert(!t.results.fail_fast_stop);
             goosetest::run_phase(t, goosetest::Phase.Cleanup) {
                 cleaned = true;
                 t.check_eq(1, 2, "cleanup");
             }
         }
-        assert(cleaned && t.results.fail_fast_stop);
+        assert(cleaned);
+        assert(t.results.fail_fast_stop);
         goosetest::not_run_case(t.results, suite_identity("test_later", 30));
-        assert(t.results.totals.not_run == 1 && t.results.totals.skipped == 0);
-        assert(t.results.totals.failed == 1 && t.results.failures.len == 2);
+        assert(t.results.totals.not_run == 1);
+        assert(t.results.totals.skipped == 0);
+        assert(t.results.totals.failed == 1);
+        assert(t.results.failures.len == 2);
         assert(t.results.cases[1].outcome == goosetest::Outcome.NotRun);
         assert(goosetest::run_status(t.results) == 1);
         goosetest::run_suite_hook(t, suite_identity("after_all", 40), goosetest::Phase.SuiteCleanup) {
             t.assert_true(true);
         }
-        assert(t.results.fail_fast_stop && goosetest::run_status(t.results) == 1);
+        assert(t.results.fail_fast_stop);
+        assert(goosetest::run_status(t.results) == 1);
     }
 }

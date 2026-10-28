@@ -4,17 +4,17 @@ namespace goosetest;
 import src.runtime.results;
 
 fn reserve_case(results: Results&, identity: CaseIdentity, reason: u8[:] = "") -> i64 {
-    assert( !results.active);
+    assert(!results.active);
     if results.incomplete {
-        return - 1;
+        return -1;
     }
     if results.cases.len >= results.limits.cases {
         stop_run(results, TerminalError.CaseLimit);
-        return - 1;
+        return -1;
     }
     if !metadata_fits(results, identity, reason) {
         stop_run(results, TerminalError.MetadataLimit);
-        return - 1;
+        return -1;
     }
     let id = own_identity(results, identity);
     let index = results.cases.len;

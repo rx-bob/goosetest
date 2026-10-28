@@ -2,6 +2,7 @@
 // Execution helpers and Test remain in the goosetest namespace.
 // C defers unused hard assertions; typed implementation helpers still require Test&.
 // Intentionally expose qualified reporting alongside the assertion runtime.
+
 import src.reporting.console;
 import src.runtime.assertions;
 import src.runtime.assertions_struct;

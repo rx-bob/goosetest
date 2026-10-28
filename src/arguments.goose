@@ -371,11 +371,12 @@ Timeouts accept integers 1 through 86400; termination grace is 1 second.
 Filter text is at most 4096 bytes; an explicit empty filter matches all IDs.
 --help        Show help; other arguments must still be valid. No project is scanned.
 
-Required src/ and test/: src/path/name.goose <-> test/path/name_test.goose.
-Optional integration/: independent named *_test.goose suites. Every suite needs a test.
-Put helpers in test_support/. Root entries/facades and generated output are not audited.
-Selection never weakens the full audit or typechecking. list and check-mirror never compile or run tests.
-Configured target names are sorted bytewise for output and execution. Unselected target roots are not scanned.
+Legacy layout requires src/ and test/ mirrors; integration/ is optional.
+Configured projects declare test roots and strict/off mirror policy in goosetest.json.
+Each admitted suite needs a test; configured ordinary helpers stay importable but are not discovered.
+Put legacy helpers in test_support/. Root entries/facades and generated output are not audited.
+Selection never weakens discovery or typechecking within a selected target. list and check-mirror never compile or run tests.
+Configured target names are sorted bytewise for output and execution. Unselected target roots and sidecars are not compiled.
 Only @DisplayName and @Disabled metadata are supported; disabled cases compile but never execute.
 
 Default finite limits (bytes unless stated):

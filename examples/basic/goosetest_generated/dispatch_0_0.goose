@@ -2,7 +2,6 @@
 namespace goosetest_generated_dispatch_0_0;
 
 import goosetest;
-
 import goosetest_generated.case_0;
 import goosetest_generated.case_1;
 import goosetest_generated.case_2;

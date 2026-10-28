@@ -2,7 +2,6 @@
 namespace manifest_test;
 
 import goosetest;
-
 import src.discovery.catalog;
 import src.discovery.declarations;
 import src.discovery.manifest;
@@ -107,31 +106,31 @@ fn test_text_limits(outer: goosetest::Test&) {
 fn test_invalid_limits(outer: goosetest::Test&) {
     let limits: discovery::SyntaxLimits[7] = [
         discovery::SyntaxLimits {
-            max_file_bytes: - 1,
+            max_file_bytes: -1,
             ..
         },
         discovery::SyntaxLimits {
-            max_total_bytes: - 1,
+            max_total_bytes: -1,
             ..
         },
         discovery::SyntaxLimits {
-            max_tokens: - 1,
+            max_tokens: -1,
             ..
         },
         discovery::SyntaxLimits {
-            max_nesting: - 1,
+            max_nesting: -1,
             ..
         },
         discovery::SyntaxLimits {
-            max_suites: - 1,
+            max_suites: -1,
             ..
         },
         discovery::SyntaxLimits {
-            max_cases: - 1,
+            max_cases: -1,
             ..
         },
         discovery::SyntaxLimits {
-            max_text_bytes: - 1,
+            max_text_bytes: -1,
             ..
         },
     ];

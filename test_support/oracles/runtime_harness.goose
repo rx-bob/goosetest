@@ -1,4 +1,5 @@
 // Hand-written consumer owns result storage through reporting and process exit.
+
 import goosetest from "../..";
 
 import os;

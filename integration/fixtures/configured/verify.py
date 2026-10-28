@@ -133,4 +133,26 @@ with tempfile.TemporaryDirectory(prefix="goosetest-configured-") as temporary:
                    contains=b"core::tests/request/url_test.goose")
     assert b"other::" not in selected.stdout
 
+    # A configured strict pair uses arbitrary source/test roots and still
+    # discovers imported helpers without admitting them as suites.
+    strict = project(work, "strict configured mirror")
+    (strict / "src/request").mkdir(parents=True)
+    (strict / "src/request/url.goose").write_text(
+        "namespace url;\nfn value() -> i64 { return 42; }\n")
+    (strict / "tests/request/url_test.goose").write_text(
+        "namespace url_test;\nimport goosetest;\nimport src.request.url;\n"
+        "import tests.request.support;\n"
+        "fn test_configured_mirror(t: goosetest::Test&) { "
+        "t.assert_eq(42, url::value()); t.assert_eq(42, support::value()); }\n")
+    config = json.loads((strict / "goosetest.json").read_text())
+    config["targets"][0]["mirror"] = {
+        "policy": "strict", "pairs": [{"source": "src/request", "tests": "tests/request"}]
+    }
+    (strict / "goosetest.json").write_text(json.dumps(config))
+    strict_audit = run(["check-mirror", "--project", str(strict), "--target", "core"],
+                       work, contains=b"1 matched")
+    assert b"Mirror enforcement is disabled" not in strict_audit.stdout
+    run(["test", "--project", str(strict), "--target", "core"], work,
+        contains=b"1 passed")
+
 print("configured target process tests passed")

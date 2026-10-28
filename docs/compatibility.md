@@ -15,6 +15,8 @@ Use `goose version`, `goose --help`, `goose check FILE`, and
 `goose build --debug FILE -o OUTPUT`. This release rejects `goose --version`.
 `-o` has no long-form equivalent. Set `GOOSE_HOME` to an owned temporary directory
 when isolating compiler caches. Debug native builds are the supported test path.
+Consumer test targets also expose an explicit optimized profile; only profile
+results recorded below are claimed as verified.
 
 ## Verified language contract
 
@@ -140,6 +142,12 @@ The [pretty-goose adoption recipe](adopting_pretty_goose.md) describes the isola
 consumer now included in verification. The real pretty-goose working tree remains
 outside this implementation; its production snapshots are fixture data.
 
+[Silly adoption](adopting_silly.md) preserves subsystem URL/HTTP checks and keeps
+optional native work in a selected target. [Promptnook adoption](adopting_promptnook.md)
+preserves domain paths and keeps the database stand-in clearly separate from
+libSQL/application parity. Both verifiers run from temporary projects and do not
+require or modify the original consumer checkouts.
+
 ## E6.S4 verification record — 2026-10-27
 
 The final source tree was copied without `build/` or the repository's generated
@@ -201,3 +209,28 @@ execution. Fatal `assert(false)` remained a status-2 execution failure with no
 completed test inventory in both profiles. The independent execution matrix also
 passed abort and explicit-exit process checks in both profiles. These compiler
 and platform results are verified; other platforms are not implied.
+
+## E5.S3 adoption and final gate record — 2026-10-28
+
+The documented configured path now matches the CLI: explicit roots and
+exclusions, strict/off mirror policy, byte-sorted target selection, both
+profiles, child-only cache partitions, target sidecars, and status/zero-match
+rules. The independent fixtures exercise minimal configured mode, a strict
+custom mirror pair, two native targets, and Silly and Promptnook-shaped
+consumers. Their snapshots and native boundaries are representative framework
+evidence; they do not claim whole-application, libSQL, or cross-platform parity.
+
+On Goose runtime `4d3da949e563` with Apple clang 17.0.0 on macOS arm64, the final
+tree passed `task build`, `task example` (4 cases), `task test` (all 16
+independent matrices, including 209 self-hosted cases), and `task check` (372
+Goose files, including generated consumers and a configured-target verifier).
+The process matrix needed execution outside the sandbox because its loopback
+fixture binds a socket; its approved rerun passed. A separate `goosefmt check`
+passed across shipping and generated Goose roots. These commands used isolated
+caches under `/private/tmp`.
+
+The concrete follow-on for Silly is to add a root `core` target for existing
+`tests/request` and `tests/http` roots, invoke debug and optimized profiles
+directly, and keep a migration ledger for remaining standalone executables. The
+old nested-project and compiler-adapter proposal is superseded. This does not
+migrate Silly or Promptnook as part of framework work.

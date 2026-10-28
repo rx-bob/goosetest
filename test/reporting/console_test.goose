@@ -1,11 +1,11 @@
 // Console output is a deterministic projection of finalized retained records.
 namespace console_test;
 
+import std;
+
 import goosetest;
 import src.reporting.console;
 import test_support.runtime;
-
-import std;
 
 fn test_case_order_and_totals(outer: goosetest::Test&) {
     runtime_support::with_test() {
@@ -135,7 +135,8 @@ fn test_standalone_suite_failure(outer: goosetest::Test&) {
         }
         assert(find(active[..], "PASS test/a_test.goose::a_test::test_pass") >= 0);
         assert(find(active[..], "suite hook execution is still active") >= 0);
-        assert(t.results.cases.len == 1 && t.results.failures.len == 2);
+        assert(t.results.cases.len == 1);
+        assert(t.results.failures.len == 2);
         var before: u8[>..] = [];
         reporting::render(t.results) {
             chunk => before.append(chunk);

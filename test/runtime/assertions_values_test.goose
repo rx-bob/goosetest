@@ -1,11 +1,11 @@
 // Value assertion contracts are checked through independent structured-result assertions.
 namespace assertions_values_test;
 
-import goosetest;
-import test_support.runtime;
-
 import math;
 import std;
+
+import goosetest;
+import test_support.runtime;
 
 fn test_contains_values(outer: goosetest::Test&) {
     runtime_support::with_test() {
@@ -34,14 +34,16 @@ fn test_contains_failure(outer: goosetest::Test&) {
             t.assert_contains("long", "lo", "fragment");
             reached = true;
         }
-        assert( !reached);
-        assert(t.assertions == 1 && t.failures == 1);
+        assert(!reached);
+        assert(t.assertions == 1);
+        assert(t.failures == 1);
         assert(goosetest::case_diagnostics(t) == "fragment: expected fragment: <long> actual: <lo>\n");
         assert(t.results.cases[0].outcome == goosetest::Outcome.Failed);
         goosetest::execute_case(t) {
             t.assert_contains("ok", "next ok");
         }
-        assert(t.results.totals.failed == 1 && t.results.totals.passed == 1);
+        assert(t.results.totals.failed == 1);
+        assert(t.results.totals.passed == 1);
         goosetest::execute_case(t) {
             t.assert_contains("GO", "goose");
         }
@@ -49,7 +51,8 @@ fn test_contains_failure(outer: goosetest::Test&) {
         goosetest::execute_case(t) {
             t.assert_contains("a\0c", "a\0b");
         }
-        assert(t.results.totals.failed == 3 && t.results.totals.passed == 1);
+        assert(t.results.totals.failed == 3);
+        assert(t.results.totals.passed == 1);
         assert(goosetest::run_status(t.results) == 1);
     }
 }
@@ -65,10 +68,10 @@ fn test_near_values(outer: goosetest::Test&) {
             t.assert_near(1.0, 1.0, 0.0);
             t.assert_near(1.0, 1.25, 0.25);
             t.assert_near(1.25, 1.0, 0.25);
-            t.assert_near( - 1.0, - 1.125, 0.25);
-            t.assert_near( - 0.0, 0.0, - 0.0);
+            t.assert_near(-1.0, -1.125, 0.25);
+            t.assert_near(-0.0, 0.0, -0.0);
             t.assert_near(infinity, infinity, 0.0);
-            t.assert_near( - infinity, - infinity, 1.0);
+            t.assert_near(-infinity, -infinity, 1.0);
         }
         assert(t.assertions == 8);
         assert(goosetest::run_status(t.results) == 0);
@@ -78,22 +81,23 @@ fn test_near_values(outer: goosetest::Test&) {
 
 fn test_near_failures(outer: goosetest::Test&) {
     let infinity = exp(1000.0);
-    let nan = sqrt( - 1.0);
-    assert(is_inf(infinity) && is_nan(nan));
+    let nan = sqrt(-1.0);
+    assert(is_inf(infinity));
+    assert(is_nan(nan));
     near_failure(1.0, 1.25, 0.125, false);
     near_failure(1.0, 1.25, 0.0, false);
-    near_failure(1.0, 1.0, - 0.1, true);
+    near_failure(1.0, 1.0, -0.1, true);
     near_failure(1.0, 1.0, infinity, true);
-    near_failure(1.0, 1.0, - infinity, true);
+    near_failure(1.0, 1.0, -infinity, true);
     near_failure(1.0, 1.0, nan, true);
     near_failure(infinity, infinity, infinity, true);
     near_failure(nan, nan, 0.0, false);
     near_failure(nan, 1.0, 1.0, false);
     near_failure(1.0, nan, 1.0, false);
-    near_failure(infinity, - infinity, 1.0, false);
+    near_failure(infinity, -infinity, 1.0, false);
     near_failure(infinity, 1.0, 1.0, false);
     near_failure(1.0, infinity, 1.0, false);
-    near_failure(1e308, - 1e308, 1e308, false);
+    near_failure(1e308, -1e308, 1e308, false);
 }
 
 fn near_failure(expected: f64, actual: f64, tolerance: f64, invalid: bool) {
@@ -104,8 +108,9 @@ fn near_failure(expected: f64, actual: f64, tolerance: f64, invalid: bool) {
             t.assert_near(expected, actual, tolerance, "near contract");
             reached = true;
         }
-        assert( !reached);
-        assert(t.assertions == 1 && t.failures == 1);
+        assert(!reached);
+        assert(t.assertions == 1);
+        assert(t.failures == 1);
         assert(t.results.cases[0].outcome == goosetest::Outcome.Failed);
         let text = goosetest::case_diagnostics(t);
         assert(find(text, "near contract: expected: <") == 0);
@@ -115,7 +120,8 @@ fn near_failure(expected: f64, actual: f64, tolerance: f64, invalid: bool) {
         goosetest::execute_case(t) {
             t.assert_near(2.0, 2.0, 0.0);
         }
-        assert(t.results.totals.failed == 1 && t.results.totals.passed == 1);
+        assert(t.results.totals.failed == 1);
+        assert(t.results.totals.passed == 1);
         assert(goosetest::run_status(t.results) == 1);
     }
 }
