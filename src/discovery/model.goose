@@ -21,7 +21,20 @@ enum RootKind {
 struct SourceFile {
     path: Span,
     source: Span,
-    kind: RootKind
+    kind: RootKind,
+    root: i64 = -1,
+    pair: i64 = -1,
+}
+struct RootRecord {
+    path: Span,
+    kind: RootKind,
+    target: i64 = -1,
+    pair: i64 = -1,
+}
+struct ExclusionRule {
+    path: Span,
+    target: i64,
+    directory: bool,
 }
 enum Error {
     None,
@@ -47,6 +60,8 @@ enum Error {
 }
 struct Inventory {
     files: SourceFile[>..]&,
+    roots: RootRecord[>..]&,
+    exclusions: ExclusionRule[>..]&,
     paths: u8[>..]&,
     sources: u8[>..]&,
     error_path: u8[>..]&,
@@ -54,9 +69,20 @@ struct Inventory {
     visited_entries: i64 = 0,
     error: Error = Error.None,
     system_error: i64 = 0,
-    limit: i64 = - 1,
+    limit: i64 = -1,
     started: bool = false,
     complete: bool = false,
+    configured: bool = false,
+    mirror_disabled: bool = false,
+}
+
+struct InventoryBuffers {
+    files: SourceFile[>..]&,
+    roots: RootRecord[>..]&,
+    exclusions: ExclusionRule[>..]&,
+    paths: u8[>..]&,
+    sources: u8[>..]&,
+    error_path: u8[>..]&,
 }
 
 // Syntax limits are independent of filesystem budgets and also apply to direct source inputs.
@@ -136,18 +162,22 @@ enum SyntaxIssue {
 }
 
 fn new_inventory(
-    files: SourceFile[>..]&, paths: u8[>..]&, sources: u8[>..]&, error_path: u8[>..]&, limits: Limits = Limits {
+    buffers: InventoryBuffers&, limits: Limits = Limits {
     }
 ) -> Inventory {
-    assert(files.len == 0);
-    assert(paths.len == 0);
-    assert(sources.len == 0);
-    assert(error_path.len == 0);
+    assert(buffers.files.len == 0);
+    assert(buffers.roots.len == 0);
+    assert(buffers.exclusions.len == 0);
+    assert(buffers.paths.len == 0);
+    assert(buffers.sources.len == 0);
+    assert(buffers.error_path.len == 0);
     var inventory = Inventory {
-        files: files,
-        paths: paths,
-        sources: sources,
-        error_path: error_path,
+        files: buffers.files,
+        roots: buffers.roots,
+        exclusions: buffers.exclusions,
+        paths: buffers.paths,
+        sources: buffers.sources,
+        error_path: buffers.error_path,
         limits: limits,
         ..
     };
@@ -161,7 +191,7 @@ fn new_inventory(
     return inventory;
 }
 
-fn fail(inventory: Inventory&, error: Error, path: u8[:], system_error: i64 = 0, limit: i64 = - 1) {
+fn fail(inventory: Inventory&, error: Error, path: u8[:], system_error: i64 = 0, limit: i64 = -1) {
     if inventory.error != Error.None {
         return;
     }

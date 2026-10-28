@@ -38,17 +38,26 @@ fn run(options: arguments::Options&) -> i32 {
         incomplete();
         return 2;
     }
-    if configuration.configured {
-        write_stderr("ERROR: goosetest.json: configured discovery is not available yet.\n");
-        incomplete();
-        return 2;
-    }
     var files: discovery::SourceFile[>..] = [];
+    var roots: discovery::RootRecord[>..] = [];
+    var exclusions: discovery::ExclusionRule[>..] = [];
     var paths: u8[>..] = [];
     var sources: u8[>..] = [];
     var error_path: u8[>..] = [];
-    var inventory = discovery::new_inventory(files, paths, sources, error_path);
-    discovery::scan(inventory, options.project);
+    var buffers = discovery::InventoryBuffers {
+        files: files,
+        roots: roots,
+        exclusions: exclusions,
+        paths: paths,
+        sources: sources,
+        error_path: error_path,
+    };
+    var inventory = discovery::new_inventory(buffers);
+    if configuration.configured {
+        discovery::scan_configured(inventory, options.project, configuration);
+    } else {
+        discovery::scan(inventory, options.project);
+    }
     if discovery::status(inventory) != 0 {
         write_stderr(str("ERROR: ", cli_output::escaped(discovery::error_text(inventory)), "\n"));
         incomplete();
@@ -66,13 +75,21 @@ fn inspect(options: arguments::Options&, inventory: discovery::Inventory&) -> i3
     var error_path: u8[>..] = [];
     var manifest = discovery::new_manifest(suites, cases, text, error_path);
     discovery::inspect_project(audit, manifest, inventory);
-    if discovery::mirror_status(audit) != 0 {
+    if audit.disabled && options.command == arguments::Command.CheckMirror {
+        write_stderr(cli_output::mirror_summary(audit));
+        incomplete();
+        return 2;
+    }
+    if !audit.disabled && discovery::mirror_status(audit) != 0 {
         for record in audit.records {
             if record.kind != discovery::MirrorKind.Matched {
                 write_stderr(str(discovery::mirror_record_text(inventory, record), "\n"));
             }
         }
         write_stderr(cli_output::mirror_summary(audit));
+        if manifest.complete && discovery::manifest_status(manifest) != 0 {
+            write_stderr(str("ERROR: ", discovery::manifest_error_text(manifest), "\n"));
+        }
         incomplete();
         return 2;
     }

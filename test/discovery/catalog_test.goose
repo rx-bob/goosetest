@@ -2,7 +2,6 @@
 namespace catalog_test;
 
 import goosetest;
-
 import src.discovery.catalog;
 import src.discovery.declarations;
 import src.discovery.manifest;
@@ -48,10 +47,20 @@ fn test_empty_manifest(outer: goosetest::Test&) {
 
 fn test_inventory_selection(outer: goosetest::Test&) {
     var files: discovery::SourceFile[>..] = [];
+    var roots: discovery::RootRecord[>..] = [];
+    var exclusions: discovery::ExclusionRule[>..] = [];
     var paths: u8[>..] = [];
     var sources: u8[>..] = [];
     var error_path: u8[>..] = [];
-    var inventory = discovery::new_inventory(files, paths, sources, error_path);
+    var buffers = discovery::InventoryBuffers {
+        files: files,
+        roots: roots,
+        exclusions: exclusions,
+        paths: paths,
+        sources: sources,
+        error_path: error_path,
+    };
+    var inventory = discovery::new_inventory(buffers);
     add_file(inventory, "integration/flow_test.goose", "namespace flow; fn test_flow(t: goosetest::Test&) {}",
         discovery::RootKind.Integration);
     add_file(inventory, "src/code.goose", "this is not a test suite", discovery::RootKind.Source);
@@ -99,10 +108,20 @@ fn add_file(inventory: discovery::Inventory&, path: u8[:], source: u8[:], kind: 
 fn test_strict_suite_files(outer: goosetest::Test&) {
     for path in["test/helper.goose", "integration/helper.goose", "test/_test.goose"] {
         var files: discovery::SourceFile[>..] = [];
+        var roots: discovery::RootRecord[>..] = [];
+        var exclusions: discovery::ExclusionRule[>..] = [];
         var paths: u8[>..] = [];
         var sources: u8[>..] = [];
         var errors: u8[>..] = [];
-        var inventory = discovery::new_inventory(files, paths, sources, errors);
+        var buffers = discovery::InventoryBuffers {
+            files: files,
+            roots: roots,
+            exclusions: exclusions,
+            paths: paths,
+            sources: sources,
+            error_path: errors,
+        };
+        var inventory = discovery::new_inventory(buffers);
         add_file(inventory, path, "namespace helper;", discovery::RootKind.Unit);
         inventory.complete = true;
         syntax_support::with_manifest() {
@@ -117,10 +136,20 @@ fn test_strict_suite_files(outer: goosetest::Test&) {
 
 fn test_disabled_suite_is_nonempty(outer: goosetest::Test&) {
     var files: discovery::SourceFile[>..] = [];
+    var roots: discovery::RootRecord[>..] = [];
+    var exclusions: discovery::ExclusionRule[>..] = [];
     var paths: u8[>..] = [];
     var sources: u8[>..] = [];
     var errors: u8[>..] = [];
-    var inventory = discovery::new_inventory(files, paths, sources, errors);
+    var buffers = discovery::InventoryBuffers {
+        files: files,
+        roots: roots,
+        exclusions: exclusions,
+        paths: paths,
+        sources: sources,
+        error_path: errors,
+    };
+    var inventory = discovery::new_inventory(buffers);
     add_file(inventory, "integration/disabled_test.goose",
         "namespace disabled;\n// @Disabled(\"pending\")\nfn test_pending(t: goosetest::Test&) {}",
         discovery::RootKind.Integration);
@@ -129,6 +158,7 @@ fn test_disabled_suite_is_nonempty(outer: goosetest::Test&) {
         manifest =>
         discovery::discover(manifest, inventory);
         assert(discovery::manifest_status(manifest) == 0);
-        assert(manifest.cases.len == 1 && manifest.cases[0].disabled);
+        assert(manifest.cases.len == 1);
+        assert(manifest.cases[0].disabled);
     }
 }

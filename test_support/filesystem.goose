@@ -7,9 +7,12 @@ import std;
 import src.discovery.model;
 
 extern "gt_test_symlink" fn symlink(target: const u8[:], path: const u8[:]) -> i32;
-extern "gt_test_chmod"fn chmod(path: const u8[:], mode: i32) -> i32;
-extern "gt_test_unprivileged"fn unprivileged() -> i32;
-extern "gt_test_fd_count"fn fd_count() -> i64;
+
+extern "gt_test_chmod" fn chmod(path: const u8[:], mode: i32) -> i32;
+
+extern "gt_test_unprivileged" fn unprivileged() -> i32;
+
+extern "gt_test_fd_count" fn fd_count() -> i64;
 
 fn project(parent: u8[:], name: u8[:]) -> u8[>..] {
     let root = str(parent, "/", name);
@@ -30,9 +33,19 @@ fn write(root: u8[:], relative: u8[:], content: u8[:]) {
 fn with_inventory<F>(limits: discovery::Limits = discovery::Limits {
     }) {
     var files: discovery::SourceFile[>..] = [];
+    var roots: discovery::RootRecord[>..] = [];
+    var exclusions: discovery::ExclusionRule[>..] = [];
     var paths: u8[>..] = [];
     var sources: u8[>..] = [];
     var error_path: u8[>..] = [];
-    var inventory = discovery::new_inventory(files, paths, sources, error_path, limits);
+    var buffers = discovery::InventoryBuffers {
+        files: files,
+        roots: roots,
+        exclusions: exclusions,
+        paths: paths,
+        sources: sources,
+        error_path: error_path,
+    };
+    var inventory = discovery::new_inventory(buffers, limits);
     F(inventory);
 }

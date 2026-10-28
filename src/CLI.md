@@ -24,9 +24,20 @@ Before discovery, the CLI reads only `<project>/goosetest.json`. A missing file
 keeps legacy `src`/`test`/`integration` discovery. Existing files must be valid
 version 1 JSON with unique object keys, known fields, bounded target/root/pair
 lists, valid target names and lexical project-relative paths. Malformed config
-exits 2; it never falls back to legacy behavior. A valid config is parsed but
-also exits 2 with a staged-support message until configured discovery and target
-execution land in later project-adoption stories.
+exits 2; it never falls back to legacy behavior. A valid config selects its
+explicit test roots and exclusions. Test roots admit only `*_test.goose` files;
+helper `.goose` files and `.goose.data` sidecars are ignored. Exclusions match
+exact project-relative files or slash-terminated directory prefixes and are
+applied before opening files or descending. Excluded entries count as inspected
+entries, but excluded contents do not consume source bytes. Missing configured
+roots fail validation.
+
+Targets with `mirror.policy: "strict"` audit each declared source/tests pair
+using paths relative to those roots. Targets with `mirror.policy: "off"` do not
+scan source roots and skip mirror enforcement; they still parse admitted test
+suites and reject malformed suites. `check-mirror` reports that enforcement is
+disabled and exits 2 when no target enables strict mirroring. Mirror counts are
+file correspondence, not source coverage claims.
 
 All commands use the same complete [project validation](discovery/MIRRORS.md):
 filesystem scan, bidirectional unit audit, integration admission and declaration

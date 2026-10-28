@@ -15,11 +15,11 @@ or native filesystem code and has no native sidecar.
 
 ## Ownership and results
 
-The caller owns four growable arrays: `SourceFile` records, path bytes, source
-bytes, and error-path bytes. `new_inventory(files, paths, sources, error_path,
-limits)` borrows initially empty arrays. Keep their owners alive through every
-consumer of the inventory. A context is scanned once; construct another for a
-new scan rather than reusing borrowed spans.
+The caller owns growable arrays for `SourceFile` and `RootRecord` records,
+exclusions, path bytes, source bytes, and error-path bytes. `new_inventory`
+borrows these initially empty buffers through an `InventoryBuffers` value. Keep
+their owners alive through every consumer of the inventory. A context is scanned
+once; construct another for a new scan rather than reusing borrowed spans.
 
 Each `SourceFile` contains path/source spans and a root kind (`Source`, `Unit`,
 `Integration`). `path_text(inventory, file.path)` and `source_text(inventory, file)`
@@ -44,7 +44,11 @@ ordinary directories, not hidden exclusions.
 `complete` becomes true only after all roots close successfully and records are
 sorted once by unsigned path bytes. Successful path order is independent of
 creation order. Arena offsets reflect traversal order and are not stable IDs.
-There is no nested source-by-test search or mirror matching in this stage.
+Configured roots retain target and pair identity for mirror matching. Legacy
+roots retain the `src`/`test`/`integration` behavior. Explicit exclusions are
+checked before parsing or directory descent, so excluded symlinks and contents
+are not opened. Test roots admit only names ending in `_test.goose`; this helper
+filter is configured-mode behavior. `.goose.data` is ignored in every mode.
 
 `status(inventory)` is 0 only for a completed, error-free scan, including valid
 empty roots. Otherwise it is 2. Partial records remain available for diagnosis but

@@ -14,8 +14,7 @@ fn escaped(value: u8[:]) -> u8[>..] {
     for byte in value {
         if byte == '\\' {
             result.append("\\\\");
-        }
-        else if byte < 32 || byte == 127 {
+        } else if byte < 32 || byte == 127 {
             result.append("\\x");
             result.push(hex[(byte / 16)as i64]);
             result.push(hex[(byte % 16)as i64]);
@@ -48,6 +47,10 @@ fn case_summary(manifest: discovery::Manifest&) -> u8[>..] {
 }
 
 fn mirror_summary(audit: discovery::MirrorAudit&) -> u8[>..] {
+    if audit.disabled {
+        return str("Mirror enforcement is disabled for configured targets. Set mirror.policy to strict ",
+            "with source/tests pairs.\n");
+    }
     return str("Unit mirrors: ", audit.matched, " matched, ", audit.missing, " missing, ",
         audit.orphaned, " orphaned; ", audit.bad_names, " bad test filenames\n",
         "Integration suites: ", audit.integration_files, "\n");

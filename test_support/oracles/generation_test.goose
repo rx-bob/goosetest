@@ -1,14 +1,16 @@
 // Transitional generation driver: parent owns a fresh destination and all cleanup.
+
 import goosetest from "../..";
+
+import os;
+import std;
+
 import goosetest.src.discovery.files;
 import goosetest.src.discovery.manifest;
 import goosetest.src.discovery.mirror;
 import goosetest.src.discovery.model;
 import goosetest.src.generation.model;
 import goosetest.src.generation.runner;
-
-import os;
-import std;
 
 fn main() {
     assert(arg_count() == 3);
@@ -17,10 +19,20 @@ fn main() {
     arg(1, project);
     arg(2, destination);
     var files: discovery::SourceFile[>..] = [];
+    var roots: discovery::RootRecord[>..] = [];
+    var exclusions: discovery::ExclusionRule[>..] = [];
     var paths: u8[>..] = [];
     var sources: u8[>..] = [];
     var scan_error: u8[>..] = [];
-    var inventory = discovery::new_inventory(files, paths, sources, scan_error);
+    var buffers = discovery::InventoryBuffers {
+        files: files,
+        roots: roots,
+        exclusions: exclusions,
+        paths: paths,
+        sources: sources,
+        error_path: scan_error,
+    };
+    var inventory = discovery::new_inventory(buffers);
     discovery::scan(inventory, project);
     var records: discovery::MirrorRecord[>..] = [];
     var audit = discovery::new_mirror_audit(records);
@@ -48,7 +60,8 @@ fn emit(manifest: discovery::Manifest&, audit: discovery::MirrorAudit&, destinat
         print(output.error);
         return 2;
     }
-    assert( !is_dir(destination) && !file_exists(destination));
+    assert(!is_dir(destination));
+    assert(!file_exists(destination));
     assert(make_dir(destination));
     for module in output.modules {
         assert(write_file(str(destination, "/", generation::module_path(output, module)),

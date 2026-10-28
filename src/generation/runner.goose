@@ -14,8 +14,9 @@ import src.generation.validation;
 fn generate(output: Output&, manifest: discovery::Manifest&, audit: discovery::MirrorAudit&,
     options: selection::Options = selection::Options {
     }, fail_fast: bool = false) {
-    assert( !output.complete && output.modules.len == 0);
-    if discovery::manifest_status(manifest) != 0 || discovery::mirror_status(audit) != 0 || manifest.cases.len == 0 {
+    assert(!output.complete);
+    assert(output.modules.len == 0);
+    if discovery::manifest_status(manifest) != 0 || !discovery::mirror_valid(audit) || manifest.cases.len == 0 {
         fail(output, "", "generation requires a complete nonempty audited manifest");
         return;
     }

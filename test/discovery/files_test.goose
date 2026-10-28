@@ -1,16 +1,17 @@
 // Small trees verify roots, owned paths/content, ignored helpers, and explicit errors.
 namespace files_test;
 
-import goosetest;
+import os;
+import std;
 
+import goosetest;
+import src.config.load;
+import src.config.model;
 import src.discovery.files;
 import src.discovery.model;
 import src.discovery.paths;
 import test_support.filesystem;
 import test_support.selfhost;
-
-import os;
-import std;
 
 fn test_empty_and_optional(outer: goosetest::Test&) {
     let parent = selfhost_support::scratch(outer);
@@ -138,7 +139,7 @@ fn expect_error(root: u8[:], expected: discovery::Error, path: u8[:]) {
         inventory =>
         discovery::scan(inventory, root);
         assert(discovery::status(inventory) == 2);
-        assert( !inventory.complete);
+        assert(!inventory.complete);
         assert(inventory.error == expected);
         assert(inventory.error_path == path);
     }
@@ -155,13 +156,150 @@ fn test_directory_read_error(outer: goosetest::Test&) {
                 path: path,
                 depth: 0
             });
-        discovery::walk(inventory, stack, discovery::RootKind.Source);
+        discovery::walk(inventory, stack);
         discovery::close_stack(inventory, stack);
         assert(discovery::status(inventory) == 2);
         assert(inventory.error == discovery::Error.ListDirectory);
         assert(inventory.error_path == "src");
         assert(inventory.system_error > 0);
         assert(stack.len == 0);
+    }
+}
+
+fn test_configured_exclusions_helpers(outer: goosetest::Test&) {
+    let root = filesystem_support::project(selfhost_support::scratch(outer), "configured_roots");
+    filesystem_support::directory(root, "tests");
+    filesystem_support::directory(root, "tests/request");
+    filesystem_support::directory(root, "tests/request/rejections");
+    filesystem_support::write(root, "tests/request/url_test.goose",
+        "namespace request; fn test_url(t: goosetest::Test&) {}");
+    filesystem_support::write(root, "tests/request/url_helpers.goose", "not parsed as suite");
+    filesystem_support::write(root, "tests/request/rejections/bad.goose", "not read");
+    filesystem_support::write(root, "tests/request/cases.goose.data", "inert sidecar");
+    assert(filesystem_support::symlink("missing", str(root, "/tests/request/rejections/poison_test.goose")) == 0);
+    assert(filesystem_support::symlink("missing", str(root, "/tests/request/example_test.goose")) == 0);
+    assert(filesystem_support::symlink("missing", str(root, "/src/source_sentinel.goose")) == 0);
+    let rejected = str(root, "/tests/request/rejections");
+    let lock_rejected = filesystem_support::unprivileged() != 0;
+    if lock_rejected {
+        assert(filesystem_support::chmod(rejected, 0) == 0);
+    }
+    filesystem_support::write(root, "goosetest.json", "{\"version\":1,\"targets\":[{\"name\":\"core\",\"entry\":\"root.goose\",\"tests\":[{\"path\":\"tests/request\",\"kind\":\"unit\"}],\"exclude\":[\"tests/request/rejections/\",\"tests/request/example_test.goose\"],\"mirror\":{\"policy\":\"off\",\"pairs\":[]}}]}");
+    var config_text: u8[>..] = [];
+    var targets: config::Target[>..] = [];
+    var config_roots: config::TestRoot[>..] = [];
+    var config_exclusions: config::Exclusion[>..] = [];
+    var config_pairs: config::MirrorPair[>..] = [];
+    var configuration = config::new_configuration(config_text, targets, config_roots, config_exclusions, config_pairs);
+    assert(config::load(configuration, root) == 0);
+    var files: discovery::SourceFile[>..] = [];
+    var roots: discovery::RootRecord[>..] = [];
+    var exclusions: discovery::ExclusionRule[>..] = [];
+    var paths: u8[>..] = [];
+    var sources: u8[>..] = [];
+    var scan_error: u8[>..] = [];
+    var buffers = discovery::InventoryBuffers {
+        files: files,
+        roots: roots,
+        exclusions: exclusions,
+        paths: paths,
+        sources: sources,
+        error_path: scan_error,
+    };
+    var inventory = discovery::new_inventory(buffers);
+    discovery::scan_configured(inventory, root, configuration);
+    if lock_rejected {
+        assert(filesystem_support::chmod(rejected, 448) == 0);
+    }
+    assert(discovery::status(inventory) == 0);
+    assert(inventory.files.len == 1);
+    assert(inventory.visited_entries == 6);
+    assert(discovery::path_text(inventory, inventory.files[0].path) == "tests/request/url_test.goose");
+    assert(inventory.roots.len == 1);
+    assert(inventory.mirror_disabled);
+    var records: discovery::MirrorRecord[>..] = [];
+    var audit = discovery::new_mirror_audit(records);
+    var suites: discovery::Suite[>..] = [];
+    var cases: discovery::Case[>..] = [];
+    var manifest_text: u8[>..] = [];
+    var syntax_error: u8[>..] = [];
+    var manifest = discovery::new_manifest(suites, cases, manifest_text, syntax_error);
+    discovery::inspect_project(audit, manifest, inventory);
+    assert(audit.disabled);
+    assert(discovery::mirror_status(audit) == 2);
+    assert(discovery::manifest_status(manifest) == 0);
+    assert(manifest.cases.len == 1);
+    assert(discovery::project_status(audit, manifest) == 0);
+}
+
+fn test_configured_bad_suite_missing_root(outer: goosetest::Test&) {
+    let root = filesystem_support::project(selfhost_support::scratch(outer), "configured_bad_suite");
+    filesystem_support::directory(root, "tests");
+    filesystem_support::directory(root, "tests/unit");
+    filesystem_support::write(root, "tests/unit/broken_test.goose", "namespace broken;");
+    filesystem_support::write(root, "goosetest.json", "{\"version\":1,\"targets\":[{\"name\":\"core\",\"entry\":\"root.goose\",\"tests\":[{\"path\":\"tests/unit\",\"kind\":\"unit\"}]}]}");
+    var config_text: u8[>..] = [];
+    var targets: config::Target[>..] = [];
+    var config_roots: config::TestRoot[>..] = [];
+    var config_exclusions: config::Exclusion[>..] = [];
+    var config_pairs: config::MirrorPair[>..] = [];
+    var configuration = config::new_configuration(config_text, targets, config_roots, config_exclusions, config_pairs);
+    assert(config::load(configuration, root) == 0);
+    filesystem_support::with_inventory() {
+        inventory =>
+        discovery::scan_configured(inventory, root, configuration);
+        assert(discovery::status(inventory) == 0);
+        var records: discovery::MirrorRecord[>..] = [];
+        var audit = discovery::new_mirror_audit(records);
+        var suites: discovery::Suite[>..] = [];
+        var cases: discovery::Case[>..] = [];
+        var text: u8[>..] = [];
+        var error: u8[>..] = [];
+        var manifest = discovery::new_manifest(suites, cases, text, error);
+        discovery::inspect_project(audit, manifest, inventory);
+        assert(audit.disabled);
+        assert(discovery::manifest_status(manifest) == 2);
+    }
+    filesystem_support::write(root, "goosetest.json", "{\"version\":1,\"targets\":[{\"name\":\"core\",\"entry\":\"root.goose\",\"tests\":[{\"path\":\"tests/missing\",\"kind\":\"unit\"}]}]}");
+    var missing_text: u8[>..] = [];
+    var missing_targets: config::Target[>..] = [];
+    var missing_roots: config::TestRoot[>..] = [];
+    var missing_exclusions: config::Exclusion[>..] = [];
+    var missing_pairs: config::MirrorPair[>..] = [];
+    var missing_config = config::new_configuration(missing_text, missing_targets, missing_roots,
+        missing_exclusions, missing_pairs);
+    assert(config::load(missing_config, root) == 0);
+    filesystem_support::with_inventory() {
+        inventory =>
+        discovery::scan_configured(inventory, root, missing_config);
+        assert(discovery::status(inventory) == 2);
+        assert(inventory.error == discovery::Error.MissingRoot);
+    }
+}
+
+fn test_configured_unreadable_suite(outer: goosetest::Test&) {
+    assert(filesystem_support::unprivileged() != 0);
+    let root = filesystem_support::project(selfhost_support::scratch(outer), "configured_unreadable");
+    filesystem_support::directory(root, "tests");
+    filesystem_support::write(root, "tests/locked_test.goose", "namespace locked;");
+    let file = str(root, "/tests/locked_test.goose");
+    assert(filesystem_support::chmod(file, 0) == 0);
+    filesystem_support::write(root, "goosetest.json",
+        "{\"version\":1,\"targets\":[{\"name\":\"core\",\"entry\":\"root.goose\",\"tests\":[{\"path\":\"tests\",\"kind\":\"unit\"}]}]}");
+    var config_text: u8[>..] = [];
+    var targets: config::Target[>..] = [];
+    var config_roots: config::TestRoot[>..] = [];
+    var exclusions: config::Exclusion[>..] = [];
+    var pairs: config::MirrorPair[>..] = [];
+    var configuration = config::new_configuration(config_text, targets, config_roots, exclusions, pairs);
+    assert(config::load(configuration, root) == 0);
+    filesystem_support::with_inventory() {
+        inventory =>
+        discovery::scan_configured(inventory, root, configuration);
+        assert(filesystem_support::chmod(file, 384) == 0);
+        assert(inventory.error == discovery::Error.ReadSource);
+        assert(inventory.error_path == "tests/locked_test.goose");
+        assert(discovery::status(inventory) == 2);
     }
 }
 
