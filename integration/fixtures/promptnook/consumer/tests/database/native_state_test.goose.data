@@ -1,0 +1,29 @@
+namespace native_state_test;
+
+import goosetest;
+
+extern "pn_fixture_open" fn open_fixture() -> i64;
+extern "pn_fixture_resource_exists" fn fixture_resource_exists() -> i64;
+extern "pn_fixture_close" fn close_fixture() -> i64;
+
+struct Fixture {
+    handle: i64 = -1,
+}
+
+fn before_each(t: goosetest::Test&, f: Fixture&) {
+    f.handle = open_fixture();
+    t.assert_eq(1, f.handle, "native global starts fresh in this target process");
+    t.assert_eq(1, fixture_resource_exists(), "fixture creates its owned resource");
+}
+
+fn after_each(t: goosetest::Test&, f: Fixture&) {
+    if f.handle >= 0 {
+        t.assert_eq(0, close_fixture(), "fixture closes and removes owned resource");
+        f.handle = -1;
+    }
+}
+
+fn test_native_resource_is_open_during_body(t: goosetest::Test&, f: Fixture&) {
+    t.assert_eq(1, f.handle);
+    t.assert_eq(1, fixture_resource_exists());
+}

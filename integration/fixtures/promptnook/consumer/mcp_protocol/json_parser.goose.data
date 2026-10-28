@@ -1,0 +1,4 @@
+namespace mcp_protocol;
+
+import json;
+

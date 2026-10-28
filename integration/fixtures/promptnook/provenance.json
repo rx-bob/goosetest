@@ -1,0 +1,37 @@
+{
+  "project": "Promptnook Goose backend",
+  "checkout_context": {
+    "path_at_capture": "/Users/bob/repos/nook/promptnook/backend/goose",
+    "head": "8bcc12c3ab65c0503edcc381b737ad9daf407a29",
+    "working_tree": "clean at capture",
+    "captured_on": "2026-10-28"
+  },
+  "snapshots": [
+    {
+      "source": "workspaces/tree.goose",
+      "source_sha256": "d626173be78d09590ff9891526d75223f9e29464f4cf11203bea3975e1ad96b8",
+      "lines": "6-48 (append_tree_json declaration only)",
+      "snapshot": "production/workspaces/tree.goose.data",
+      "sha256": "d1e3ffdc8e6e86d66afc02d81933c7e1452f6971b0fe179a66b700feda9d1d8c"
+    },
+    {
+      "source": "mcp_protocol/json_parser.goose",
+      "source_sha256": "f4f09e1091739c6aab24cb9a92bf7c1ad33bc12410efc83c6867152e40ce487f",
+      "lines": "347-358 (json_member_last declaration only)",
+      "snapshot": "production/mcp_protocol/json_member_last.goose.data",
+      "sha256": "bebbcc9351127f969aaf0332596a3c4f30a50263f064adb3ce74bb0de9077527"
+    }
+  ],
+  "contract_reference": {
+    "source": "tests/fixtures/silly_workspace_cases.json",
+    "source_sha256": "620e33c55289c4c928fa668cdae6afbaf2e0971b4e89b8e641f24f2142dd64f5",
+    "case": "workspace-tree-preserves-index-order-and-nesting",
+    "selected_shape": "index entries are root, child, duplicate root, and stale id; captured fields distinguish both roots and both nested children",
+    "scope": "the fixture directly checks the unchanged pure serializer on the joined root/child/duplicate rows. The SQL join excludes stale ids before serialization. Database selection, HTTP/auth behavior, and response transport remain outside this fixture"
+  },
+  "native_boundary": {
+    "source": "turso/turso.goose and turso/turso.c",
+    "source_note": "production backend binds Goose externs to a libSQL native package; fixture deliberately substitutes a tiny owned resource stand-in",
+    "claim_limit": "linkage and process isolation only; no libSQL or Promptnook database parity"
+  }
+}

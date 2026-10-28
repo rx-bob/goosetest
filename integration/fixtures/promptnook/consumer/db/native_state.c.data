@@ -1,0 +1,26 @@
+#include <stdint.h>
+#include <fcntl.h>
+#include <unistd.h>
+
+static int64_t open_count;
+static int64_t resource_fd = -1;
+
+int64_t pn_fixture_open(void) {
+    if (resource_fd >= 0) return -1;
+    resource_fd = (int64_t)open("db/goosetest-owned.fixture", O_WRONLY | O_CREAT | O_EXCL, 0600);
+    if (resource_fd < 0) return -1;
+    open_count += 1;
+    return open_count;
+}
+
+int64_t pn_fixture_resource_exists(void) {
+    return access("db/goosetest-owned.fixture", F_OK) == 0;
+}
+
+int64_t pn_fixture_close(void) {
+    if (resource_fd < 0) return -1;
+    int close_result = close((int)resource_fd);
+    int unlink_result = unlink("db/goosetest-owned.fixture");
+    resource_fd = -1;
+    return close_result == 0 && unlink_result == 0 ? 0 : -1;
+}

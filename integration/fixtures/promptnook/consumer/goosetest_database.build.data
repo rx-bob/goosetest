@@ -1,0 +1,1 @@
+c_sources = ["db/native_state.c", "db/unavailable_libsql.c"];

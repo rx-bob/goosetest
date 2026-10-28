@@ -1,0 +1,12 @@
+fn json_member_last(object: json::Node?, key: const u8[:]) -> json::Node? {
+    var result: json::Node? = null;
+    if !object {
+        return result;
+    };
+    json::each(object) {
+        item => if item.key == key {
+            result .= item;
+        }
+    };
+    return result;
+}

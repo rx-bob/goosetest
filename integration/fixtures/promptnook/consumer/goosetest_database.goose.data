@@ -1,0 +1,6 @@
+import goosetest from "../goosetest";
+import goosetest_generated.database.runner;
+
+fn main() {
+    exit(goosetest_generated::run_all());
+}

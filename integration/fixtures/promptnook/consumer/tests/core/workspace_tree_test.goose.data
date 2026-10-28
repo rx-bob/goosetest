@@ -1,0 +1,16 @@
+namespace workspace_tree_test;
+
+import goosetest;
+import json;
+import workspaces.tree;
+
+fn test_workspace_tree_order_and_nesting(t: goosetest::Test&) {
+    let flat = "[{\"id\":\"e3s1-root\",\"workspaceId\":\"ws-1\",\"name\":\"Root folder\",\"type\":\"folder\",\"storageLocation\":\"local\"},{\"id\":\"e3s1-child\",\"workspaceId\":\"ws-1\",\"name\":\"Nested prompt\",\"type\":\"prompt\",\"parentId\":\"e3s1-root\",\"storageLocation\":\"local\"},{\"id\":\"e3s1-root\",\"workspaceId\":\"ws-1\",\"name\":\"Root folder\",\"type\":\"folder\",\"storageLocation\":\"local\"}]";
+    var document: json::Node[>..] = [];
+    var decoded: u8[>..] = [];
+    let nodes, parse_error = json::parse(flat, document, decoded);
+    t.assert_eq(0, parse_error.len, "recorded workspace tree rows parse");
+    var output: u8[>..] = [];
+    workspaces::append_tree_json(output, nodes, "");
+    t.assert_eq("[{\"id\":\"e3s1-root\",\"workspaceId\":\"ws-1\",\"name\":\"Root folder\",\"type\":\"folder\",\"storageLocation\":\"local\",\"children\":[{\"id\":\"e3s1-child\",\"workspaceId\":\"ws-1\",\"name\":\"Nested prompt\",\"type\":\"prompt\",\"parentId\":\"e3s1-root\",\"storageLocation\":\"local\",\"children\":[]}]},{\"id\":\"e3s1-root\",\"workspaceId\":\"ws-1\",\"name\":\"Root folder\",\"type\":\"folder\",\"storageLocation\":\"local\",\"children\":[{\"id\":\"e3s1-child\",\"workspaceId\":\"ws-1\",\"name\":\"Nested prompt\",\"type\":\"prompt\",\"parentId\":\"e3s1-root\",\"storageLocation\":\"local\",\"children\":[]}]}]", copy(output));
+}

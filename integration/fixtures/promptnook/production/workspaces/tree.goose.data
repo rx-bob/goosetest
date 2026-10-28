@@ -1,0 +1,43 @@
+recursive fn append_tree_json(out: u8[>..]&, nodes: json::Node?, parent_id: const u8[:]) {
+    out.push('[');
+    var first = true;
+    if nodes {
+        json::each(nodes) {
+            node =>
+            let parent,
+            parent_ok = json::as_string(mcp_protocol::json_member_last(node, "parentId"));
+            if (!parent_ok
+                && parent_id.len == 0)
+                || (parent_ok
+                && parent == parent_id) {
+                if !first {
+                    out.push(',');
+                }
+                first = false;
+                let id, _ = json::as_string(mcp_protocol::json_member_last(node, "id"));
+                let workspace_id, _ = json::as_string(mcp_protocol::json_member_last(node, "workspaceId"));
+                let name, _ = json::as_string(mcp_protocol::json_member_last(node, "name"));
+                let kind, _ = json::as_string(mcp_protocol::json_member_last(node, "type"));
+                let storage, _ = json::as_string(mcp_protocol::json_member_last(node, "storageLocation"));
+                out.append("{\"id\":");
+                json::format_string(out, id);
+                out.append(",\"workspaceId\":");
+                json::format_string(out, workspace_id);
+                out.append(",\"name\":");
+                json::format_string(out, name);
+                out.append(",\"type\":");
+                json::format_string(out, kind);
+                if parent_ok {
+                    out.append(",\"parentId\":");
+                    json::format_string(out, parent);
+                }
+                out.append(",\"storageLocation\":");
+                json::format_string(out, storage);
+                out.append(",\"children\":");
+                append_tree_json(out, nodes, id);
+                out.push('}');
+            }
+        };
+    }
+    out.push(']');
+}

@@ -94,6 +94,7 @@ def main():
             ('disabled', [cli]),
             ('selection', [cli]), ('lifecycle', [cli]), ('suite', [cli]),
             ('pretty_goose', [cli]), ('silly', [cli]),
+            ('promptnook', [cli]),
         ]
         for name, arguments in matrices:
             path = REPO / 'integration' / 'fixtures' / name / 'verify.py'
