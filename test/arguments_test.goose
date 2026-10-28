@@ -259,3 +259,40 @@ fn test_selection_invalid(outer: goosetest::Test&) {
     value.push('x');
     invalid(["list", "--filter", value]);
 }
+
+fn test_target_selection_options(outer: goosetest::Test&) {
+    var project: u8[>..] = [];
+    var options = arguments::new_options(project);
+    arguments::consume(options, "--target");
+    arguments::consume(options, "http_2");
+    arguments::consume(options, "list");
+    arguments::consume(options, "--target");
+    arguments::consume(options, "core");
+    arguments::finish(options);
+    assert(options.error.len == 0);
+    assert(options.target_count == 2);
+    assert(options.targets == "http_2\0core\0");
+
+    var all_project: u8[>..] = [];
+    var all = arguments::new_options(all_project);
+    arguments::consume(all, "--target");
+    arguments::consume(all, "all");
+    arguments::consume(all, "check-mirror");
+    arguments::finish(all);
+    assert(all.error.len == 0);
+    assert(all.target_all);
+    assert(all.target_count == 0);
+}
+
+fn test_target_selection_invalid(outer: goosetest::Test&) {
+    invalid(["list", "--target"]);
+    invalid(["list", "--target", ""]);
+    invalid(["list", "--target", "Core"]);
+    invalid(["list", "--target", "core-name"]);
+    invalid(["list", "--target", "all", "--target", "core"]);
+    invalid(["list", "--target", "core", "--target", "all"]);
+    invalid(["list", "--target", "all", "--target", "all"]);
+    invalid(["test", "--target", "core", "--target", "core"]);
+    invalid(["check-mirror", "--target", "bad\0name"]);
+    invalid(["--help", "--target", "core"]);
+}

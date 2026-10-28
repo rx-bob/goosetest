@@ -83,7 +83,7 @@ fn emit_dispatch(output: Output&, manifest: discovery::Manifest&, level: i64, gr
     var out: u8[>..] = [];
     let name = str("dispatch_", level, "_", group);
     format(out, "// Generated bounded static dispatch.\nnamespace goosetest_generated_",
-        name, ";\n\nimport goosetest;\n\n");
+        name, ";\n\nimport goosetest;\n");
     let start = group * 32;
     let end = min(start + 32, count);
     var imports: i64[>..] = [];
@@ -109,7 +109,7 @@ fn emit_runner(output: Output&, manifest: discovery::Manifest&, level: i64, sele
     var out: u8[>..] = [];
     let child = child_module(level, 0);
     out.append("// Generated entry behind the authored package root.\n");
-    out.append("namespace goosetest_generated;\n\nimport goosetest;\n\n");
+    out.append("namespace goosetest_generated;\n\nimport goosetest;\n");
     if level > 0 {
         format(out, "import ", generated_import_path(manifest, "completion"), ";\n");
     }

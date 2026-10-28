@@ -129,6 +129,8 @@ with tempfile.TemporaryDirectory(prefix="goosetest-configured-") as temporary:
     second.update(name="other", entry="other.goose", tests=[{"path": "tests/other", "kind": "unit"}])
     config["targets"].append(second)
     (multiple / "goosetest.json").write_text(json.dumps(config))
-    run(["list", "--project", str(multiple)], work, 2, b"exactly one target")
+    selected = run(["list", "--project", str(multiple), "--target", "core"], work,
+                   contains=b"core::tests/request/url_test.goose")
+    assert b"other::" not in selected.stdout
 
 print("configured target process tests passed")

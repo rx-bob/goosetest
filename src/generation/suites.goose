@@ -17,7 +17,7 @@ fn emit_case(output: Output&, manifest: discovery::Manifest&, index: i64, execut
     let function_name = discovery::manifest_text(manifest, entry.name);
     var out: u8[>..] = [];
     format(out, "// Generated direct case wrapper; edit the original test source.\nnamespace goosetest_generated_case_",
-        index, ";\n\nimport goosetest;\n\nimport ", import_path(path), ";\n\n");
+        index, ";\n\nimport goosetest;\nimport ", import_path(path), ";\n\n");
     if has_suite_hooks(suite) {
         emit_suite_wrapper(out, manifest, index, executable);
         out.append("fn run_selected(t: goosetest::Test&) {\n");

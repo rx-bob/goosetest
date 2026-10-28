@@ -18,7 +18,8 @@ enum Pending {
     CompileTimeout,
     RunTimeout,
     Filter,
-    Suite
+    Suite,
+    Target
 }
 enum Profile {
     Debug,
@@ -30,6 +31,9 @@ struct Options {
     cache_root: u8[..4096] = [],
     profile: Profile = Profile.Debug,
     filter: u8[..4096] = [],
+    targets: u8[..4096] = [],
+    target_count: i64 = 0,
+    target_all: bool = false,
     suite: selection::Suite = selection::Suite.All,
     filter_seen: bool = false,
     suite_seen: bool = false,
@@ -89,6 +93,8 @@ fn consume(options: Options&, value: u8[:]) {
     } else if value == "--suite" {
         expect_value(options, Pending.Suite, options.suite_seen);
         options.suite_seen = true;
+    } else if value == "--target" {
+        options.pending = Pending.Target;
     } else if value == "--fail-fast" {
         if options.fail_fast {
             options.error = "--fail-fast may occur only once";
@@ -142,6 +148,10 @@ fn consume_value(options: Options&, value: u8[:]) {
         consume_suite(options, value);
         return;
     }
+    if pending == Pending.Target {
+        consume_target(options, value);
+        return;
+    }
     if pending == Pending.Profile {
         if value == "debug" {
             options.profile = Profile.Debug;
@@ -153,36 +163,52 @@ fn consume_value(options: Options&, value: u8[:]) {
         return;
     }
     if pending == Pending.CacheRoot {
-        if value.len == 0 || (value.len >= 2 && value[..2] == "--") {
-            options.error = "--cache-root requires a nonempty path (use ./ for paths beginning with --)";
-            return;
-        }
-        if value.len > 4096 {
-            options.error = "--cache-root exceeds 4096 bytes";
-            return;
-        }
-        for byte in value {
-            if byte == 0 {
-                options.error = "--cache-root must not contain NUL bytes";
-                return;
-            }
-        }
-        options.cache_root.append(value);
+        consume_cache_root(options, value);
         return;
     }
+    if pending == Pending.CompileTimeout || pending == Pending.RunTimeout {
+        consume_timeout(options, pending, value);
+        return;
+    }
+    consume_path_value(options, pending, value);
+}
+
+fn consume_cache_root(options: Options&, value: u8[:]) {
+    if value.len == 0 || (value.len >= 2 && value[..2] == "--") {
+        options.error = "--cache-root requires a nonempty path (use ./ for paths beginning with --)";
+        return;
+    }
+    if value.len > 4096 {
+        options.error = "--cache-root exceeds 4096 bytes";
+        return;
+    }
+    for byte in value {
+        if byte == 0 {
+            options.error = "--cache-root must not contain NUL bytes";
+            return;
+        }
+    }
+    options.cache_root.append(value);
+}
+
+fn consume_timeout(options: Options&, pending: Pending, value: u8[:]) {
     if value.len == 0 || (value.len >= 2 && value[..2] == "--") {
         options.error = "option requires a nonempty value (use ./ for paths beginning with --)";
         return;
     }
-    if pending == Pending.CompileTimeout || pending == Pending.RunTimeout {
-        let seconds = timeout_seconds(value);
-        if seconds == 0 {
-            options.error = "timeout must be an integer from 1 through 86400 seconds";
-        } else if pending == Pending.CompileTimeout {
-            options.compile_timeout_seconds = seconds;
-        } else {
-            options.run_timeout_seconds = seconds;
-        }
+    let seconds = timeout_seconds(value);
+    if seconds == 0 {
+        options.error = "timeout must be an integer from 1 through 86400 seconds";
+    } else if pending == Pending.CompileTimeout {
+        options.compile_timeout_seconds = seconds;
+    } else {
+        options.run_timeout_seconds = seconds;
+    }
+}
+
+fn consume_path_value(options: Options&, pending: Pending, value: u8[:]) {
+    if value.len == 0 || (value.len >= 2 && value[..2] == "--") {
+        options.error = "option requires a nonempty value (use ./ for paths beginning with --)";
         return;
     }
     if value.len > 4096 {
@@ -200,6 +226,50 @@ fn consume_value(options: Options&, value: u8[:]) {
     } else {
         options.compiler.append(value);
     }
+}
+
+fn consume_target(options: Options&, value: u8[:]) {
+    if value == "all" {
+        if options.target_all || options.target_count > 0 {
+            options.error = "--target all cannot be repeated or combined with target names";
+        } else {
+            options.target_all = true;
+        }
+        return;
+    }
+    if options.target_all {
+        options.error = "--target all cannot be combined with target names";
+        return;
+    }
+    if value.len == 0 || value.len > 48 || value[0] < 'a' || value[0] > 'z' {
+        options.error = "--target requires a valid target name or all";
+        return;
+    }
+    for byte in value {
+        if !((byte >= 'a' && byte <= 'z') || (byte >= '0' && byte <= '9') || byte == '_') {
+            options.error = "--target requires a valid target name or all";
+            return;
+        }
+    }
+    var start: i64 = 0;
+    while start < options.targets.len {
+        var end = start;
+        while end < options.targets.len && options.targets[end] != 0 {
+            end += 1;
+        }
+        if options.targets[start..end] == value {
+            options.error = "--target name may occur only once";
+            return;
+        }
+        start = end + 1;
+    }
+    if options.targets.len + value.len + 1 > 4096 {
+        options.error = "combined --target names exceed 4096 bytes";
+        return;
+    }
+    options.targets.append(value);
+    options.targets.push(0);
+    options.target_count += 1;
 }
 
 fn consume_filter(options: Options&, value: u8[:]) {
@@ -260,6 +330,10 @@ fn finish(options: Options&) {
         options.error = "compiler, profile, cache-root, offline, timeout and fail-fast require test";
         return;
     }
+    if options.command == Command.None && (options.target_count > 0 || options.target_all) {
+        options.error = "target selection requires list, check-mirror or test";
+        return;
+    }
     if options.command != Command.List && options.command != Command.Test
         && (options.filter_seen || options.suite_seen) {
         options.error = "filter and suite options require list or test";
@@ -282,6 +356,7 @@ list          List selected stable IDs, source locations, kinds and disabled rea
 test          Discover, generate, compile and execute.
 check-mirror  Validate full layout and declarations; report file correspondence.
 --project     Project directory; defaults to current directory. May precede command.
+--target NAME                 Select a configured target; repeatable. --target all selects all.
 --compiler PATH                Test compiler executable; default goose, resolved through PATH.
 --profile debug|optimized      Compiler profile for test; default debug.
 --cache-root PATH              Test compiler cache root; default generated/cache.
@@ -300,7 +375,7 @@ Required src/ and test/: src/path/name.goose <-> test/path/name_test.goose.
 Optional integration/: independent named *_test.goose suites. Every suite needs a test.
 Put helpers in test_support/. Root entries/facades and generated output are not audited.
 Selection never weakens the full audit or typechecking. list and check-mirror never compile or run tests.
-Configured projects currently support one target end to end; multi-target execution arrives in a later release.
+Configured target names are sorted bytewise for output and execution. Unselected target roots are not scanned.
 Only @DisplayName and @Disabled metadata are supported; disabled cases compile but never execute.
 
 Default finite limits (bytes unless stated):
@@ -308,7 +383,7 @@ Filesystem: 65536 entries, depth 64, 4096 per path, 8388608 retained path bytes,
 1048576 per file, 67108864 total source bytes. Symlinks under scanned roots are errors.
 Syntax: 1048576 per file, 67108864 total, 262144 tokens/file, nesting 128,
 4096 suites, 65536 cases, 8388608 retained metadata bytes.
-Discovery limits are fixed. goosetest.json is bounded and validated; one configured target is supported.
+Discovery limits are fixed. goosetest.json is bounded and validated across all configured targets.
 Exit: 0 valid list/audit/help or completed passing tests; 1 executed assertion failures;
 2 usage, discovery, generation, compilation, process, deadline or incomplete-run error.
 Cancellation preserves conventional interruption status. Mirror counts are not code coverage.

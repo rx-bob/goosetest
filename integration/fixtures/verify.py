@@ -88,7 +88,8 @@ def main():
                   env, work)
         matrices = [
             ('self_host', [cli]), ('cli', [cli, oracle]), ('execution', [cli]),
-            ('artifacts', [cli]), ('limits', [cli]), ('configured', [cli]), ('profiles', [cli]),
+            ('artifacts', [cli]), ('limits', [cli]), ('configured', [cli]), ('targets', [cli]),
+            ('profiles', [cli]),
             ('process', [sys.executable, REPO / 'integration/fixtures/process/verify.py',
                          process_oracle, process_child]),
             ('disabled', [cli]),

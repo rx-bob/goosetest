@@ -1,10 +1,9 @@
 // Literal stable-ID selection never depends on display labels or disabled state.
 namespace selection_test;
 
-import goosetest;
-
 import std;
 
+import goosetest;
 import src.discovery.declarations;
 import src.discovery.manifest;
 import src.discovery.model;
@@ -81,5 +80,26 @@ fn test_literal_specials_and_empty(outer: goosetest::Test&) {
     syntax_support::with_manifest() {
         manifest =>
         assert(selection::count(manifest) == 0);
+    }
+}
+
+fn test_target_qualified_identity(outer: goosetest::Test&) {
+    syntax_support::with_manifest() {
+        manifest =>
+        discovery::set_target_name(manifest, "core");
+        discovery::parse_file(manifest, "tests/core/path_test.goose",
+            "namespace path_test;\nfn test_decode(t: goosetest::Test&) {}", discovery::RootKind.Unit);
+        discovery::finish_manifest(manifest);
+        assert(discovery::manifest_status(manifest) == 0);
+        assert(discovery::manifest_text(manifest, manifest.cases[0].identity)
+            == "core::tests/core/path_test.goose::path_test::test_decode");
+        assert(selection::count(manifest, selection::Options {
+                filter: "core::tests/core/",
+                ..
+            }) == 1);
+        assert(selection::count(manifest, selection::Options {
+                filter: "other::tests/core/",
+                ..
+            }) == 0);
     }
 }

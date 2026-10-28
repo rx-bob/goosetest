@@ -99,15 +99,24 @@ the parent always removes its disposable fixtures after success or failure.
 
 ## One-command execution
 
-`goosetest test --project PATH` validates the complete inventory, generates all
+`goosetest test --project PATH` validates the selected inventory, generates all
 modules in memory, publishes them, builds the authored entry with
 `goose build --debug`, and executes the generated test binary. Both child stages
 use the project directory. Legacy projects use `goosetest_root.goose` and
-`goosetest_generated/tests`. A configured project currently supports one target;
-for target `core`, author `goosetest_core.goose` to import
+`goosetest_generated/tests` and retain their original unqualified case IDs.
+Configured projects select targets with repeatable `--target NAME`; omission and
+`--target all` select all targets, and names run in bytewise order. `all` cannot be
+combined with names. Only selected roots are scanned, and all selected targets
+pass discovery and syntax preflight before listing or compilation. Configured IDs
+include the target, such as `core::tests/core/path_test.goose::path_test::test_decode`.
+For target `core`, author `goosetest_core.goose` to import
 `goosetest_generated.core.runner` and exit with
 `goosetest_generated::run_all()`. Its binary and completion record live under
-`goosetest_generated/core/`. Compiler and test stdout/stderr are inherited.
+`goosetest_generated/core/`. A valid selected target with no filter matches is
+reported as selection-excluded and is not compiled when another selected target
+has matches; a selection with no matches anywhere exits 2. `--suite` classifies
+configured roots as unit or integration independently of mirror policy.
+Compiler and test stdout/stderr are inherited.
 
 `--compiler PATH` defaults to `goose` through PATH. `test --profile debug|optimized`
 defaults to `debug`; debug passes `-O0 --debug`, while optimized passes `-O2`

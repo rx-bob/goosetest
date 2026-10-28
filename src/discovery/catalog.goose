@@ -13,7 +13,7 @@ struct IdentityIndex {
     index: i64
 }
 
-fn discover(manifest: Manifest&, inventory: Inventory&) {
+fn discover(manifest: Manifest&, inventory: Inventory&, target_index: i64 = -1) {
     assert(manifest.suites.len == 0);
     if status(inventory) != 0 {
         syntax_fail(manifest, inventory.error_path, SourceLocation {
@@ -22,6 +22,9 @@ fn discover(manifest: Manifest&, inventory: Inventory&) {
     }
     for file,
     index in inventory.files {
+        if target_index >= 0 && file.target != target_index {
+            continue;
+        }
         let path = path_text(inventory, file.path);
         if file.kind != RootKind.Source {
             if !test_filename(path) {

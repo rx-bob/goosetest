@@ -24,6 +24,7 @@ struct SourceFile {
     kind: RootKind,
     root: i64 = -1,
     pair: i64 = -1,
+    target: i64 = -1,
 }
 struct RootRecord {
     path: Span,

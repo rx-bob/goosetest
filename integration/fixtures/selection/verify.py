@@ -176,8 +176,9 @@ fn test_flow(t: goosetest::Test&) { print("EVENT INTEGRATION"); t.assert_true(tr
     assert b'[suite cleanup]' in result.stdout
 
     generated = project / 'goosetest_generated'
-    subprocess.run(['goosefmt', 'check', '--config', str(repo / '.goosefmt.toml'), str(generated)],
-                   check=True, capture_output=True, timeout=15)
+    formatted = subprocess.run(['goosefmt', 'check', '--config', str(repo / '.goosefmt.toml'), str(generated)],
+                               capture_output=True, timeout=15)
+    assert formatted.returncode == 0, (formatted.stdout, formatted.stderr)
     for path in generated.glob('*.goose'):
         lines = path.read_text().splitlines()
         assert len(lines) <= 500, path

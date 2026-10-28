@@ -52,7 +52,9 @@ fn scan(inventory: Inventory&, project: u8[:]) {
     inventory.complete = true;
 }
 
-fn scan_configured(inventory: Inventory&, project: u8[:], configuration: config::Configuration&) {
+fn scan_configured(
+    inventory: Inventory&, project: u8[:], configuration: config::Configuration&, selected: i64[:] = []
+) {
     assert(!inventory.started);
     assert(configuration.configured);
     inventory.started = true;
@@ -61,7 +63,7 @@ fn scan_configured(inventory: Inventory&, project: u8[:], configuration: config:
     if inventory.error != Error.None {
         return;
     }
-    copy_exclusions(inventory, configuration);
+    copy_exclusions(inventory, configuration, selected);
     if inventory.error != Error.None {
         return;
     }
@@ -70,8 +72,14 @@ fn scan_configured(inventory: Inventory&, project: u8[:], configuration: config:
         fail(inventory, Error.OpenProject, project, -(fd as i64));
         return;
     }
-    for target_index in 0..configuration.targets.len {
-        scan_configured_target(inventory, fd, configuration, target_index);
+    if selected.len == 0 {
+        for target_index in 0..configuration.targets.len {
+            scan_configured_target(inventory, fd, configuration, target_index);
+        }
+    } else {
+        for target_index in selected {
+            scan_configured_target(inventory, fd, configuration, target_index);
+        }
     }
     let closed = filesystem::close_project(fd);
     if closed < 0 {
@@ -87,31 +95,41 @@ fn scan_configured(inventory: Inventory&, project: u8[:], configuration: config:
     inventory.complete = true;
 }
 
-fn copy_exclusions(inventory: Inventory&, configuration: config::Configuration&) {
-    for target_index in 0..configuration.targets.len {
-        let target = configuration.targets[target_index];
-        for index in target.exclusion_start..target.exclusion_start + target.exclusion_count {
-            let item = configuration.exclusions[index];
-            let path = config::text_value(configuration, item.path);
-            let normalized = if item.directory {
-                path[..path.len - 1]
-            } else {
-                path
-            };
-            let span = Span {
-                offset: inventory.paths.len,
-                length: normalized.len
-            };
-            inventory.paths.append(normalized);
-            inventory.exclusions.push(ExclusionRule {
-                    path: span,
-                    target: target_index,
-                    directory: item.directory,
-                });
+fn copy_exclusions(inventory: Inventory&, configuration: config::Configuration&, selected: i64[:]) {
+    if selected.len == 0 {
+        for target_index in 0..configuration.targets.len {
+            copy_target_exclusions(inventory, configuration, target_index);
         }
-        if target.policy == config::MirrorPolicy.Strict {
-            inventory.mirror_disabled = false;
-        }
+        return;
+    }
+    for target_index in selected {
+        copy_target_exclusions(inventory, configuration, target_index);
+    }
+}
+
+fn copy_target_exclusions(inventory: Inventory&, configuration: config::Configuration&, target_index: i64) {
+    let target = configuration.targets[target_index];
+    for index in target.exclusion_start..target.exclusion_start + target.exclusion_count {
+        let item = configuration.exclusions[index];
+        let path = config::text_value(configuration, item.path);
+        let normalized = if item.directory {
+            path[..path.len - 1]
+        } else {
+            path
+        };
+        let span = Span {
+            offset: inventory.paths.len,
+            length: normalized.len
+        };
+        inventory.paths.append(normalized);
+        inventory.exclusions.push(ExclusionRule {
+                path: span,
+                target: target_index,
+                directory: item.directory,
+            });
+    }
+    if target.policy == config::MirrorPolicy.Strict {
+        inventory.mirror_disabled = false;
     }
 }
 
@@ -457,6 +475,7 @@ fn read_source(inventory: Inventory&, parent: i32, name: u8[:], path: Span, kind
                 kind: kind,
                 root: root,
                 pair: inventory.roots[root].pair,
+                target: inventory.roots[root].target,
             });
     }
 }

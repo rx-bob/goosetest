@@ -57,17 +57,25 @@ fn mirror_key(inventory: Inventory&, index: i64) -> const u8[:] {
     return path[5..path.len - 11];
 }
 
-fn audit_mirrors(audit: MirrorAudit&, inventory: Inventory&) {
+fn audit_mirrors(audit: MirrorAudit&, inventory: Inventory&, target_index: i64 = -1) {
     assert(!audit.complete);
     assert(audit.records.len == 0);
     if status(inventory) != 0 {
         return;
     }
-    if inventory.mirror_disabled {
+    var selected_has_strict_pair = false;
+    if inventory.configured {
+        for root in inventory.roots {
+            if (target_index < 0 || root.target == target_index) && root.pair >= 0 {
+                selected_has_strict_pair = true;
+            }
+        }
+    }
+    if inventory.mirror_disabled || (inventory.configured && !selected_has_strict_pair) {
         audit.disabled = true;
         audit.complete = true;
         for file in inventory.files {
-            if file.kind == RootKind.Integration {
+            if (target_index < 0 || file.target == target_index) && file.kind == RootKind.Integration {
                 audit.integration_files += 1;
             }
         }
@@ -77,6 +85,9 @@ fn audit_mirrors(audit: MirrorAudit&, inventory: Inventory&) {
     var tests: i64[>..] = [];
     for file,
     index in inventory.files {
+        if target_index >= 0 && file.target != target_index {
+            continue;
+        }
         if file.kind == RootKind.Source {
             if !inventory.configured || file.pair >= 0 {
                 sources.push(index);
@@ -221,17 +232,21 @@ fn expected_counterpart(inventory: Inventory&, file: SourceFile, kind: RootKind,
 }
 
 // All layout and syntax validation precedes any future selection stage.
-fn inspect_project(audit: MirrorAudit&, manifest: Manifest&, inventory: Inventory&) {
-    audit_mirrors(audit, inventory);
+fn inspect_project(audit: MirrorAudit&, manifest: Manifest&, inventory: Inventory&, target_index: i64 = -1) {
+    audit_mirrors(audit, inventory, target_index);
     if inventory.configured || mirror_status(audit) == 0 {
-        discover(manifest, inventory);
+        discover(manifest, inventory, target_index);
     }
     if manifest_status(manifest) == 0 && manifest.cases.len == 0 {
-        let path = if inventory.configured && inventory.roots.len > 0 {
-            path_text(inventory, inventory.roots[0].path)
-        } else {
-            "test/"
-        };
+        var path: u8[>..] = [];
+        path.append("test/");
+        for root in inventory.roots {
+            if target_index < 0 || root.target == target_index {
+                path.clear();
+                path.append(path_text(inventory, root.path));
+                break;
+            }
+        }
         syntax_fail(manifest, path, SourceLocation {
             }, SyntaxIssue.NoCases);
     }

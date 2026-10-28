@@ -1,4 +1,4 @@
-// All commands validate the complete project before listing or executing tests.
+// All selected targets pass discovery and syntax preflight before output or execution starts.
 namespace cli;
 
 import os;
@@ -13,6 +13,7 @@ import src.discovery.files;
 import src.discovery.manifest;
 import src.discovery.mirror;
 import src.discovery.model;
+import src.discovery.paths;
 import src.discovery.selection;
 import src.execution.command;
 
@@ -38,18 +39,14 @@ fn run(options: arguments::Options&) -> i32 {
         incomplete();
         return 2;
     }
-    if configuration.configured && configuration.targets.len != 1 {
-        write_stderr("ERROR: configured commands currently support exactly one target.\n");
+    return run_project(options, configuration);
+}
+
+fn run_project(options: arguments::Options&, configuration: config::Configuration&) -> i32 {
+    var selected: i64[>..] = [];
+    if !resolve_targets(options, configuration, selected) {
         incomplete();
         return 2;
-    }
-    var target = command::Target {
-        name: "",
-        entry: "goosetest_root.goose",
-    };
-    if configuration.configured {
-        target.name = config::text_value(configuration, configuration.targets[0].name);
-        target.entry = config::text_value(configuration, configuration.targets[0].entry);
     }
     var files: discovery::SourceFile[>..] = [];
     var roots: discovery::RootRecord[>..] = [];
@@ -67,7 +64,7 @@ fn run(options: arguments::Options&) -> i32 {
     };
     var inventory = discovery::new_inventory(buffers);
     if configuration.configured {
-        discovery::scan_configured(inventory, options.project, configuration);
+        discovery::scan_configured(inventory, options.project, configuration, selected);
     } else {
         discovery::scan(inventory, options.project);
     }
@@ -76,10 +73,125 @@ fn run(options: arguments::Options&) -> i32 {
         incomplete();
         return 2;
     }
-    return inspect(options, inventory, target);
+    return run_selected(options, configuration, selected, inventory);
 }
 
-fn inspect(options: arguments::Options&, inventory: discovery::Inventory&, target: command::Target) -> i32 {
+fn run_selected(
+    options: arguments::Options&, configuration: config::Configuration&, selected: i64[:],
+    inventory: discovery::Inventory&
+) -> i32 {
+    var total_matches: i64 = 0;
+    var match_counts: i64[>..] = [];
+    for target_index in selected {
+        let target = selected_target(configuration, target_index);
+        let count = preflight_target(options, inventory, configuration, target_index, target);
+        if count < 0 {
+            return 2;
+        }
+        match_counts.push(count);
+        total_matches += count;
+    }
+    if options.command != arguments::Command.CheckMirror && total_matches == 0 {
+        write_stderr("ERROR: selection matched zero cases; no tests executed.\n");
+        incomplete();
+        return 2;
+    }
+    if options.command == arguments::Command.Test {
+        for target_index, offset in selected {
+            if match_counts[offset] == 0 {
+                let target = selected_target(configuration, target_index);
+                write_stdout(str("TARGET ", target_label(target), ": selection excluded; no compiler call\n"));
+            }
+        }
+    }
+    var status: i32 = 0;
+    for target_index, offset in selected {
+        if options.command == arguments::Command.Test && match_counts[offset] == 0 {
+            continue;
+        }
+        let target = selected_target(configuration, target_index);
+        let result = render_target(options, inventory, configuration, target_index, target);
+        if result == 2 {
+            return 2;
+        }
+        if result == 1 {
+            status = 1;
+        }
+    }
+    return status;
+}
+
+fn resolve_targets(options: arguments::Options&, configuration: config::Configuration&, selected: i64[>..]&) -> bool {
+    if !configuration.configured {
+        if options.target_count > 0 {
+            if options.targets != "default\0" {
+                write_stderr("ERROR: target is not configured: default\n");
+                return false;
+            }
+        }
+        selected.push(-1);
+        return true;
+    }
+    if options.target_count == 0 && !options.target_all {
+        for index in 0..configuration.targets.len {
+            selected.push(index);
+        }
+    } else if options.target_all {
+        for index in 0..configuration.targets.len {
+            selected.push(index);
+        }
+    } else {
+        var start: i64 = 0;
+        while start < options.targets.len {
+            var end = start;
+            while end < options.targets.len && options.targets[end] != 0 {
+                end += 1;
+            }
+            let name = options.targets[start..end];
+            var found: i64 = -1;
+            for index in 0..configuration.targets.len {
+                let target = configuration.targets[index];
+                if config::text_value(configuration, target.name) == name {
+                    found = index;
+                    break;
+                }
+            }
+            if found < 0 {
+                write_stderr(str("ERROR: unknown target: ", name, "\n"));
+                return false;
+            }
+            selected.push(found);
+            start = end + 1;
+        }
+    }
+    sort(selected) {
+        a,
+        b => discovery::bytewise_less(
+            config::text_value(configuration, configuration.targets[a].name),
+            config::text_value(configuration, configuration.targets[b].name)
+        )
+    };
+    return true;
+}
+
+fn selected_target(configuration: config::Configuration&, target_index: i64) -> command::Target {
+    if target_index < 0 {
+        return command::Target {
+            name: "",
+            entry: "goosetest_root.goose",
+        };
+    }
+    let target = configuration.targets[target_index];
+    return command::Target {
+        name: config::text_value(configuration, target.name),
+        entry: config::text_value(configuration, target.entry),
+    };
+}
+
+fn preflight_target(
+    options: arguments::Options&, inventory: discovery::Inventory&, configuration: config::Configuration&,
+    target_index: i64, target: command::Target
+) -> i64 {
     var records: discovery::MirrorRecord[>..] = [];
     var audit = discovery::new_mirror_audit(records);
     var suites: discovery::Suite[>..] = [];
@@ -88,43 +200,46 @@ fn inspect(options: arguments::Options&, inventory: discovery::Inventory&, targe
     var error_path: u8[>..] = [];
     var manifest = discovery::new_manifest(suites, cases, text, error_path);
     discovery::set_target_name(manifest, target.name);
-    discovery::inspect_project(audit, manifest, inventory);
+    discovery::inspect_project(audit, manifest, inventory, target_index);
     if audit.disabled && options.command == arguments::Command.CheckMirror {
         write_stderr(cli_output::mirror_summary(audit));
         incomplete();
-        return 2;
+        return -1;
     }
     if !audit.disabled && discovery::mirror_status(audit) != 0 {
-        for record in audit.records {
-            if record.kind != discovery::MirrorKind.Matched {
-                write_stderr(str(discovery::mirror_record_text(inventory, record), "\n"));
-            }
-        }
-        write_stderr(cli_output::mirror_summary(audit));
-        if manifest.complete && discovery::manifest_status(manifest) != 0 {
-            write_stderr(str("ERROR: ", discovery::manifest_error_text(manifest), "\n"));
-        }
+        report_mirror_errors(inventory, audit);
         incomplete();
-        return 2;
+        return -1;
     }
     if discovery::project_status(audit, manifest) != 0 {
         write_stderr(str("ERROR: ", discovery::manifest_error_text(manifest), "\n"));
         incomplete();
-        return 2;
+        return -1;
     }
-    let selected = selection::Options {
-        filter: options.filter,
-        suite: options.suite
-    };
-    if options.command != arguments::Command.CheckMirror && selection::count(manifest, selected) == 0 {
-        write_stderr("ERROR: selection matched zero cases; no tests executed.\n");
-        return 2;
+    if options.command == arguments::Command.CheckMirror {
+        return 0;
     }
+    return selection::count(manifest, selection_options(options));
+}
+
+fn render_target(
+    options: arguments::Options&, inventory: discovery::Inventory&, configuration: config::Configuration&,
+    target_index: i64, target: command::Target
+) -> i32 {
+    var records: discovery::MirrorRecord[>..] = [];
+    var audit = discovery::new_mirror_audit(records);
+    var suites: discovery::Suite[>..] = [];
+    var cases: discovery::Case[>..] = [];
+    var text: u8[>..] = [];
+    var error_path: u8[>..] = [];
+    var manifest = discovery::new_manifest(suites, cases, text, error_path);
+    discovery::set_target_name(manifest, target.name);
+    discovery::inspect_project(audit, manifest, inventory, target_index);
     if options.command == arguments::Command.Test {
         return command::run(options, manifest, audit, target);
     }
     if options.command == arguments::Command.List {
-        list_cases(manifest, selected, options.filter_seen || options.suite_seen);
+        list_cases(manifest, selection_options(options), options.filter_seen || options.suite_seen);
     } else {
         for record in audit.records {
             write_stdout(str(discovery::mirror_record_text(inventory, record), "\n"));
@@ -132,6 +247,29 @@ fn inspect(options: arguments::Options&, inventory: discovery::Inventory&, targe
         write_stdout(cli_output::mirror_summary(audit));
     }
     return 0;
+}
+
+fn target_label(target: command::Target) -> const u8[:] {
+    if target.name.len == 0 {
+        return "default";
+    }
+    return target.name;
+}
+
+fn selection_options(options: arguments::Options&) -> selection::Options {
+    return selection::Options {
+        filter: options.filter,
+        suite: options.suite
+    };
+}
+
+fn report_mirror_errors(inventory: discovery::Inventory&, audit: discovery::MirrorAudit&) {
+    for record in audit.records {
+        if record.kind != discovery::MirrorKind.Matched {
+            write_stderr(str(discovery::mirror_record_text(inventory, record), "\n"));
+        }
+    }
+    write_stderr(cli_output::mirror_summary(audit));
 }
 
 fn list_cases(manifest: discovery::Manifest&, selected: selection::Options, explicit: bool) {
