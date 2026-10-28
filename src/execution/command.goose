@@ -8,6 +8,7 @@ import src.arguments;
 import src.discovery.manifest;
 import src.discovery.mirror;
 import src.discovery.selection;
+import src.execution.build;
 import src.generation.artifacts;
 import src.generation.model;
 import src.generation.runner;
@@ -74,7 +75,8 @@ fn materialize(options: arguments::Options&, output: generation::Output&, fd: i3
         return 2;
     }
     let output_path = str("./goosetest_generated/", binary_path);
-    let argv: const u8[:][6] = [options.compiler, "build", "--debug", target.entry, "-o", output_path];
+    var argv: const u8[:][>..] = [];
+    build::append_arguments(argv, options.compiler, target.entry, output_path, options.profile, options.offline);
     let built = process::run(argv, options.project,
         process::Limits {
             deadline_ms: options.compile_timeout_seconds * 1000,

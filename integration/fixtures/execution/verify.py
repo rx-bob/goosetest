@@ -65,7 +65,9 @@ with tempfile.TemporaryDirectory(prefix="goosetest-execution-") as tmp:
     (oversized / "test/a_test.goose").write_text(text)
     run(oversized, 2, b"generation")
     assert not (oversized / "goosetest_generated").exists()
-    run(project("missing compiler"), 2, b"compilation", ("--compiler", str(work / "absent")))
+    for profile in ("debug", "optimized"):
+        run(project("missing compiler " + profile), 2, b"compilation",
+            ("--profile", profile, "--compiler", str(work / "absent")))
     # The compiler and runner each own a separately observed hostile process tree.
     # A finite native alarm also bounds the fixture if both framework and verifier fail.
     fixture = Path(__file__).with_name("process_tree.c")
@@ -94,15 +96,17 @@ with tempfile.TemporaryDirectory(prefix="goosetest-execution-") as tmp:
         values = ready.read_text().split()
         return [int(value) for value in values] if len(values) == 2 else []
 
-    def interruption(stage, cancel):
-        root = project(stage + (" cancellation" if cancel else " timeout"),
+    def interruption(stage, cancel, profile):
+        root = project(stage + " " + profile + (" cancellation" if cancel else " timeout"),
                        't.assert_true(write_file("executed", "fresh"));')
+        profile_args = ["--profile", profile]
         # Seed a prior executable; no interruption may execute that stale artifact.
-        run(root, 0)
+        run(root, 0, extra=profile_args)
         (root / "executed").unlink()
         extra = []
         if stage == "compilation":
-            extra = ["--compiler", str(compiler), "--compile-timeout-seconds", "1" if not cancel else "30"]
+            extra = [*profile_args, "--compiler", str(compiler), "--compile-timeout-seconds",
+                     "1" if not cancel else "30"]
         else:
             shutil.copyfile(fixture, root / "process_tree.c")
             (root / "goosetest_root.build").write_text('c_sources = ["process_tree.c"];\n')
@@ -110,7 +114,7 @@ with tempfile.TemporaryDirectory(prefix="goosetest-execution-") as tmp:
                 'namespace a_test;\nimport goosetest;\n'
                 'extern "gt_pipeline_wait" fn wait_tree();\n'
                 'fn test_first(t: goosetest::Test&) { wait_tree(); }\n')
-            extra = ["--run-timeout-seconds", "1" if not cancel else "30"]
+            extra = [*profile_args, "--run-timeout-seconds", "1" if not cancel else "30"]
         proc = subprocess.Popen([cli, "test", "--project", str(root), *extra],
                                 cwd=work, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         pids = []
@@ -146,12 +150,14 @@ with tempfile.TemporaryDirectory(prefix="goosetest-execution-") as tmp:
         (root / "test/a_test.goose").write_text(
             'namespace a_test;\nimport goosetest;\nimport os;\n'
             'fn test_first(t: goosetest::Test&) { t.assert_true(write_file("executed", "fresh")); }\n')
-        run(root, 0, b"1 passed")
+        run(root, 0, b"1 passed", profile_args)
         assert (root / "executed").read_text() == "fresh", "ownership was not reusable"
 
-    for stage in ("compilation", "execution"):
+    for profile in ("debug", "optimized"):
         for cancel in (False, True):
-            interruption(stage, cancel)
+            interruption("compilation", cancel, profile)
+    for cancel in (False, True):
+        interruption("execution", cancel, "debug")
     # A compiler claiming success without producing output must never succeed.
     compiler.write_text("#!/bin/sh\nexit 0\n")
     run(project("no binary"), 2, b"execution", ("--compiler", str(compiler)))

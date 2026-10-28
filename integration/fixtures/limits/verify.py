@@ -71,7 +71,8 @@ with tempfile.TemporaryDirectory(prefix="goosetest-limits-") as temporary:
     compiler.chmod(0o700)
     result = call(["test", "--project", str(project), "--compiler", str(compiler)], work, env)
     invocation = json.loads(log.read_text())
-    assert invocation[:2] == ["build", "--debug"], invocation
+    assert invocation == ["build", "goosetest_root.goose", "-O0", "--debug", "-o",
+                          "./goosetest_generated/tests"], invocation
     passed = re.findall(r"^PASS (\S+) \(", result.stdout.decode(), re.M)
     assert passed == expected, (len(passed), passed)
     assert "Cases: 321 passed, 0 failed, 0 skipped, 0 errors, 0 not run" in result.stdout.decode()

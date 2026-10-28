@@ -109,7 +109,10 @@ for target `core`, author `goosetest_core.goose` to import
 `goosetest_generated::run_all()`. Its binary and completion record live under
 `goosetest_generated/core/`. Compiler and test stdout/stderr are inherited.
 
-`--compiler PATH` defaults to `goose` through PATH. An explicit relative path
+`--compiler PATH` defaults to `goose` through PATH. `test --profile debug|optimized`
+defaults to `debug`; debug passes `-O0 --debug`, while optimized passes `-O2`
+without debug checks. `--offline` passes Goose's offline flag and is opt-in.
+Compiler arguments are passed literally without a shell. An explicit relative path
 containing `/` is relative to the project directory; use an absolute path when
 invoking from elsewhere. `--compile-timeout-seconds N` and
 `--run-timeout-seconds N` each default to 120, accept integers 1..86400, and use

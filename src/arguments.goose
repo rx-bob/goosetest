@@ -13,14 +13,20 @@ enum Pending {
     None,
     Project,
     Compiler,
+    Profile,
     CompileTimeout,
     RunTimeout,
     Filter,
     Suite
 }
+enum Profile {
+    Debug,
+    Optimized
+}
 struct Options {
     project: u8[>..]&,
     compiler: u8[..4096] = [],
+    profile: Profile = Profile.Debug,
     filter: u8[..4096] = [],
     suite: selection::Suite = selection::Suite.All,
     filter_seen: bool = false,
@@ -31,6 +37,8 @@ struct Options {
     help: bool = false,
     project_seen: bool = false,
     compiler_seen: bool = false,
+    profile_seen: bool = false,
+    offline: bool = false,
     compile_timeout_seen: bool = false,
     run_timeout_seen: bool = false,
     compile_timeout_seconds: i64 = 120,
@@ -60,6 +68,9 @@ fn consume(options: Options&, value: u8[:]) {
     } else if value == "--compiler" {
         expect_value(options, Pending.Compiler, options.compiler_seen);
         options.compiler_seen = true;
+    } else if value == "--profile" {
+        expect_value(options, Pending.Profile, options.profile_seen);
+        options.profile_seen = true;
     } else if value == "--compile-timeout-seconds" {
         expect_value(options, Pending.CompileTimeout, options.compile_timeout_seen);
         options.compile_timeout_seen = true;
@@ -77,6 +88,11 @@ fn consume(options: Options&, value: u8[:]) {
             options.error = "--fail-fast may occur only once";
         }
         options.fail_fast = true;
+    } else if value == "--offline" {
+        if options.offline {
+            options.error = "--offline may occur only once";
+        }
+        options.offline = true;
     } else if value == "--help" {
         if options.help {
             options.error = "--help may occur only once";
@@ -118,6 +134,16 @@ fn consume_value(options: Options&, value: u8[:]) {
     }
     if pending == Pending.Suite {
         consume_suite(options, value);
+        return;
+    }
+    if pending == Pending.Profile {
+        if value == "debug" {
+            options.profile = Profile.Debug;
+        } else if value == "optimized" {
+            options.profile = Profile.Optimized;
+        } else {
+            options.error = "--profile must be debug or optimized";
+        }
         return;
     }
     if value.len == 0 || (value.len >= 2 && value[..2] == "--") {
@@ -205,8 +231,9 @@ fn finish(options: Options&) {
         return;
     }
     if options.command != Command.Test
-        && (options.compiler_seen || options.compile_timeout_seen || options.run_timeout_seen || options.fail_fast) {
-        options.error = "compiler, timeout and fail-fast options require the test command";
+        && (options.compiler_seen || options.profile_seen || options.offline || options.compile_timeout_seen
+        || options.run_timeout_seen || options.fail_fast) {
+        options.error = "compiler, profile, offline, timeout and fail-fast options require the test command";
         return;
     }
     if options.command != Command.List && options.command != Command.Test
@@ -228,10 +255,12 @@ Usage: goosetest <list|check-mirror|test> [--project PATH] [--help]
        goosetest --help
 
 list          List selected stable IDs, source locations, kinds and disabled reasons.
-test          Discover, generate, compile with goose build --debug, and execute.
+test          Discover, generate, compile and execute.
 check-mirror  Validate full layout and declarations; report file correspondence.
 --project     Project directory; defaults to current directory. May precede command.
 --compiler PATH                Test compiler executable; default goose, resolved through PATH.
+--profile debug|optimized      Compiler profile for test; default debug.
+--offline                      Test only: do not fetch missing compiler dependencies.
 --compile-timeout-seconds N     Compilation deadline; default 120 seconds.
 --run-timeout-seconds N         Execution deadline; default 120 seconds.
 Timeouts accept integers 1 through 86400; termination grace is 1 second.
