@@ -63,6 +63,7 @@ static void unsafe_names(slice path) {
     assert(gt_stage_prepare(fd, text("case_0.goose\ncase_2.goose\n")) == -EEXIST);
     assert(gt_stage_prepare(fd, text("../escape.goose\n")) < 0);
     assert(gt_stage_prepare(fd, text("case_0.goose\ncase_0.goose\n")) < 0);
+    assert(gt_stage_prepare(fd, text("cache/case_0.goose\n")) < 0);
     assert(gt_stage_prepare(fd, text("case_0.goose")) < 0);
     assert(linkat(fd, "case_0.goose", fd, "hardlink", 0) == 0);
     assert(gt_stage_prepare(fd, text("case_0.goose\n")) < 0);

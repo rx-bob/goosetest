@@ -24,6 +24,11 @@ removed before compilation, so successful old runs cannot supply new execution
 or completion evidence. Any publication/reset error prevents compilation;
 compiler failure prevents execution. Generated sources remain after failures.
 
+`cache` is reserved against target names and generated module paths. The default
+compiler caches live below `goosetest_generated/cache/<target-or-default>/<profile>`;
+they are outside the source manifest and are never pruned by generation. Compiler
+caches are not test-result caches: each invocation rebuilds its binary.
+
 Internal metadata and temporary filenames are reserved by the ownership marker.
 Malformed manifests and symlinks fail closed. Ownership is an application safety
 contract, not a sandbox against project code deliberately editing its metadata.

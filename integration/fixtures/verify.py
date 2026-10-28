@@ -78,11 +78,19 @@ def main():
                    PYTHONOPTIMIZE='0', PYTHONDONTWRITEBYTECODE='1')
         cli = work / 'goosetest'
         oracle = work / 'cli-oracle'
-        for source, binary in [('main.goose', cli), ('test_support/oracles/cli_test.goose', oracle)]:
+        process_oracle = work / 'process-oracle'
+        process_child = work / 'process-child'
+        for source, binary in [('main.goose', cli), ('test_support/oracles/cli_test.goose', oracle),
+                               ('test_support/oracles/process_test.goose', process_oracle)]:
             run_owned('build ' + source, ['goose', 'build', '--debug', REPO / source, '-o', binary], env, work)
+        run_owned('build process child', ['clang', '-std=c11', '-Wall', '-Wextra', '-Werror',
+                                          REPO / 'integration/fixtures/process/child.c', '-o', process_child],
+                  env, work)
         matrices = [
             ('self_host', [cli]), ('cli', [cli, oracle]), ('execution', [cli]),
             ('artifacts', [cli]), ('limits', [cli]), ('configured', [cli]), ('profiles', [cli]),
+            ('process', [sys.executable, REPO / 'integration/fixtures/process/verify.py',
+                         process_oracle, process_child]),
             ('disabled', [cli]),
             ('selection', [cli]), ('lifecycle', [cli]), ('suite', [cli]),
             ('pretty_goose', [cli]),

@@ -2,10 +2,9 @@
 namespace process_test;
 
 import goosetest;
-import test_support.selfhost;
-
 import src.platform.process;
 import test_support.process;
+import test_support.selfhost;
 
 fn test_exits(outer: goosetest::Test&) {
     let child = selfhost_support::child();
@@ -22,8 +21,10 @@ fn test_exits(outer: goosetest::Test&) {
             } else {
                 127
             }));
-        assert(result.reaped && result.pid > 0);
-        assert(result.native_error == 0 && result.cleanup_error == 0);
+        assert(result.reaped);
+        assert(result.pid > 0);
+        assert(result.native_error == 0);
+        assert(result.cleanup_error == 0);
         assert(process_support::reaped(result.pid) == 1);
     }
     assert(process_support::end() == 1);
@@ -34,23 +35,42 @@ fn test_launch_and_signal(outer: goosetest::Test&) {
     let cwd = selfhost_support::scratch(outer);
     assert(process_support::begin() == 1);
     let missing = process::run(["/definitely/missing/goosetest-child"], cwd);
-    assert(missing.outcome == process::Outcome.LaunchFailed && missing.native_error > 0);
-    assert(missing.pid == 0 && !missing.reaped);
+    assert(missing.outcome == process::Outcome.LaunchFailed);
+    assert(missing.native_error > 0);
+    assert(missing.pid == 0);
+    assert(!missing.reaped);
     let argv: const u8[:][3] = [child, "exit", "0"];
     let directory = process::run(argv, "/definitely/missing/goosetest-cwd");
-    assert(directory.outcome == process::Outcome.LaunchFailed && directory.native_error > 0);
+    assert(directory.outcome == process::Outcome.LaunchFailed);
+    assert(directory.native_error > 0);
     let signal_argv: const u8[:][2] = [child, "signal"];
     let signaled = process::run(signal_argv, cwd);
-    assert(signaled.outcome == process::Outcome.Signaled && signaled.signal > 0);
-    assert(signaled.exit_code == - 1 && signaled.reaped);
+    assert(signaled.outcome == process::Outcome.Signaled);
+    assert(signaled.signal > 0);
+    assert(signaled.exit_code == -1);
+    assert(signaled.reaped);
     assert(process_support::reaped(signaled.pid) == 1);
     assert(process_support::end() == 1);
+}
+
+fn test_child_only_goose_home(outer: goosetest::Test&) {
+    let child = selfhost_support::child();
+    let cwd = selfhost_support::scratch(outer);
+    assert(process_support::home_save() == 1);
+    let argv: const u8[:][3] = [child, "home", "isolated compiler cache"];
+    let result = process::run_with_goose_home(argv, cwd, "isolated compiler cache");
+    assert(result.outcome == process::Outcome.Exited);
+    assert(result.exit_code == 0);
+    assert(result.reaped);
+    assert(result.cleanup_error == 0);
+    assert(process_support::home_unchanged() == 1);
 }
 
 fn test_invalid(outer: goosetest::Test&) {
     assert(process::run([], ".").outcome == process::Outcome.InvalidInput);
     assert(process::run([""], ".").outcome == process::Outcome.InvalidInput);
     assert(process::run(["x\0y"], ".").outcome == process::Outcome.InvalidInput);
+    assert(process::run_with_goose_home(["x"], ".", "bad\0home").outcome == process::Outcome.InvalidInput);
     assert(process::run(["x"], "a\0b").outcome == process::Outcome.InvalidInput);
     assert(process::run(["x"], "").outcome == process::Outcome.InvalidInput);
     assert(process::run(["x"], ".", process::Limits {
@@ -59,10 +79,15 @@ fn test_invalid(outer: goosetest::Test&) {
         }).outcome
         == process::Outcome.InvalidInput);
     assert(process::run(["x"], ".", process::Limits {
-            grace_ms: - 1,
+            grace_ms: -1,
             ..
         }).outcome
         == process::Outcome.InvalidInput);
+    var long_home: u8[>..] = [];
+    for index in 0..4096 {
+        long_home.push('x');
+    }
+    assert(process::run_with_goose_home(["x"], ".", long_home).outcome == process::Outcome.InvalidInput);
 }
 
 fn test_bounds(outer: goosetest::Test&) {
@@ -75,7 +100,8 @@ fn test_bounds(outer: goosetest::Test&) {
         argv.push("");
     }
     let exact_count = process::run(argv, cwd);
-    assert(exact_count.outcome == process::Outcome.Exited && exact_count.exit_code == 0);
+    assert(exact_count.outcome == process::Outcome.Exited);
+    assert(exact_count.exit_code == 0);
     argv.push("");
     assert(process::run(argv, cwd).outcome == process::Outcome.InvalidInput);
     var text: u8[>..] = [];
@@ -84,7 +110,8 @@ fn test_bounds(outer: goosetest::Test&) {
     }
     let exact_argv: const u8[:][3] = [child, "ok", text];
     let exact_bytes = process::run(exact_argv, cwd);
-    assert(exact_bytes.outcome == process::Outcome.Exited && exact_bytes.exit_code == 0);
+    assert(exact_bytes.outcome == process::Outcome.Exited);
+    assert(exact_bytes.exit_code == 0);
     text.push('x');
     let too_large: const u8[:][3] = [child, "ok", text];
     assert(process::run(too_large, cwd).outcome == process::Outcome.InvalidInput);

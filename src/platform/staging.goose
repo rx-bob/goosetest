@@ -4,6 +4,13 @@ namespace staging;
 // Returns an exclusively locked directory descriptor or negative POSIX errno. Close via filesystem.
 extern "gt_stage_create" fn create_native(project: const u8[:], entry: const u8[:]) -> i32;
 
+// Ensure compiler cache components exist without shelling out or changing process cwd.
+extern "gt_stage_cache_prepare" fn cache_prepare_native(project: const u8[:], path: const u8[:]) -> i32;
+
+fn cache_prepare(project: const u8[:], path: const u8[:]) -> i32 {
+    return cache_prepare_native(project, path);
+}
+
 fn create(project: const u8[:], entry: const u8[:] = "goosetest_root.goose") -> i32 {
     return create_native(project, entry);
 }

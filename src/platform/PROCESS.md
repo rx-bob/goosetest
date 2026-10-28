@@ -6,13 +6,22 @@ spaces, quotes, dollar signs and semicolons. The child receives an explicit cwd,
 inherited environment and stdin/stdout/stderr. No pipes, capture buffers, shell
 command construction or output parsing exist in the adapter.
 
+`process::run_with_goose_home` is the narrow compiler-only variant. It builds a
+bounded child environment from inherited entries, removes inherited `GOOSE_HOME`
+entries, and adds the requested value. It never calls `setenv` or changes the
+parent environment. The test executable uses ordinary `run` and therefore keeps
+the caller's original environment. If inherited environment data exceeds its
+entry or byte bound, the stage is rejected before spawn. All duplicate inherited
+`GOOSE_HOME` entries are replaced by the single cache value.
+
 The available baseline is macOS arm64 with Goose v2026.3, using `posix_spawn`,
 `posix_spawn_file_actions_addchdir_np`, process groups and monotonic time. Other
 platforms deliberately fail native compilation until a separate implementation is
 verified. `src/platform/process.goose` is the sole canonical foreign declaration;
 `native/process.c` is linked explicitly by executable `.build` sidecars, including
-`main.build`. The public assertion facade imports neither module. The current CLI
-still exposes only read-only commands; execution wiring comes in E3.S3.
+`main.build`. The public assertion facade imports neither module. Compiler cache
+overrides use a bounded copied environment and preserve normal PATH lookup; test
+execution uses the inherited environment without the compiler override.
 
 ## Arguments and limits
 
@@ -30,6 +39,9 @@ argv/cwd data survives the call.
 | Explicit cwd bytes | 4096 |
 | Inherited PATH bytes when searching a bare executable | 65536 |
 | Constructed PATH candidate bytes | 4096 |
+| Child environment entries when overriding `GOOSE_HOME` | 4096 |
+| Inherited environment bytes when overriding `GOOSE_HOME` | 262144 |
+| `GOOSE_HOME` override bytes | 4095 |
 | Default deadline | 120000 ms |
 | Allowed deadline | 1–86400000 ms |
 | Default termination grace | 1000 ms |

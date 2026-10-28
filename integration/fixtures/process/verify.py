@@ -64,6 +64,34 @@ with tempfile.TemporaryDirectory(prefix="goosetest-process-") as temporary:
                                input=b"inherited input\n", capture_output=True, timeout=8)
     assert inherited.returncode == 0 and inherited.stdout.startswith(b"stdin=inherited input\n")
     check_reaped(result(inherited.stdout))
+    for inherited_home in (None, ""):
+        environment = dict(os.environ)
+        if inherited_home is None:
+            environment.pop("GOOSE_HOME", None)
+        else:
+            environment["GOOSE_HOME"] = inherited_home
+        response = subprocess.run([driver, "goose-home", str(cwd), str(executable),
+                                   "isolated compiler cache", str(root / "compiler cache")],
+                                  capture_output=True, timeout=8, env=environment)
+        assert response.returncode == 0, (response.stdout, response.stderr)
+        check_reaped(result(response.stdout))
+    oversized_environment = dict(os.environ)
+    for index in range(4100):
+        oversized_environment[f"GT_CACHE_ENV_{index}"] = "x"
+    response = subprocess.run([driver, "goose-home", str(cwd), str(executable),
+                               "isolated compiler cache", str(root / "compiler cache")],
+                              capture_output=True, timeout=8, env=oversized_environment)
+    assert response.returncode == 0, response.stderr
+    rejected = result(response.stdout)
+    assert rejected["kind"] == "invalid" and rejected["error"] != 0 and rejected["pid"] == 0, rejected
+    duplicate_env = root / "duplicate-env-launcher"
+    duplicate_source = Path(__file__).with_name("duplicate_env.c")
+    subprocess.run(["clang", "-std=c11", "-Wall", "-Wextra", "-Werror",
+                    str(duplicate_source), "-o", str(duplicate_env)], check=True, timeout=30)
+    response = subprocess.run([str(duplicate_env), driver, str(cwd), str(executable)],
+                              capture_output=True, timeout=8)
+    assert response.returncode == 0, (response.stdout, response.stderr)
+    check_reaped(result(response.stdout))
     _, relative = invoke(cwd, "./" + executable.name, "exit", "7")
     assert relative["kind"] == "exit" and relative["code"] == 7
     check_reaped(relative)

@@ -12,7 +12,7 @@ enum Outcome {
 }
 struct ProcessResult {
     outcome: Outcome = Outcome.InvalidInput,
-    exit_code: i64 = - 1,
+    exit_code: i64 = -1,
     signal: i64 = 0,
     native_error: i64 = 0,
     pid: i64 = 0,
@@ -26,7 +26,7 @@ struct Limits {
 // All-i64 flat ABI. Native code initializes every field on every return path.
 struct NativeResult {
     kind: i64 = 6,
-    exit_code: i64 = - 1,
+    exit_code: i64 = -1,
     signal: i64 = 0,
     error: i64 = 0,
     pid: i64 = 0,
@@ -35,13 +35,26 @@ struct NativeResult {
 }
 
 extern "gt_process_run" fn native_run(
-    argv: const u8[:], cwd: const u8[:], deadline_ms: i64, grace_ms: i64, result: NativeResult&
+    argv: const u8[:], cwd: const u8[:], goose_home: const u8[:], deadline_ms: i64, grace_ms: i64,
+    result: NativeResult&
 );
 
 // argv includes executable at index zero; no shell interpretation or implicit shell fallback.
 fn run(argv: const u8[:][:], cwd: u8[:], limits: Limits = Limits {
     }) -> ProcessResult {
+    return run_internal(argv, cwd, "", limits);
+}
+
+// Override only the compiler child's GOOSE_HOME. The caller and later test child
+// retain the original environment; all other inherited variables remain intact.
+fn run_with_goose_home(argv: const u8[:][:], cwd: u8[:], goose_home: u8[:], limits: Limits = Limits {
+    }) -> ProcessResult {
+    return run_internal(argv, cwd, goose_home, limits);
+}
+
+fn run_internal(argv: const u8[:][:], cwd: u8[:], goose_home: u8[:], limits: Limits) -> ProcessResult {
     if argv.len == 0 || argv.len > 256 || cwd.len == 0 || cwd.len > 4096
+        || goose_home.len > 4095
         || limits.deadline_ms <= 0 || limits.deadline_ms > 86400000
         || limits.grace_ms < 0 || limits.grace_ms > 60000 {
         return ProcessResult {
@@ -69,9 +82,15 @@ fn run(argv: const u8[:][:], cwd: u8[:], limits: Limits = Limits {
             };
         }
     }
+    for byte in goose_home {
+        if byte == 0 {
+            return ProcessResult {
+            };
+        }
+    }
     var native = NativeResult {
     };
-    native_run(packed, cwd, limits.deadline_ms, limits.grace_ms, native);
+    native_run(packed, cwd, goose_home, limits.deadline_ms, limits.grace_ms, native);
     return decode(native);
 }
 
@@ -79,20 +98,15 @@ fn decode(native: NativeResult) -> ProcessResult {
     var outcome = Outcome.SystemError;
     if native.kind == 0 {
         outcome = Outcome.Exited;
-    }
-    else if native.kind == 1 {
+    } else if native.kind == 1 {
         outcome = Outcome.LaunchFailed;
-    }
-    else if native.kind == 2 {
+    } else if native.kind == 2 {
         outcome = Outcome.Signaled;
-    }
-    else if native.kind == 3 {
+    } else if native.kind == 3 {
         outcome = Outcome.Cancelled;
-    }
-    else if native.kind == 4 {
+    } else if native.kind == 4 {
         outcome = Outcome.Deadline;
-    }
-    else if native.kind == 6 {
+    } else if native.kind == 6 {
         outcome = Outcome.InvalidInput;
     }
     return ProcessResult {

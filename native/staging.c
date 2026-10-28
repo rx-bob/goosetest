@@ -288,6 +288,49 @@ int32_t gt_stage_create(gt_stage_slice path, gt_stage_slice entry) {
     return error ? -error : output;
 }
 
+// User-selected cache paths may be outside the project. Walk from the project or
+// filesystem root, creating only missing directories. Symlinked directory
+// components are allowed because paths such as /tmp commonly resolve through one.
+int32_t gt_stage_cache_prepare(gt_stage_slice project_slice, gt_stage_slice cache_slice) {
+    char project[PATH_MAX], path[PATH_MAX];
+    int error = gt_stage_path(project_slice, project, sizeof project, 0);
+    if (!error) error = gt_stage_path(cache_slice, path, sizeof path, 0);
+    if (error) return -error;
+    int absolute = path[0] == '/';
+    int directory = open(absolute ? "/" : project, O_RDONLY | O_DIRECTORY | O_CLOEXEC);
+    if (directory < 0) return -errno;
+    char *segment = path + (absolute ? 1 : 0);
+    while (*segment) {
+        while (*segment == '/') ++segment;
+        if (!*segment) break;
+        char *slash = strchr(segment, '/');
+        if (slash) *slash = 0;
+        if (strcmp(segment, ".")) {
+            if (strcmp(segment, "..")) {
+                if (mkdirat(directory, segment, 0700) < 0 && errno != EEXIST) {
+                    error = errno;
+                    break;
+                }
+            }
+            int next = openat(directory, segment, O_RDONLY | O_DIRECTORY | O_CLOEXEC);
+            if (next < 0) {
+                error = errno;
+                break;
+            }
+            if (close(directory) < 0) {
+                error = errno;
+                close(next);
+                break;
+            }
+            directory = next;
+        }
+        if (!slash) break;
+        segment = slash + 1;
+    }
+    if (close(directory) < 0 && !error) error = errno;
+    return error ? -error : 0;
+}
+
 int32_t gt_stage_write(int32_t directory, gt_stage_slice name, gt_stage_slice source) {
     char path[PATH_MAX];
     int error = gt_stage_path(name, path, sizeof path, 1);

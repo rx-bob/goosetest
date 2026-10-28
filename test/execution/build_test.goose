@@ -31,3 +31,24 @@ fn test_optimized_arguments(outer: goosetest::Test&) {
         assert(value != "-O0");
     }
 }
+
+fn test_cache_partition_paths(outer: goosetest::Test&) {
+    var legacy_debug: u8[>..] = [];
+    assert(build::cache_home(legacy_debug, "", "default", arguments::Profile.Debug));
+    assert(legacy_debug == "./goosetest_generated/cache/default/debug");
+    var legacy_optimized: u8[>..] = [];
+    assert(build::cache_home(legacy_optimized, "/tmp/compiler cache", "default", arguments::Profile.Optimized));
+    assert(legacy_optimized == "/tmp/compiler cache/default/optimized");
+    var configured: u8[>..] = [];
+    assert(build::cache_home(configured, "relative cache", "core", arguments::Profile.Debug));
+    assert(configured == "./relative cache/core/debug");
+    var another_target: u8[>..] = [];
+    assert(build::cache_home(another_target, "relative cache", "database", arguments::Profile.Debug));
+    assert(another_target != configured);
+    var long_root: u8[>..] = [];
+    for index in 0..4090 {
+        long_root.push('x');
+    }
+    var too_long: u8[>..] = [];
+    assert(!build::cache_home(too_long, long_root, "default", arguments::Profile.Debug));
+}

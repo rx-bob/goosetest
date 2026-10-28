@@ -74,10 +74,26 @@ fn materialize(options: arguments::Options&, output: generation::Output&, fd: i3
         write_stderr(str("ERROR: stale execution artifact removal: ", reset, "\nRun incomplete.\n"));
         return 2;
     }
+    let cache_key: const u8[:] = if target.name.len == 0 {
+        "default"
+    } else {
+        target.name
+    };
+    var compiler_home: u8[>..] = [];
+    if !build::cache_home(compiler_home, options.cache_root, cache_key, options.profile) {
+        write_stderr("ERROR: compiler cache path exceeds 4095 bytes; run incomplete.\n");
+        return 2;
+    }
+    let cache_ready = staging::cache_prepare(options.project, compiler_home);
+    if cache_ready != 0 {
+        write_stderr(str("ERROR: compiler cache directory creation: ", -cache_ready,
+            "; check --cache-root and directory permissions. Run incomplete.\n"));
+        return 2;
+    }
     let output_path = str("./goosetest_generated/", binary_path);
     var argv: const u8[:][>..] = [];
     build::append_arguments(argv, options.compiler, target.entry, output_path, options.profile, options.offline);
-    let built = process::run(argv, options.project,
+    let built = process::run_with_goose_home(argv, options.project, compiler_home,
         process::Limits {
             deadline_ms: options.compile_timeout_seconds * 1000,
             ..

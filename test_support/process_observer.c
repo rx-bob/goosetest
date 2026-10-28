@@ -3,16 +3,36 @@
 #include <errno.h>
 #include <signal.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
 static struct sigaction saved_int, saved_term;
 static sigset_t saved_mask;
+static char saved_home[4096];
+static int saved_home_present;
 static void ignored(int number) { (void)number; }
 
 int32_t gt_test_process_reaped(int64_t pid) {
     int status;
     return waitpid((pid_t)pid, &status, WNOHANG) == -1 && errno == ECHILD;
+}
+
+int32_t gt_test_process_home_save(void) {
+    const char *home = getenv("GOOSE_HOME");
+    saved_home_present = home != NULL;
+    if (!home) { saved_home[0] = 0; return 1; }
+    size_t length = strnlen(home, sizeof saved_home);
+    if (length >= sizeof saved_home) return 0;
+    memcpy(saved_home, home, length + 1);
+    return 1;
+}
+
+int32_t gt_test_process_home_unchanged(void) {
+    const char *home = getenv("GOOSE_HOME");
+    if ((home != NULL) != saved_home_present) return 0;
+    return !home || !strcmp(home, saved_home);
 }
 
 int32_t gt_test_process_begin(void) {

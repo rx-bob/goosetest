@@ -118,6 +118,16 @@ invoking from elsewhere. `--compile-timeout-seconds N` and
 `--run-timeout-seconds N` each default to 120, accept integers 1..86400, and use
 one second termination grace. These flags require `test`.
 
+`--cache-root PATH` is also test-only. Relative paths resolve from the project;
+without it, the base is `goosetest_generated/cache`. The compiler child receives
+`GOOSE_HOME=<base>/<target-or-default>/<debug-or-optimized>`. Goosetest creates
+that directory only during `test`, preserves inherited environment variables,
+and leaves the caller and test binary `GOOSE_HOME` unchanged. Native cache contents
+are never pruned as generated sources. Separate project executions sharing one
+cache root are unsupported. Each invocation still builds its test binary.
+With `--offline`, a cold cache missing a dependency fails with status 2 and never
+reuses an older test binary.
+
 Status 0 means completed passing tests, 1 means ordinary assertion failures,
 and 2 means usage, validation, generation, artifacts, compiler, fatal runtime,
 process, deadline or incomplete execution. Cancellation preserves 128+signal.

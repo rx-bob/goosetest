@@ -128,6 +128,30 @@ fn test_profile_options(outer: goosetest::Test&) {
     assert(!defaults.offline);
 }
 
+fn test_cache_root_option(outer: goosetest::Test&) {
+    var project: u8[>..] = [];
+    var options = arguments::new_options(project);
+    arguments::consume(options, "--cache-root");
+    arguments::consume(options, "relative cache/root");
+    arguments::consume(options, "test");
+    arguments::finish(options);
+    assert(options.error.len == 0);
+    assert(options.cache_root == "relative cache/root");
+    invalid(["test", "--cache-root"]);
+    invalid(["test", "--cache-root", ""]);
+    invalid(["test", "--cache-root", "--other"]);
+    invalid(["test", "--cache-root", "bad\0path"]);
+    invalid(["test", "--cache-root", "one", "--cache-root", "two"]);
+    invalid(["list", "--cache-root", "cache"]);
+    invalid(["check-mirror", "--cache-root", "cache"]);
+    invalid(["--help", "--cache-root", "cache"]);
+    var long_path: u8[>..] = [];
+    for index in 0..4097 {
+        long_path.push('a');
+    }
+    invalid(["test", "--cache-root", long_path]);
+}
+
 fn test_execution_invalid(outer: goosetest::Test&) {
     invalid(["list", "--compiler", "goose"]);
     invalid(["check-mirror", "--run-timeout-seconds", "1"]);

@@ -55,7 +55,8 @@ static int valid_name(const char *name) {
     if (target_length > NAME_MAX) return 0;
     memcpy(target, name, target_length);
     target[target_length] = 0;
-    return valid_component(target, 1) && valid_leaf(slash + 1);
+    return valid_component(target, 1) && strcmp(target, "cache") && strcmp(target, "all")
+        && valid_leaf(slash + 1);
 }
 
 static int target_prefix(const stage_names *names, char *target, size_t capacity, int require_only) {

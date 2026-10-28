@@ -11,6 +11,10 @@ static void exit_cleanly(int signal) { (void)signal; _exit(0); }
 int main(int argc, char **argv) {
     if (argc < 2) return 90;
     if (!strcmp(argv[1], "ok")) return 0;
+    if (!strcmp(argv[1], "home")) {
+        const char *home = getenv("GOOSE_HOME");
+        return argc == 3 && home && !strcmp(home, argv[2]) ? 0 : 98;
+    }
     if (!strcmp(argv[1], "stdin")) {
         char line[128];
         if (!fgets(line, sizeof line, stdin)) return 97;

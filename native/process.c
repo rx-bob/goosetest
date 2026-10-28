@@ -24,7 +24,8 @@ typedef struct {
     int64_t kind, exit_code, signal, error, pid, reaped, cleanup_error;
 } gt_process_result;
 enum { GT_EXIT, GT_LAUNCH, GT_SIGNAL, GT_CANCEL, GT_DEADLINE, GT_SYSTEM, GT_INVALID };
-enum { GT_ARG_COUNT = 256, GT_ARG_BYTES = 65536, GT_CWD_BYTES = 4096, GT_POLL_MS = 10 };
+enum { GT_ARG_COUNT = 256, GT_ARG_BYTES = 65536, GT_CWD_BYTES = 4096, GT_ENV_COUNT = 4096,
+       GT_ENV_BYTES = 262144, GT_POLL_MS = 10 };
 enum { GT_SPAWN_CANCEL = -1, GT_SPAWN_DEADLINE = -2 };
 static volatile sig_atomic_t cancelled;
 // This API is deliberately serial and single-threaded; handlers belong to the CLI stage.
@@ -94,6 +95,46 @@ static int unpack(gt_process_slice packed, gt_process_slice cwd, char **argv,
     return 0;
 }
 
+static int environment_for_home(const char *home, size_t home_length, char ***environment,
+                                char ***owned_environment, char **owned_home) {
+    *owned_environment = NULL;
+    *owned_home = NULL;
+    if (!home_length) {
+        *environment = environ;
+        return 0;
+    }
+    size_t count = 0, bytes = 0, scanned = 0;
+    for (char **entry = environ; *entry; ++entry) {
+        size_t length = strnlen(*entry, GT_ENV_BYTES - scanned + 1);
+        if (length > GT_ENV_BYTES - scanned) return E2BIG;
+        scanned += length + 1;
+        if (scanned > GT_ENV_BYTES) return E2BIG;
+        if (!strncmp(*entry, "GOOSE_HOME=", 11)) continue;
+        bytes += length + 1;
+        if (++count >= GT_ENV_COUNT) return E2BIG;
+    }
+    static const char key[] = "GOOSE_HOME=";
+    size_t override_bytes = sizeof key - 1 + home_length + 1;
+    if (bytes > GT_ENV_BYTES - override_bytes) return E2BIG;
+    char **copy = calloc(count + 2, sizeof *copy);
+    if (!copy) return ENOMEM;
+    size_t used = 0;
+    for (char **entry = environ; *entry; ++entry) {
+        if (strncmp(*entry, "GOOSE_HOME=", 11)) copy[used++] = *entry;
+    }
+    char *value = malloc(sizeof key - 1 + home_length + 1);
+    if (!value) { free(copy); return ENOMEM; }
+    memcpy(value, key, sizeof key - 1);
+    memcpy(value + sizeof key - 1, home, home_length);
+    value[sizeof key - 1 + home_length] = 0;
+    copy[used++] = value;
+    copy[used] = NULL;
+    *environment = copy;
+    *owned_environment = copy;
+    *owned_home = value;
+    return 0;
+}
+
 // Setup masks cancellation; observe pending signals without launching another candidate.
 static int launch_budget(int64_t end) {
     sigset_t pending;
@@ -107,11 +148,11 @@ static int launch_budget(int64_t end) {
 }
 
 // Search PATH ourselves: Darwin posix_spawnp has an implicit /bin/sh fallback.
-static int spawn_direct(pid_t *pid, char **argv, posix_spawn_file_actions_t *actions,
+static int spawn_direct(pid_t *pid, char **argv, char **environment, posix_spawn_file_actions_t *actions,
                         posix_spawnattr_t *attributes, int64_t end_time) {
     int budget = launch_budget(end_time);
     if (budget) return budget;
-    if (strchr(argv[0], '/')) return posix_spawn(pid, argv[0], actions, attributes, argv, environ);
+    if (strchr(argv[0], '/')) return posix_spawn(pid, argv[0], actions, attributes, argv, environment);
     const char *path = getenv("PATH");
     if (!path) path = "/usr/bin:/bin";
     size_t length = strnlen(path, GT_ARG_BYTES + 1);
@@ -130,7 +171,7 @@ static int spawn_direct(pid_t *pid, char **argv, posix_spawn_file_actions_t *act
         size_t offset = segment;
         if (segment) candidate[offset++] = '/';
         memcpy(candidate + offset, argv[0], name_length + 1);
-        int error = posix_spawn(pid, candidate, actions, attributes, argv, environ);
+        int error = posix_spawn(pid, candidate, actions, attributes, argv, environment);
         if (error == EACCES) denied = 1;
         else if (error != ENOENT && error != ENOTDIR) return error;
         start = end + 1;
@@ -138,7 +179,7 @@ static int spawn_direct(pid_t *pid, char **argv, posix_spawn_file_actions_t *act
     return denied ? EACCES : ENOENT;
 }
 
-static int spawn_stage(pid_t *pid, char **argv, const char *cwd, int64_t end) {
+static int spawn_stage(pid_t *pid, char **argv, char **environment, const char *cwd, int64_t end) {
     posix_spawnattr_t attributes;
     posix_spawn_file_actions_t actions;
     int error = posix_spawnattr_init(&attributes);
@@ -161,7 +202,7 @@ static int spawn_stage(pid_t *pid, char **argv, const char *cwd, int64_t end) {
         if (fcntl(fd, F_GETFD) >= 0) error = posix_spawn_file_actions_addinherit_np(&actions, fd);
         else if (errno != EBADF) error = errno;
     }
-    if (!error) error = spawn_direct(pid, argv, &actions, &attributes, end);
+    if (!error) error = spawn_direct(pid, argv, environment, &actions, &attributes, end);
     posix_spawn_file_actions_destroy(&actions);
     posix_spawnattr_destroy(&attributes);
     if (error) *pid = 0;
@@ -246,13 +287,25 @@ static void supervise(pid_t pid, int64_t end, int64_t grace, gt_process_result *
     if (cancelled) { result->kind = GT_CANCEL; result->signal = cancelled; result->exit_code = -1; }
 }
 
-void gt_process_run(gt_process_slice packed, gt_process_slice cwd, int64_t deadline,
-                    int64_t grace, gt_process_result *result) {
+void gt_process_run(gt_process_slice packed, gt_process_slice cwd, gt_process_slice home,
+                    int64_t deadline, int64_t grace, gt_process_result *result) {
     *result = (gt_process_result){GT_INVALID, -1, 0, 0, 0, 0, 0};
     if (deadline <= 0 || deadline > 86400000 || grace < 0 || grace > 60000) return;
     if (active) { result->kind = GT_SYSTEM; result->error = EBUSY; return; }
-    char *argv[GT_ARG_COUNT + 1], bytes[GT_ARG_BYTES], directory[GT_CWD_BYTES + 1];
+    char *argv[GT_ARG_COUNT + 1], bytes[GT_ARG_BYTES], directory[GT_CWD_BYTES + 1], goose_home[GT_CWD_BYTES];
     result->error = unpack(packed, cwd, argv, bytes, directory);
+    if (result->error) return;
+    if (home.len < 0 || home.len >= (int64_t)sizeof goose_home || (home.len && !home.data)
+        || (home.len && memchr(home.data, 0, (size_t)home.len))) {
+        result->error = EINVAL;
+        return;
+    }
+    if (home.len) memcpy(goose_home, home.data, (size_t)home.len);
+    goose_home[home.len] = 0;
+    char **environment = NULL, **owned_environment = NULL;
+    char *owned_home = NULL;
+    result->error = environment_for_home(goose_home, (size_t)home.len, &environment,
+                                         &owned_environment, &owned_home);
     if (result->error) return;
     active = 1;
     cancelled = 0;
@@ -264,7 +317,7 @@ void gt_process_run(gt_process_slice packed, gt_process_slice cwd, int64_t deadl
         pid_t pid = 0;
         if (start < 0) { result->kind = GT_SYSTEM; result->error = errno; }
         else {
-            int spawned = spawn_stage(&pid, argv, directory, start + deadline);
+            int spawned = spawn_stage(&pid, argv, environment, directory, start + deadline);
             result->error = spawned > 0 ? spawned : 0;
             result->kind = spawned > 0 ? GT_LAUNCH : GT_EXIT;
             if (spawned == GT_SPAWN_CANCEL) result->kind = GT_CANCEL;
@@ -285,4 +338,6 @@ void gt_process_run(gt_process_slice packed, gt_process_slice cwd, int64_t deadl
     if (restore_error && !result->cleanup_error) result->cleanup_error = restore_error;
     if (result->cleanup_error && result->kind == GT_EXIT) result->kind = GT_SYSTEM;
     active = 0;
+    free(owned_home);
+    free(owned_environment);
 }

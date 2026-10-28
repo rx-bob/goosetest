@@ -14,6 +14,7 @@ enum Pending {
     Project,
     Compiler,
     Profile,
+    CacheRoot,
     CompileTimeout,
     RunTimeout,
     Filter,
@@ -26,6 +27,7 @@ enum Profile {
 struct Options {
     project: u8[>..]&,
     compiler: u8[..4096] = [],
+    cache_root: u8[..4096] = [],
     profile: Profile = Profile.Debug,
     filter: u8[..4096] = [],
     suite: selection::Suite = selection::Suite.All,
@@ -37,6 +39,7 @@ struct Options {
     help: bool = false,
     project_seen: bool = false,
     compiler_seen: bool = false,
+    cache_root_seen: bool = false,
     profile_seen: bool = false,
     offline: bool = false,
     compile_timeout_seen: bool = false,
@@ -71,6 +74,9 @@ fn consume(options: Options&, value: u8[:]) {
     } else if value == "--profile" {
         expect_value(options, Pending.Profile, options.profile_seen);
         options.profile_seen = true;
+    } else if value == "--cache-root" {
+        expect_value(options, Pending.CacheRoot, options.cache_root_seen);
+        options.cache_root_seen = true;
     } else if value == "--compile-timeout-seconds" {
         expect_value(options, Pending.CompileTimeout, options.compile_timeout_seen);
         options.compile_timeout_seen = true;
@@ -144,6 +150,24 @@ fn consume_value(options: Options&, value: u8[:]) {
         } else {
             options.error = "--profile must be debug or optimized";
         }
+        return;
+    }
+    if pending == Pending.CacheRoot {
+        if value.len == 0 || (value.len >= 2 && value[..2] == "--") {
+            options.error = "--cache-root requires a nonempty path (use ./ for paths beginning with --)";
+            return;
+        }
+        if value.len > 4096 {
+            options.error = "--cache-root exceeds 4096 bytes";
+            return;
+        }
+        for byte in value {
+            if byte == 0 {
+                options.error = "--cache-root must not contain NUL bytes";
+                return;
+            }
+        }
+        options.cache_root.append(value);
         return;
     }
     if value.len == 0 || (value.len >= 2 && value[..2] == "--") {
@@ -231,9 +255,9 @@ fn finish(options: Options&) {
         return;
     }
     if options.command != Command.Test
-        && (options.compiler_seen || options.profile_seen || options.offline || options.compile_timeout_seen
-        || options.run_timeout_seen || options.fail_fast) {
-        options.error = "compiler, profile, offline, timeout and fail-fast options require the test command";
+        && (options.compiler_seen || options.profile_seen || options.cache_root_seen || options.offline
+        || options.compile_timeout_seen || options.run_timeout_seen || options.fail_fast) {
+        options.error = "compiler, profile, cache-root, offline, timeout and fail-fast require test";
         return;
     }
     if options.command != Command.List && options.command != Command.Test
@@ -260,7 +284,9 @@ check-mirror  Validate full layout and declarations; report file correspondence.
 --project     Project directory; defaults to current directory. May precede command.
 --compiler PATH                Test compiler executable; default goose, resolved through PATH.
 --profile debug|optimized      Compiler profile for test; default debug.
+--cache-root PATH              Test compiler cache root; default generated/cache.
 --offline                      Test only: do not fetch missing compiler dependencies.
+--cache-root is relative to --project; compiler GOOSE_HOME adds target/profile.
 --compile-timeout-seconds N     Compilation deadline; default 120 seconds.
 --run-timeout-seconds N         Execution deadline; default 120 seconds.
 Timeouts accept integers 1 through 86400; termination grace is 1 second.
