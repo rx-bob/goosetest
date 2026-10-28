@@ -7,6 +7,12 @@ tasks:
       - goose run scripts/prepare.goose --debug
       - goose build scripts/build.goose --debug -o build/build
       - build/build
+  install:
+    desc: Build and install the CLI into ~/.local/bin
+    cmds:
+      - task: build
+      - goose build scripts/install.goose --debug -o build/install
+      - build/install
   test:
     desc: Run self-hosted tests and all independent regression oracles
     cmds:

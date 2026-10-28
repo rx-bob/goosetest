@@ -1,0 +1,2 @@
+// Installation invokes the native install utility through bounded direct argv calls.
+c_sources = ["../native/process.c"];

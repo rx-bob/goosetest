@@ -1,9 +1,9 @@
 # Plain-text reporting
 
-Import `goosetest.src.reporting.console` from a consumer and call
+Import the public `goosetest` facade and call
 `reporting::report(results, selected_case_count)` after execution and cleanup.
-The public `report_results(results, selected_case_count)` facade delegates to the same
-renderer and is used by generated runners, including self-hosting.
+The facade intentionally exposes the qualified `reporting` namespace; generated
+runners use this same entry point, including self-hosting.
 The reporter also works with the independent explicit runtime harness; the facade imports the renderer but performs no output until called and links no native adapters.
 
 `reporting::render(results, selected_case_count) { chunk => ... }` emits the same

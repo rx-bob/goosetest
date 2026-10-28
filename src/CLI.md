@@ -18,7 +18,15 @@ spaces are supported. Use `./` for paths beginning with `--`. Repeated options,
 extra commands/positionals, missing or empty project values, and unknown options
 fail with status 2 and usage text. `--help` alone or alongside valid arguments
 returns 0 without opening the project. Invalid arguments still fail with help
-present. Execution and selection options are described below. There is no configuration file.
+present. Execution and selection options are described below.
+
+Before discovery, the CLI reads only `<project>/goosetest.json`. A missing file
+keeps legacy `src`/`test`/`integration` discovery. Existing files must be valid
+version 1 JSON with unique object keys, known fields, bounded target/root/pair
+lists, valid target names and lexical project-relative paths. Malformed config
+exits 2; it never falls back to legacy behavior. A valid config is parsed but
+also exits 2 with a staged-support message until configured discovery and target
+execution land in later project-adoption stories.
 
 All commands use the same complete [project validation](discovery/MIRRORS.md):
 filesystem scan, bidirectional unit audit, integration admission and declaration

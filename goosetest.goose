@@ -1,6 +1,7 @@
 // Public package facade and deliberate global vocabulary for assertion UFCS.
 // Execution helpers and Test remain in the goosetest namespace.
 // C defers unused hard assertions; typed implementation helpers still require Test&.
+// Intentionally expose qualified reporting alongside the assertion runtime.
 import src.reporting.console;
 import src.runtime.assertions;
 import src.runtime.assertions_struct;
@@ -43,9 +44,4 @@ fn assert_near<C>(t: C&, expected: f64, actual: f64, absolute_tolerance: f64, me
 
 fn assert_struct_eq<T>(t: goosetest::Test&, expected: const T&, actual: const T&, message: u8[:] = "") {
     goosetest::assert_struct_eq(t, expected, actual, message);
-}
-
-// Public adapter works for both consumers and this package’s own generated root.
-fn report_results(results: goosetest::Results&, planned_cases: i64 = - 1) {
-    reporting::report(results, planned_cases);
 }

@@ -6,6 +6,8 @@ import std;
 
 import src.arguments;
 import src.cli_output;
+import src.config.load;
+import src.config.model;
 import src.discovery.errors;
 import src.discovery.files;
 import src.discovery.manifest;
@@ -22,6 +24,24 @@ fn run(options: arguments::Options&) -> i32 {
     if options.help {
         write_stdout(arguments::help_text());
         return 0;
+    }
+    var config_text: u8[>..] = [];
+    var config_targets: config::Target[>..] = [];
+    var config_roots: config::TestRoot[>..] = [];
+    var config_exclusions: config::Exclusion[>..] = [];
+    var config_pairs: config::MirrorPair[>..] = [];
+    var configuration = config::new_configuration(
+        config_text, config_targets, config_roots, config_exclusions, config_pairs
+    );
+    if config::load(configuration, options.project) != 0 {
+        write_stderr(str("ERROR: ", configuration.field, ": ", configuration.error, "\n"));
+        incomplete();
+        return 2;
+    }
+    if configuration.configured {
+        write_stderr("ERROR: goosetest.json: configured discovery is not available yet.\n");
+        incomplete();
+        return 2;
     }
     var files: discovery::SourceFile[>..] = [];
     var paths: u8[>..] = [];
@@ -74,8 +94,7 @@ fn inspect(options: arguments::Options&, inventory: discovery::Inventory&) -> i3
     }
     if options.command == arguments::Command.List {
         list_cases(manifest, selected, options.filter_seen || options.suite_seen);
-    }
-    else {
+    } else {
         for record in audit.records {
             write_stdout(str(discovery::mirror_record_text(inventory, record), "\n"));
         }

@@ -25,11 +25,65 @@ build/goosetest --help
 and runs the passing [basic consumer](examples/basic/README.md). `test` runs the
 self-hosted suite and independent process-level failure checks. `check` checks
 shipping and representative generated Goose sources. Task delegates automation
-to Goose scripts in `scripts/`; it does not install or publish a package.
+to Goose scripts in `scripts/`; these verification targets do not install or publish a package.
 
 The [isolated pretty-goose consumer](docs/adopting_pretty_goose.md) demonstrates
 lexer and formatter adoption against preserved production snapshots. Its original
 repository and test commands remain unchanged.
+
+## Install the CLI and share the package
+
+Goosetest has two parts: the CLI executable and the source package imported by
+your tests. From this checkout, build and install the CLI with:
+
+```sh
+task install
+```
+
+This builds the current sources and installs `goosetest` with executable permissions
+into `~/.local/bin`. Ensure that directory is on `PATH`. To choose another prefix:
+
+```sh
+GOOSETEST_INSTALL_PREFIX=/your/install/prefix task install
+```
+
+The executable is installed into `<prefix>/bin/goosetest`. Installation does not
+copy the source package or alter consumer projects. Keep the installed CLI and
+the source package used by your projects at the same revision.
+
+For a project beside this checkout, create its `goosetest_root.goose` once:
+
+```goose
+import goosetest from "../goosetest";
+
+import goosetest_generated.runner;
+
+fn main() {
+    exit(goosetest_generated::run_all());
+}
+```
+
+Paths are relative to that root file. Tests use `import goosetest;` and live in
+`test/`, mirroring production modules in `src/`; independent suites live in
+`integration/`. From the consumer project, run:
+
+```sh
+goosetest test --project .
+```
+
+To distribute the source package, publish this repository and tag a release.
+Consumers can replace the local dependency declaration with:
+
+```goose
+import goosetest from "github.com/YOUR_ACCOUNT/goosetest@v0.1.0";
+```
+
+Replace `YOUR_ACCOUNT` and the ref with your actual published repository and
+release. This is a syntax example, not an existing published package URL. Goose
+requires no registry registration or additional package manifest: the repository
+already provides `goosetest.goose` and its imported modules. Pin a full commit hash
+instead of a movable tag for reproducible builds. The supported compiler and
+platform remain Goose v2026.3 on macOS arm64.
 
 ## Use a local checkout
 

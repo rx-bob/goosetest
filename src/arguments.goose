@@ -169,14 +169,11 @@ fn consume_filter(options: Options&, value: u8[:]) {
 fn consume_suite(options: Options&, value: u8[:]) {
     if value == "unit" {
         options.suite = selection::Suite.Unit;
-    }
-    else if value == "integration" {
+    } else if value == "integration" {
         options.suite = selection::Suite.Integration;
-    }
-    else if value == "all" {
+    } else if value == "all" {
         options.suite = selection::Suite.All;
-    }
-    else {
+    } else {
         options.error = "--suite must be unit, integration or all";
     }
 }
@@ -256,7 +253,7 @@ Filesystem: 65536 entries, depth 64, 4096 per path, 8388608 retained path bytes,
 1048576 per file, 67108864 total source bytes. Symlinks under scanned roots are errors.
 Syntax: 1048576 per file, 67108864 total, 262144 tokens/file, nesting 128,
 4096 suites, 65536 cases, 8388608 retained metadata bytes.
-Discovery limits are fixed; no configuration file or discovery override flags.
+Discovery limits are fixed. goosetest.json is bounded and validated; configured discovery follows in later stories.
 Exit: 0 valid list/audit/help or completed passing tests; 1 executed assertion failures;
 2 usage, discovery, generation, compilation, process, deadline or incomplete-run error.
 Cancellation preserves conventional interruption status. Mirror counts are not code coverage.

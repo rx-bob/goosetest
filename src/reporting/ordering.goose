@@ -105,6 +105,11 @@ fn suite_failure_less(results: goosetest::Results&, left: i64, right: i64) -> bo
     if a.identity.declaration_line != b.identity.declaration_line {
         return a.identity.declaration_line < b.identity.declaration_line;
     }
+    let functions = compare_bytes(goosetest::metadata_text(results, a.identity.function_name),
+        goosetest::metadata_text(results, b.identity.function_name));
+    if functions != 0 {
+        return functions < 0;
+    }
     return compare_bytes(goosetest::diagnostic_text(results, a.message),
         goosetest::diagnostic_text(results, b.message)) < 0;
 }
