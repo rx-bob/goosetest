@@ -2,7 +2,6 @@
 namespace command_test;
 
 import goosetest;
-
 import src.execution.command;
 import src.platform.process;
 
@@ -67,4 +66,22 @@ fn test_cancellation(outer: goosetest::Test&) {
         assert(command::stage_status(result, false) == 128 + signal);
         assert(command::stage_status(result, true) == 128 + signal);
     }
+}
+
+fn test_continue_requires_cleanup_and_reaping(outer: goosetest::Test&) {
+    var result = process::ProcessResult {
+        outcome: process::Outcome.Exited,
+        pid: 42,
+        reaped: true,
+        ..
+    };
+    assert(command::process_clean(result));
+    result.cleanup_error = 5;
+    assert(!command::process_clean(result));
+    result.cleanup_error = 0;
+    result.reaped = false;
+    assert(!command::process_clean(result));
+    result.outcome = process::Outcome.Cancelled;
+    result.reaped = true;
+    assert(!command::process_clean(result));
 }

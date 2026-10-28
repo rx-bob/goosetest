@@ -118,6 +118,16 @@ has matches; a selection with no matches anywhere exits 2. `--suite` classifies
 configured roots as unit or integration independently of mirror policy.
 Compiler and test stdout/stderr are inherited.
 
+Multi-target runs print a target/profile header before each target and a sorted
+target summary at the end. The summary distinguishes passed, assertion failure,
+incomplete, all-disabled, selection-excluded, and not-run targets. Without
+`--fail-fast`, an assertion failure does not prevent later targets from running;
+a compiler or runtime failure continues only when its child was reaped and cleanup
+succeeded. `--fail-fast` stops after the first nonzero target result and marks
+remaining selected targets `NOT RUN`. Cancellation stops immediately and returns
+130 or 143. Aggregate status is cancellation first, then status 2, then status 1,
+otherwise 0.
+
 `--compiler PATH` defaults to `goose` through PATH. `test --profile debug|optimized`
 defaults to `debug`; debug passes `-O0 --debug`, while optimized passes `-O2`
 without debug checks. `--offline` passes Goose's offline flag and is opt-in.

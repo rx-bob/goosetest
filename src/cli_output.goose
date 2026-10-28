@@ -7,6 +7,7 @@ import src.discovery.manifest;
 import src.discovery.mirror;
 import src.discovery.model;
 import src.discovery.selection;
+import src.execution.targets;
 
 fn escaped(value: u8[:]) -> u8[>..] {
     var result: u8[>..] = [];
@@ -69,4 +70,34 @@ fn selection_summary(manifest: discovery::Manifest&, options: selection::Options
     }
     return str(count, " selected cases: ", count - disabled, " executable, ", disabled,
         " disabled; ", manifest.cases.len - count, " excluded\n");
+}
+
+fn target_header(name: const u8[:], profile: const u8[:]) -> u8[>..] {
+    return str("TARGET ", name, " PROFILE ", profile, ": starting\n");
+}
+
+fn target_summary(name: const u8[:], profile: const u8[:], result: targets::Result) -> u8[>..] {
+    if result.state == targets::State.SelectionExcluded {
+        return str("TARGET ", name, " PROFILE ", profile, ": selection excluded\n");
+    }
+    if result.state == targets::State.DisabledOnly {
+        return str("TARGET ", name, " PROFILE ", profile, ": skipped (all cases disabled)\n");
+    }
+    if result.state == targets::State.Passed {
+        return str("TARGET ", name, " PROFILE ", profile, ": passed (status 0)\n");
+    }
+    if result.state == targets::State.AssertionFailure {
+        return str("TARGET ", name, " PROFILE ", profile, ": assertion failure (status 1)\n");
+    }
+    if result.state == targets::State.Incomplete {
+        return str("TARGET ", name, " PROFILE ", profile, ": incomplete (status 2)\n");
+    }
+    if result.state == targets::State.Cancelled {
+        return str("TARGET ", name, " PROFILE ", profile, ": cancelled (status ", result.status, ")\n");
+    }
+    return str("TARGET ", name, " PROFILE ", profile, ": NOT RUN\n");
+}
+
+fn aggregate_status(status: i32) -> u8[>..] {
+    return str("Aggregate status: ", status, "\n");
 }

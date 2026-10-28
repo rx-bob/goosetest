@@ -16,10 +16,18 @@ import src.discovery.model;
 import src.discovery.paths;
 import src.discovery.selection;
 import src.execution.command;
+import src.execution.targets;
 import src.generation.model;
 import src.generation.runner;
 import src.platform.filesystem;
 import src.platform.staging;
+
+struct TargetExecution {
+    selected: i64[:],
+    match_counts: i64[:],
+    executable_counts: i64[:],
+    fd: i32,
+}
 
 fn run(options: arguments::Options&) -> i32 {
     if options.error.len > 0 {
@@ -86,13 +94,16 @@ fn run_selected(
 ) -> i32 {
     var total_matches: i64 = 0;
     var match_counts: i64[>..] = [];
+    var executable_counts: i64[>..] = [];
     for target_index in selected {
         let target = selected_target(configuration, target_index);
-        let count = preflight_target(options, inventory, configuration, target_index, target);
+        var executable: i64 = 0;
+        let count = preflight_target(options, inventory, configuration, target_index, target, executable);
         if count < 0 {
             return 2;
         }
         match_counts.push(count);
+        executable_counts.push(executable);
         total_matches += count;
     }
     if options.command != arguments::Command.CheckMirror && total_matches == 0 {
@@ -101,7 +112,7 @@ fn run_selected(
         return 2;
     }
     if options.command == arguments::Command.Test {
-        return execute_targets(options, configuration, inventory, selected, match_counts);
+        return execute_targets(options, configuration, inventory, selected, match_counts, executable_counts);
     }
     var status: i32 = 0;
     for target_index, offset in selected {
@@ -110,10 +121,10 @@ fn run_selected(
         }
         let target = selected_target(configuration, target_index);
         let result = render_target(options, inventory, configuration, target_index, target, -1);
-        if result == 2 {
+        if result.status == 2 {
             return 2;
         }
-        if result == 1 {
+        if result.status == 1 {
             status = 1;
         }
     }
@@ -122,8 +133,38 @@ fn run_selected(
 
 fn execute_targets(
     options: arguments::Options&, configuration: config::Configuration&, inventory: discovery::Inventory&,
-    selected: i64[:], match_counts: i64[:]
+    selected: i64[:], match_counts: i64[:], executable_counts: i64[:]
 ) -> i32 {
+    let fd = create_execution_lock(options, configuration, selected, match_counts);
+    if fd < 0 {
+        return 2;
+    }
+    if !validate_selected_entries(configuration, selected, match_counts, fd) {
+        filesystem::close_project(fd);
+        incomplete();
+        return 2;
+    }
+    var results: targets::Result[>..] = [];
+    initialize_results(results, match_counts);
+    let execution = TargetExecution {
+        selected: selected,
+        match_counts: match_counts,
+        executable_counts: executable_counts,
+        fd: fd,
+    };
+    run_selected_targets(options, configuration, inventory, execution, results);
+    var status = targets::aggregate(results);
+    let closed = filesystem::close_project(fd);
+    if closed != 0 {
+        write_stderr(str("ERROR: execution lock release: ", closed, "\n"));
+        status = 2;
+    }
+    print_target_summary(options, configuration, selected, results, status);
+    return status;
+}
+
+fn create_execution_lock(options: arguments::Options&, configuration: config::Configuration&,
+    selected: i64[:], match_counts: i64[:]) -> i32 {
     var first_target_index: i64 = -2;
     for target_index, offset in selected {
         if match_counts[offset] > 0 {
@@ -138,8 +179,21 @@ fn execute_targets(
         write_stderr(str("ERROR: execution lock, entry validation, or generated artifacts for target ",
             target_label(first_target),
             ": native error ", -fd, "; run incomplete.\n"));
-        return 2;
+        return fd;
     }
+    return fd;
+}
+
+fn validate_selected_entries(configuration: config::Configuration&, selected: i64[:], match_counts: i64[:],
+    fd: i32) -> bool {
+    var first_target_index: i64 = -2;
+    for target_index, offset in selected {
+        if match_counts[offset] > 0 {
+            first_target_index = target_index;
+            break;
+        }
+    }
+    assert(first_target_index != -2);
     for target_index in selected {
         let target = selected_target(configuration, target_index);
         let valid = if target_index == first_target_index {
@@ -150,38 +204,51 @@ fn execute_targets(
         if valid != 0 {
             write_stderr(str("ERROR: entry validation for target ", target_label(target),
                 ": native error ", -valid, "; no target was built.\n"));
-            filesystem::close_project(fd);
-            incomplete();
-            return 2;
+            return false;
         }
     }
-    for target_index, offset in selected {
-        if match_counts[offset] == 0 {
+    return true;
+}
+
+fn initialize_results(results: targets::Result[>..]&, match_counts: i64[:]) {
+    for count in match_counts {
+        if count == 0 {
+            results.push(targets::selection_excluded());
+        } else {
+            results.push(targets::not_run());
+        }
+    }
+}
+
+fn run_selected_targets(options: arguments::Options&, configuration: config::Configuration&,
+    inventory: discovery::Inventory&, execution: TargetExecution, results: targets::Result[:]) {
+    for target_index, offset in execution.selected {
+        if execution.match_counts[offset] == 0 {
             let target = selected_target(configuration, target_index);
             write_stdout(str("TARGET ", target_label(target), ": selection excluded; no compiler call\n"));
-        }
-    }
-    var status: i32 = 0;
-    for target_index, offset in selected {
-        if match_counts[offset] == 0 {
             continue;
         }
         let target = selected_target(configuration, target_index);
-        let result = render_target(options, inventory, configuration, target_index, target, fd);
-        if result > 1 {
-            status = result;
+        write_stdout(cli_output::target_header(target_label(target), profile_name(options.profile)));
+        let result = render_target(options, inventory, configuration, target_index, target, execution.fd);
+        let outcome = targets::from_execution(result.status, execution.executable_counts[offset],
+            result.continue_allowed);
+        results[offset] = outcome;
+        if !targets::should_continue(outcome, options.fail_fast) {
             break;
         }
-        if result == 1 {
-            status = 1;
-        }
     }
-    let closed = filesystem::close_project(fd);
-    if closed != 0 {
-        write_stderr(str("ERROR: execution lock release: ", closed, "\n"));
-        return 2;
+}
+
+fn print_target_summary(options: arguments::Options&, configuration: config::Configuration&,
+    selected: i64[:], results: targets::Result[:], status: i32) {
+    write_stdout(str("Target summary (profile ", profile_name(options.profile), "):\n"));
+    for target_index, offset in selected {
+        let target = selected_target(configuration, target_index);
+        write_stdout(cli_output::target_summary(target_label(target), profile_name(options.profile),
+            results[offset]));
     }
-    return status;
+    write_stdout(cli_output::aggregate_status(status));
 }
 
 fn resolve_targets(options: arguments::Options&, configuration: config::Configuration&, selected: i64[>..]&) -> bool {
@@ -253,7 +320,7 @@ fn selected_target(configuration: config::Configuration&, target_index: i64) -> 
 
 fn preflight_target(
     options: arguments::Options&, inventory: discovery::Inventory&, configuration: config::Configuration&,
-    target_index: i64, target: command::Target
+    target_index: i64, target: command::Target, executable: i64&
 ) -> i64 {
     var records: discovery::MirrorRecord[>..] = [];
     var audit = discovery::new_mirror_audit(records);
@@ -283,9 +350,20 @@ fn preflight_target(
         return 0;
     }
     let count = selection::count(manifest, selection_options(options));
+    executable = executable_count(manifest, selection_options(options));
     if options.command == arguments::Command.Test && count > 0 &&
     !generation_preflight(manifest, audit, options) {
         return -1;
+    }
+    return count;
+}
+
+fn executable_count(manifest: discovery::Manifest&, selected: selection::Options) -> i64 {
+    var count: i64 = 0;
+    for entry in manifest.cases {
+        if !entry.disabled && selection::matches(manifest, entry, selected) {
+            count += 1;
+        }
     }
     return count;
 }
@@ -309,7 +387,7 @@ fn generation_preflight(manifest: discovery::Manifest&, audit: discovery::Mirror
 fn render_target(
     options: arguments::Options&, inventory: discovery::Inventory&, configuration: config::Configuration&,
     target_index: i64, target: command::Target, fd: i32
-) -> i32 {
+) -> command::Result {
     var records: discovery::MirrorRecord[>..] = [];
     var audit = discovery::new_mirror_audit(records);
     var suites: discovery::Suite[>..] = [];
@@ -330,7 +408,10 @@ fn render_target(
         }
         write_stdout(cli_output::mirror_summary(audit));
     }
-    return 0;
+    return command::Result {
+        status: 0,
+        continue_allowed: true,
+    };
 }
 
 fn target_label(target: command::Target) -> const u8[:] {
@@ -338,6 +419,13 @@ fn target_label(target: command::Target) -> const u8[:] {
         return "default";
     }
     return target.name;
+}
+
+fn profile_name(profile: arguments::Profile) -> const u8[:] {
+    if profile == arguments::Profile.Optimized {
+        return "optimized";
+    }
+    return "debug";
 }
 
 fn selection_options(options: arguments::Options&) -> selection::Options {

@@ -128,8 +128,9 @@ with tempfile.TemporaryDirectory(prefix="goosetest-targets-") as temporary:
         b"Mirror enforcement is disabled")
     filtered = run(["test", "--project", str(project), "--target", "database", "--target", "core",
                     "--filter", "test_route"], work, env, contains=b"1 passed")
-    assert filtered.stdout.index(b"TARGET database: selection excluded") < filtered.stdout.index(b"PASS core::"), (
+    assert filtered.stdout.index(b"PASS core::") < filtered.stdout.index(b"TARGET database: selection excluded"), (
         filtered.stdout, filtered.stderr)
+    assert b"TARGET database PROFILE debug: selection excluded" in filtered.stdout
     assert (project / "goosetest_generated/core/tests").is_file()
     assert not (project / "goosetest_generated/database/tests").exists()
 
@@ -140,6 +141,7 @@ with tempfile.TemporaryDirectory(prefix="goosetest-targets-") as temporary:
                     "--filter", "::test_database"], work, env, contains=b"1 skipped")
     assert b"SKIP database::tests/database/bad_test.goose::database_test::test_database" in disabled.stdout
     assert b"external database is not installed" in disabled.stdout
+    assert b"TARGET database PROFILE debug: skipped (all cases disabled)" in disabled.stdout
 
     # The real compiler associates a nested entry with its adjacent sidecar and
     # resolves native source paths from that sidecar's directory.
@@ -247,5 +249,68 @@ with tempfile.TemporaryDirectory(prefix="goosetest-targets-") as temporary:
     assert database_sidecar.read_bytes() == unavailable_sidecar_before
     assert (database_dir / "native/shared_symbol.c").read_bytes() == database_native_before
     assert (core_dir / "native/shared_symbol.c").read_bytes() == core_native_before
+
+    # Assertion failures continue by default, compile failures continue only
+    # after the compiler child was reaped, and aggregate status 2 dominates 1.
+    results_project = work / "aggregate outcomes"
+    results_project.mkdir()
+    result_names = ("core", "database", "http", "tail")
+    result_config = {"version": 1, "targets": []}
+    for name in result_names:
+        (results_project / f"tests/{name}").mkdir(parents=True)
+        entry(results_project, name)
+        result_config["targets"].append({
+            "name": name,
+            "entry": f"goosetest_{name}.goose",
+            "tests": [{"path": f"tests/{name}", "kind": "unit"}],
+        })
+    (results_project / "goosetest.json").write_text(json.dumps(result_config))
+    (results_project / "tests/core/core_test.goose").write_text(
+        suite("core_test", "test_failure", 't.fail("intentional core failure");'))
+    (results_project / "tests/database/database_test.goose").write_text(
+        suite("database_test", "test_success"))
+    (results_project / "tests/http/http_test.goose").write_text(
+        suite("http_test", "test_http"))
+    (results_project / "tests/tail/tail_test.goose").write_text(
+        suite("tail_test", "test_after_compile_failure"))
+    (results_project / "goosetest_http.build").write_text('c_sources = ["http.c"];\n')
+    (results_project / "http.c").write_text(
+        "extern int missing_http_library(void);\n"
+        "int http_dependency(void) { return missing_http_library(); }\n")
+    invocation_log = work / "compiler-invocations"
+    compiler_spy = work / "compiler-spy"
+    compiler_spy.write_text(
+        "#!/usr/bin/env python3\n"
+        "from pathlib import Path\n"
+        "import os, sys\n"
+        f"Path({str(invocation_log)!r}).open('a').write(Path(sys.argv[2]).name + '\\n')\n"
+        "os.execvp('goose', ['goose', *sys.argv[1:]])\n")
+    compiler_spy.chmod(0o755)
+
+    default_run = run(["test", "--project", str(results_project), "--compiler", str(compiler_spy)],
+                      work, env, status=2, contains=b"Aggregate status: 2")
+    assert b"TARGET core PROFILE debug: starting" in default_run.stdout
+    assert b"TARGET core PROFILE debug: assertion failure (status 1)" in default_run.stdout
+    assert b"TARGET database PROFILE debug: passed (status 0)" in default_run.stdout
+    assert b"TARGET http PROFILE debug: incomplete (status 2)" in default_run.stdout
+    assert b"TARGET tail PROFILE debug: passed (status 0)" in default_run.stdout
+    assert invocation_log.read_text().splitlines() == [
+        "goosetest_core.goose", "goosetest_database.goose", "goosetest_http.goose",
+        "goosetest_tail.goose"]
+
+    invocation_log.unlink()
+    fail_fast = run(["test", "--project", str(results_project), "--compiler", str(compiler_spy),
+                     "--fail-fast"], work, env, status=1, contains=b"Aggregate status: 1")
+    assert invocation_log.read_text().splitlines() == ["goosetest_core.goose"]
+    assert b"TARGET database PROFILE debug: NOT RUN" in fail_fast.stdout
+    assert b"TARGET http PROFILE debug: NOT RUN" in fail_fast.stdout
+    assert b"TARGET tail PROFILE debug: NOT RUN" in fail_fast.stdout
+
+    invocation_log.unlink()
+    compile_then_pass = run(["test", "--project", str(results_project), "--compiler", str(compiler_spy),
+                             "--target", "http", "--target", "tail"], work, env,
+                            status=2, contains=b"Aggregate status: 2")
+    assert invocation_log.read_text().splitlines() == ["goosetest_http.goose", "goosetest_tail.goose"]
+    assert b"TARGET tail PROFILE debug: passed (status 0)" in compile_then_pass.stdout
 
 print("target selection and preflight tests passed")
