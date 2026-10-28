@@ -23,6 +23,7 @@ oracles. A nonzero oracle status fails the command.
 | `disabled` | Disabled assertions and hooks remain cold but compiler checked, with original skip reasons. |
 | `selection` | Filters preserve compile checks, including cleanup hooks and non-local returns; empty selection exits 2; fail-fast still cleans up. |
 | `pretty_goose` | Byte-preserved formatter/lexer baseline, two unit mirrors and one integration suite; changed formatter expectation exits 1 with value diagnostics. |
+| `silly` | Byte-preserved URL/HTTP baseline and six target-qualified cases in debug/optimized profiles; optional native dependency stays outside core. |
 | `lifecycle`, `suite` | Setup/body/cleanup failure combinations preserve causes, continuation, cleanup and nonzero statuses. |
 
 The compiler wrapper in `limits` also checks the real invocation begins with
@@ -53,3 +54,4 @@ accidentally discovered or formatted suite.
 See [pretty-goose adoption](pretty_goose/README.md) for the source snapshot,
 public-package conversion, and migration recipe. Its recorded source-directory
 path is provenance only; verification runs without that original checkout.
+See [Silly adoption](silly/README.md) for the matching URL/HTTP consumer shape.

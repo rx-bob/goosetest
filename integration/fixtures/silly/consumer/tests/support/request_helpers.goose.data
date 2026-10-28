@@ -1,0 +1,30 @@
+// Converted assertion helpers extracted from the original decoded() contract.
+namespace request_helpers;
+
+import silly from "../../";
+
+fn decoded_matches(raw: u8[:], expected: u8[:], policy: silly::UrlDecodePolicy) -> bool {
+    let measured = silly::measure_url(raw, policy);
+    if measured.error != silly::UrlDecodeError.None || measured.bytes != expected.len {
+        return false;
+    }
+    var output: u8[>..] = [];
+    output.append("prefix:");
+    let cap = output.len + expected.len;
+    if expected.len != 0 {
+        if silly::decode_url(output, raw, cap - 1, policy) != silly::UrlDecodeError.Limit
+            || output != "prefix:" {
+            return false;
+        }
+    }
+    return silly::decode_url(output, raw, cap, policy) == silly::UrlDecodeError.None
+        && output == str("prefix:", expected);
+}
+
+fn strict_escape_unchanged(raw: u8[:], policy: silly::UrlDecodePolicy) -> bool {
+    var output: u8[>..] = [];
+    output.append("unchanged");
+    return silly::measure_url(raw, policy).error == silly::UrlDecodeError.InvalidEscape
+        && silly::decode_url(output, raw, 128, policy) == silly::UrlDecodeError.InvalidEscape
+        && output == "unchanged";
+}

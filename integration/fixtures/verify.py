@@ -93,7 +93,7 @@ def main():
             ('process', [process_oracle, process_child]),
             ('disabled', [cli]),
             ('selection', [cli]), ('lifecycle', [cli]), ('suite', [cli]),
-            ('pretty_goose', [cli]),
+            ('pretty_goose', [cli]), ('silly', [cli]),
         ]
         for name, arguments in matrices:
             path = REPO / 'integration' / 'fixtures' / name / 'verify.py'

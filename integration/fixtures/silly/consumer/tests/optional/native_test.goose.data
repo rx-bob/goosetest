@@ -1,0 +1,8 @@
+// This target is intentionally selected only when its optional native package is present.
+namespace optional_native_test;
+
+import goosetest;
+
+fn test_optional_target_placeholder(t: goosetest::Test&) {
+    t.assert_true(true);
+}

@@ -1,0 +1,47 @@
+// Host and request-target behavior converted from Silly's standalone HTTP tests.
+namespace http_host_test;
+
+import goosetest;
+import silly from "../../";
+
+fn test_invalid_authority_forms(t: goosetest::Test&) {
+    for value in ["", ":80", "host:", "host:+80", "host:65536", "host:999999999999999999999",
+        "host:80:90", "bad host", "bad\thost", "user@host", "host/path", "host?query", "host#fragment",
+        "a,b", "host%", "host%0", "host%GG", "[]", "[1]", "[::1", "[::1]extra", "[::1]:",
+        "[1:2:3:4:5:6:7]", "[1:2:3:4:5:6:7:8:9]", "[1:2:3:4:5:6:7::8]", "[::1::2]",
+        "[:::1]", "[1:::]", "[12345::]", "[gg::]", "[::ffff:256.1.2.3]", "[::ffff:01.2.3.4]",
+        "[::ffff:1.2.3]", "[::ffff:1.2.3.4:5]", "[v.host]", "[v1.]", "[v1.host%20]",
+        "[fe80::1%eth0]"] {
+        t.assert_false(silly::valid_host(value), str("reject malformed authority: ", value));
+    }
+}
+
+fn test_request_target_syntax(t: goosetest::Test&) {
+    for target in ["HTTP://example.test/path?x=%2f", "HtTpS://[::1]:443/path", "/path?raw=%GG"] {
+        let line = str("GET ", target, " HTTP/1.1");
+        let parsed = silly::parse_request_line(line);
+        t.assert_eq(silly::HeadResult.Complete, parsed.result, str("valid request target: ", target));
+        t.assert_eq(target, parsed.target, str("request target bytes are preserved: ", target));
+    }
+    let invalid = "\"<>^`{|}\\#";
+    for index in invalid.len {
+        let target = str("/bad", invalid[index..index + 1], "path");
+        let line = str("GET ", target, " HTTP/1.1");
+        t.assert_eq(silly::HeadResult.BadRequest, silly::parse_request_line(line).result,
+            str("reject invalid target byte: ", target));
+    }
+    for target in ["/bad[path", "/bad]path", "/?x=[value]", "http://host/bad[path",
+        "http://[::1]/?x=value]", "https://host?x=[value"] {
+        let line = str("GET ", target, " HTTP/1.1");
+        t.assert_eq(silly::HeadResult.BadRequest, silly::parse_request_line(line).result,
+            str("reject brackets in request target: ", target));
+    }
+}
+
+fn test_valid_authority_forms(t: goosetest::Test&) {
+    for value in ["localhost", "example.test:80", "example.test.:65535", "127.0.0.1:0", "percent%2dname",
+        "[::]", "[::1]:8080", "[2001:db8::1]", "[1:2:3:4:5:6:7:8]", "[::ffff:192.0.2.1]",
+        "[1:2:3:4:5:6:192.0.2.1]", "[v1.example:token]:443", "[Vf.host]"] {
+        t.assert_true(silly::valid_host(value), str("accept valid authority: ", value));
+    }
+}

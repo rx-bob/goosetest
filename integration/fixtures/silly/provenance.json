@@ -1,0 +1,66 @@
+{
+  "project": "Silly",
+  "checkout_context": {
+    "path_at_capture": "/Users/bob/repos/silly",
+    "head": "06c67e9827ac720ed7889c76e0d00e8d8d69336a",
+    "source_revision": "working-tree bytes; these selected files were untracked and not present in HEAD",
+    "captured_on": "2026-10-28"
+  },
+  "files": [
+    {
+      "source": "src/request/url.goose",
+      "snapshot": "production/src/request/url.goose.data",
+      "sha256": "c476714616a58653c79cf6bb0d06445782dbb2ab158986ab73fde6810bad8006"
+    },
+    {
+      "source": "src/request/headers.goose",
+      "snapshot": "production/src/request/headers.goose.data",
+      "sha256": "cf5f8799c8b38805febf23c798a7516255602bc8f80a940f5a93ed7831b81fba"
+    },
+    {
+      "source": "src/http/http_host.goose",
+      "snapshot": "production/src/http/http_host.goose.data",
+      "sha256": "c44ae22e72e0053e25201eaaa2b20c7a65c161478fbeff30afe8b0a6295e5da0"
+    },
+    {
+      "source": "src/http/http_request_line.goose",
+      "snapshot": "production/src/http/http_request_line.goose.data",
+      "sha256": "f6ef3ba379475a4930a04d12956a21007b0ad8271e8754a94bc612090a9154e3"
+    },
+    {
+      "source": "src/http/http_head_types.goose",
+      "snapshot": "production/src/http/http_head_types.goose.data",
+      "sha256": "1963473c9771dc370da34fcfb9885eacc6b60e2b08e4871b7671e6f806fe7989"
+    },
+    {
+      "source": "tests/request/url_test.goose",
+      "snapshot": "original/tests/request/url_test.goose.data",
+      "sha256": "aa03e7d952f35b0a28a24083ae966fdabc9a056e0a38cbcd6188ba00d0e27ae7"
+    },
+    {
+      "source": "tests/http/http_host_test.goose",
+      "snapshot": "original/tests/http/http_host_test.goose.data",
+      "sha256": "db34422e95caa9052da89ec2f87a3d794320d9eb433ef247a24cd4e9a53f6db9"
+    }
+  ],
+  "selected_original_cases": [
+    "url_test::strict",
+    "url_test::literal",
+    "url_test::path_and_limits",
+    "http_host_test::valid_hosts",
+    "http_host_test::invalid_hosts",
+    "http_host_test::target_syntax"
+  ],
+  "converted_helper": {
+    "name": "tests/support/request_helpers.goose",
+    "derived_from": "the decoded() helper in tests/request/url_test.goose",
+    "purpose": "reusable goosetest assertions for decoded size, bounds, and output atomicity"
+  },
+  "package_closure": [
+    "src/request/url.goose",
+    "src/request/headers.goose",
+    "src/http/http_host.goose",
+    "src/http/http_head_types.goose",
+    "src/http/http_request_line.goose"
+  ]
+}

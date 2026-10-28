@@ -1,0 +1,8 @@
+// Minimal public package inventory for the unchanged URL and HTTP source closure.
+namespace silly;
+
+import.src.request.url;
+import.src.request.headers;
+import.src.http.http_host;
+import.src.http.http_head_types;
+import.src.http.http_request_line;

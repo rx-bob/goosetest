@@ -1,0 +1,81 @@
+// URL and path contracts converted from Silly's standalone request tests.
+namespace url_test;
+
+import goosetest;
+import silly from "../../";
+import tests.support.request_helpers;
+
+fn test_literal_invalid_escapes(t: goosetest::Test&) {
+    let policy = silly::UrlDecodePolicy {
+        plus_as_space: true,
+        invalid_escape: silly::InvalidEscape.Literal,
+    };
+    t.assert_true(request_helpers::decoded_matches("%", "%", policy), "literal lone percent");
+    t.assert_true(request_helpers::decoded_matches("%0", "%0", policy), "literal short escape");
+    t.assert_true(request_helpers::decoded_matches("%xx", "%xx", policy), "literal non-hex escape");
+    t.assert_true(request_helpers::decoded_matches("%a%41", "%aA", policy), "literal then valid escape");
+    t.assert_true(request_helpers::decoded_matches("%%41+%2B%", "%A +%", policy),
+        "mixed literal and valid escapes");
+    t.assert_true(request_helpers::decoded_matches("%252F%GG", "%2F%GG", policy),
+        "decode once and preserve malformed escape");
+    t.assert_true(!silly::measure_url("%GG", policy).transformed, "literal invalid escape is unchanged");
+    t.assert_true(silly::measure_url("%GG%41", policy).transformed, "valid escape still transforms");
+    var path: u8[>..] = [];
+    t.assert_eq(silly::PathDecodeError.InvalidEscape, silly::decode_path(path, "%GG", 32),
+        "literal query policy does not weaken strict path decoding");
+    t.assert_eq(0, path.len, "invalid path decoding does not append bytes");
+}
+
+fn test_path_decoding_capacity_and_output_atomicity(t: goosetest::Test&) {
+    var output: u8[>..] = [];
+    t.assert_eq(silly::PathDecodeError.None, silly::decode_path(output, "a+b/%252F/%2f", 64),
+        "path decode status");
+    t.assert_eq("a+b/%2F//", copy(output), "path preserves plus and decodes once");
+    let size = output.len;
+    t.assert_eq(silly::PathDecodeError.Limit, silly::decode_path(output, "x", size),
+        "path output capacity");
+    t.assert_eq(silly::PathDecodeError.Limit, silly::decode_path(output, "", size - 1),
+        "empty path still checks existing output capacity");
+    t.assert_eq(silly::PathDecodeError.Limit, silly::decode_path(output, "", -1),
+        "negative path capacity");
+    t.assert_true(output == "a+b/%2F//", "failed path operations leave existing output unchanged");
+    let policy = silly::UrlDecodePolicy {
+    };
+    t.assert_true(!silly::measure_url("a+b", policy).transformed, "plus is literal by default");
+    t.assert_eq(silly::UrlDecodeError.Limit, silly::decode_url(output, "", -1, policy),
+        "negative URL capacity");
+    output.clear();
+    t.assert_eq(silly::PathDecodeError.None, silly::decode_path(output, "", 0),
+        "empty path fits zero capacity");
+    t.assert_eq(silly::PathDecodeError.Limit, silly::decode_path(output, "%41", 0),
+        "nonempty path does not fit zero capacity");
+    t.assert_eq(0, output.len, "zero capacity failure leaves output empty");
+    t.assert_eq(silly::PathDecodeError.None, silly::decode_path(output, "%41", 1),
+        "exact path capacity");
+    t.assert_true(output == "A", "exact capacity decoded byte");
+}
+
+fn test_strict_query_decoding(t: goosetest::Test&) {
+    let policy = silly::UrlDecodePolicy {
+        plus_as_space: true,
+        ..
+    };
+    t.assert_true(request_helpers::decoded_matches("", "", policy), "empty URL decode");
+    t.assert_true(request_helpers::decoded_matches("plain@example.test", "plain@example.test", policy),
+        "plain URL bytes");
+    t.assert_true(request_helpers::decoded_matches("a+b%2Bc", "a b+c", policy), "query plus and escape policy");
+    t.assert_true(request_helpers::decoded_matches("%00%ff%FF", "\x00\xff\xff", policy), "binary URL bytes");
+    t.assert_true(request_helpers::decoded_matches("caf%C3%A9", "caf\xc3\xa9", policy), "escaped UTF-8");
+    t.assert_true(request_helpers::decoded_matches("raw\xc3\xa9", "raw\xc3\xa9", policy), "raw UTF-8");
+    t.assert_true(request_helpers::decoded_matches("%252F%2526%253D", "%2F%26%3D", policy),
+        "decode percent escapes once");
+    t.assert_true(request_helpers::decoded_matches("%26%3B%3D", "&;=", policy), "reserved delimiters");
+    t.assert_true(request_helpers::decoded_matches("%2b+%20", "+  ", policy), "plus and encoded space");
+    for raw in ["%", "%0", "%xx", "ok%41then%4G", "%a%41"] {
+        t.assert_true(request_helpers::strict_escape_unchanged(raw, policy),
+            str("reject strict malformed escape without mutation: ", raw));
+    }
+    t.assert_true(!silly::measure_url("plain", policy).transformed, "plain URL stays unchanged");
+    t.assert_true(silly::measure_url("+", policy).transformed, "plus conversion is reported");
+    t.assert_true(silly::measure_url("%41", policy).transformed, "percent conversion is reported");
+}

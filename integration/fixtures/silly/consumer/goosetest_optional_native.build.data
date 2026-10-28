@@ -1,0 +1,1 @@
+c_sources = ["native/not-installed/lib_optional.c"];
