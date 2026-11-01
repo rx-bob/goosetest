@@ -1,4 +1,4 @@
-# Disposable consumer artifacts; tracked example sources include a deterministic generated snapshot.
+# Disposable legacy/target artifacts and profile caches; tracked example sources include a snapshot.
 **/goosetest_generated/*
 !examples/basic/goosetest_generated/.owner
 !examples/basic/goosetest_generated/.manifest
