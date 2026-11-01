@@ -1,6 +1,6 @@
 # Repository self-host verification
 
-Run from the repository root with the pinned Goose compiler and Python 3:
+Run from the repository root with the pinned Goose compiler and Ruby:
 
 ```sh
 task test
@@ -9,12 +9,12 @@ task test
 The Goose entry point now runs self-host checks plus the full
 [failure-contract matrix](../README.md), with a finite one-hour deadline, and
 preserves its process status. To run only self-host checks, invoke
-`python3 integration/fixtures/self_host/verify.py` directly; an optional CLI path
+`ruby integration/fixtures/self_host/verify.rb` directly; an optional CLI path
 reuses an already built CLI.
 
 The verifier builds the CLI into a temporary directory, then runs the repository's
 strict mirror audit, lists every case, and executes the generated test runner.
-A separate Python tokenizer reads real top-level `fn test_*` declarations from
+A separate Ruby tokenizer reads real top-level `fn test_*` declarations from
 `test/` and `integration/`, ignoring strings and comments. Listed IDs and passing
 result IDs must match that inventory exactly. This detects missing registrations,
 synthetic fixture discovery, skipped execution, duplicate rows, and omitted cases.
@@ -24,7 +24,7 @@ in `integration/self_host_test.goose`. The process must exit 1, report exactly t
 case as failed with the injected diagnostic, and pass every other case. The original
 source remains unchanged. This check is deliberately outside the runtime it judges.
 
-The Python parent owns compiler caches, copied sources, and `TMPDIR`; it removes
+The Ruby parent owns compiler caches, copied sources, and `TMPDIR`; it removes
 these on completion or failure. Compiler and runner deadlines are 600 seconds;
 each subprocess has a 900-second parent deadline. The CLI owns its generated
 artifacts using its normal lifecycle. No installed binary is written by verification.

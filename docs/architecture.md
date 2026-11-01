@@ -93,7 +93,7 @@ The repository's generated runner executes mirrored units and independent
 integration suites. Supporting modules and standalone oracles live outside
 scanned roots in `test_support/`; invalid source is inert fixture data.
 
-A separate Python parent compares lexical source inventory, CLI listing, and
+A separate Ruby parent compares lexical source inventory, CLI listing, and
 actual PASS rows, then injects failures into disposable copies and checks exact
 statuses and diagnostics. Independent matrices cover legacy and configured
 discovery, both profiles, target/native isolation, ownership, lifecycle, process
@@ -103,7 +103,7 @@ checkouts. Parent-owned temporary directories and bounded process waits keep
 verification artifacts separate from authored source. See the
 [external verification matrix](../integration/fixtures/README.md).
 
-The [pretty-goose consumer](adopting_pretty_goose.md) demonstrates a public package
+The [goosefmt consumer](adopting_goosefmt.md) demonstrates a public package
 boundary. [Silly adoption](adopting_silly.md) keeps URL/HTTP suites in subsystem
 paths with an optional native target. [Promptnook adoption](adopting_promptnook.md)
 separates deterministic domain cases from a disposable native target. These

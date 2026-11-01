@@ -4,10 +4,10 @@ From the repository root, build the CLI and pass its executable to the verifier:
 
 ```sh
 goose build --debug main.goose -o /tmp/goosetest
-python3 integration/fixtures/execution/verify.py /tmp/goosetest
+ruby integration/fixtures/execution/verify.rb /tmp/goosetest
 ```
 
-The Python parent checks actual process statuses and output for successful tests,
+The Ruby parent checks actual process statuses and output for successful tests,
 assertion failures, build failures, aborts, explicit exits, invalid layouts,
 generation errors, missing compilers, and compilers that produce no executable.
 

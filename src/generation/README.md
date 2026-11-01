@@ -123,14 +123,14 @@ replacement and locking; see [artifact contracts](ARTIFACTS.md).
 goose build --debug main.goose -o /tmp/goosetest
 /tmp/goosetest test --project . --filter test/generation/
 goose build --debug test_support/oracles/generation_test.goose -o /tmp/goosetest-generate
-python3 integration/fixtures/generation/verify.py /tmp/goosetest-generate
+ruby integration/fixtures/generation/verify.rb /tmp/goosetest-generate
 goosefmt check --config .goosefmt.toml src/generation test/generation \
     test_support/generation.goose \
     test_support/oracles/generation_test.goose examples/basic
 ```
 
 Expected: the generated unit suite and generation compile checks both exit 0.
-Python is the independent temporary parent/process launcher; it builds
+Ruby is the independent temporary parent/process launcher; it builds
 through unchanged authored roots in paths containing spaces and another cwd.
 It checks local native-package and root-sidecar paths, escaped and maximum-size
 labels, exact output determinism, unsupported inputs and exact/over budgets,

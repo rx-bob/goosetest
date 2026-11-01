@@ -22,8 +22,8 @@ That stand-in proves only that target-specific native linkage and fresh process
 state work. It is not libSQL or Promptnook database parity. For real integration,
 use an explicit Promptnook checkout and a separately provisioned disposable DB;
 keep credentials, native dependency installation, migrations/reset policy, and
-service readiness in application-owned orchestration. Keep the existing Python
-HTTP baseline/candidate comparator as a separate application gate. Goosetest
+service readiness in application-owned orchestration. Keep the existing
+application-level HTTP baseline/candidate comparator as a separate application gate. Goosetest
 owns selected target compilation and test execution, not application deployment.
 
 ## Optional explicit-checkout integration

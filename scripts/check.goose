@@ -23,7 +23,7 @@ fn main() {
             exit(result.exit_code as i32);
         }
     }
-    let configured = process::run(["python3", "-B", "integration/fixtures/configured/verify.py",
+    let configured = process::run(["ruby", "integration/fixtures/configured/verify.rb",
         "build/goosetest"], ".", process::Limits {
             deadline_ms: 180000,
             grace_ms: 1000

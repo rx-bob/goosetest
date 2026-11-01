@@ -25,7 +25,7 @@ Reproduce from the goosetest repository root:
 
 ```sh
 task build
-python3 integration/fixtures/promptnook/verify.py build/goosetest
+ruby integration/fixtures/promptnook/verify.rb build/goosetest
 ```
 
 The verifier builds a temporary project and never opens, migrates, resets, or

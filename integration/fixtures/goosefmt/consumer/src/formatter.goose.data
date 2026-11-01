@@ -1,0 +1,11 @@
+// Thin adapter: preserve the original regression configuration and formatter implementation.
+namespace consumer_formatter;
+
+import goosefmt.formatter;
+
+fn formatted(source: const u8[:]) -> u8[>..] {
+    return formatter::format_source(source, formatter::FormatConfig {
+            indent_width: 4,
+            final_newline: true
+        });
+}

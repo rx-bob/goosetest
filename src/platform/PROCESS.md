@@ -130,7 +130,7 @@ goose build --debug main.goose -o /tmp/goosetest
 /tmp/goosetest test --project .
 goose build --debug test_support/oracles/process_test.goose -o /tmp/goosetest-process-driver
 clang -std=c11 -Wall -Wextra -Werror integration/fixtures/process/child.c -o /tmp/goosetest-process-child
-python3 integration/fixtures/process/verify.py /tmp/goosetest-process-driver /tmp/goosetest-process-child
+ruby integration/fixtures/process/verify.rb /tmp/goosetest-process-driver /tmp/goosetest-process-child
 goosefmt check --config .goosefmt.toml src/platform/process.goose \
     test/platform/process_test.goose test_support/process.goose \
     test_support/oracles/process_test.goose
@@ -139,7 +139,7 @@ clang -std=c11 -Wall -Wextra -Werror -fsyntax-only native/process.c
 
 Expected: the generated unit and integration suites exit 0. The self-host root
 builds the purpose-built process child once in owned scratch space.
-The separate Python lifecycle oracle takes only the standalone driver and child
+The separate Ruby lifecycle oracle takes only the standalone driver and child
 executables; unit coverage runs through the generated repository suite.
 Tests use builtin assertions and a parent-owned temporary directory. The child
 fixture verifies literal argv/cwd and inherited streams; the matrix checks exit
@@ -147,7 +147,7 @@ fixture verifies literal argv/cwd and inherited streams; the matrix checks exit
 exact/over argument budgets, deadline during PATH search, hung children, groups
 whose leader dies before its descendant, normal-exit descendants, and cancellation
 whose handler exits 0. Native test-only observers check `waitpid` returns ECHILD
-and prior handlers/masks are restored. Python checks recorded PIDs externally;
+and prior handlers/masks are restored. Ruby checks recorded PIDs externally;
 direct children must disappear and descendants must be absent or non-running
 zombies. The parent has emergency cleanup for failed checks.
 

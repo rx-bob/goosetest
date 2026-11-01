@@ -1,8 +1,0 @@
-// Thin adapter: the snapshotted tokenizer remains the production implementation.
-namespace consumer_lexer;
-
-import pretty_goose.lexer;
-
-fn tokens(source: const u8[:]) -> lexer::Token[>..] {
-    return lexer::lex(source);
-}

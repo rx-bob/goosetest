@@ -174,7 +174,7 @@ rendered one record at a time rather than accumulating another whole-project are
 
 ## Reproducible checks
 
-The process matrix uses Python only as the temporary parent/process launcher,
+The process matrix uses Ruby only as the temporary parent/process launcher,
 with an independent Goose oracle that uses builtin assertions,
 independent of framework assertions. Run as an unprivileged user for permission
 fixtures. Choose build/cache paths outside the inspected project:
@@ -184,7 +184,7 @@ export GOOSE_HOME=/tmp/goosetest-cli-cache
 goose build --debug main.goose -o /tmp/goosetest
 /tmp/goosetest test --project . --suite unit
 goose build --debug test_support/oracles/cli_test.goose -o /tmp/goosetest-cli-oracle
-python3 integration/fixtures/cli/verify.py /tmp/goosetest /tmp/goosetest-cli-oracle
+ruby integration/fixtures/cli/verify.rb /tmp/goosetest /tmp/goosetest-cli-oracle
 goosefmt check --config .goosefmt.toml main.goose src/arguments.goose src/cli.goose \
     src/cli_output.goose test/arguments_test.goose test/cli_test.goose \
     test_support/oracles/cli_test.goose
@@ -294,7 +294,7 @@ Independent verification:
 ```sh
 goose build --debug main.goose -o /tmp/goosetest
 /tmp/goosetest test --project . --filter test/execution/
-python3 integration/fixtures/execution/verify.py /tmp/goosetest
+ruby integration/fixtures/execution/verify.rb /tmp/goosetest
 ```
 
 The external verifier creates and removes its own projects and checks pass/fail,
@@ -350,4 +350,4 @@ resource/process errors still return 2. Without the flag, ordinary failures do
 not prevent later cases or suites from running.
 
 The independent process matrix is
-`python3 integration/fixtures/selection/verify.py /tmp/goosetest`.
+`ruby integration/fixtures/selection/verify.rb /tmp/goosetest`.

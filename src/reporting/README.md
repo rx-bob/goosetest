@@ -56,7 +56,7 @@ Verification:
 goose build --debug main.goose -o /tmp/goosetest
 /tmp/goosetest test --project . --filter test/reporting/
 goose build --debug test_support/oracles/reporting_test.goose -o /tmp/goosetest-reporting
-python3 integration/fixtures/reporting/verify.py /tmp/goosetest-reporting
+ruby integration/fixtures/reporting/verify.rb /tmp/goosetest-reporting
 ```
 
 The independent six-case harness reports 5 passed/1 skipped/status 0 normally,

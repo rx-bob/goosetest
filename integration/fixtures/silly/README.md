@@ -45,8 +45,8 @@ From the goosetest repository root:
 
 ```sh
 task build
-python3 integration/fixtures/silly/verify.py build/goosetest
+ruby integration/fixtures/silly/verify.rb build/goosetest
 ```
 
 The independent fixture is included in `task test` through
-`integration/fixtures/verify.py`.
+`integration/fixtures/verify.rb`.

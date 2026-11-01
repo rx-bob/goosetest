@@ -1,0 +1,10 @@
+// Authored package declarations stay outside generated artifacts.
+
+import goosefmt from "../vendor";
+import goosetest from "../framework";
+
+import goosetest_generated.runner;
+
+fn main() {
+    exit(goosetest_generated::run_all());
+}

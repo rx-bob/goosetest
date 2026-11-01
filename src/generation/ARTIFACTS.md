@@ -43,7 +43,7 @@ contract, not a sandbox against project code deliberately editing its metadata.
 Verification:
 
 ```sh
-python3 integration/fixtures/artifacts/verify.py /tmp/goosetest
+ruby integration/fixtures/artifacts/verify.rb /tmp/goosetest
 ```
 
 The independent verifier checks repeatability and mtimes, obsolete files,
@@ -70,12 +70,10 @@ Run the native contract harness with a parent-owned empty temporary directory:
 ```sh
 clang -Wall -Wextra -Werror native/staging.c native/staging_manifest.c \
     integration/fixtures/artifacts/native_test.c -o /tmp/goosetest-artifacts-native
-python3 - <<'PY'
-import subprocess
-import tempfile
-with tempfile.TemporaryDirectory(prefix="goosetest-native-artifacts-") as project:
-    subprocess.run(["/tmp/goosetest-artifacts-native", project], check=True)
-PY
+ruby -rtmpdir -e '
+Dir.mktmpdir("goosetest-native-artifacts-") do |project|
+  abort "native artifacts failed" unless system("/tmp/goosetest-artifacts-native", project)
+end'
 ```
 
 It checks lock contention/release, preparation before writes, unchanged inode and

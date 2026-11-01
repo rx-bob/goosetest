@@ -62,7 +62,7 @@ Verification:
 ```sh
 goose build --debug main.goose -o /tmp/goosetest
 /tmp/goosetest test --project . --filter test/runtime/
-python3 integration/fixtures/lifecycle/verify.py /tmp/goosetest
+ruby integration/fixtures/lifecycle/verify.rb /tmp/goosetest
 ```
 
 
@@ -98,7 +98,7 @@ storage cannot retain more diagnostics. A terminal resource error stops later
 suites and returns status 2. Fatal process errors still have no cleanup guarantee.
 
 ```sh
-python3 integration/fixtures/suite/verify.py /tmp/goosetest
+ruby integration/fixtures/suite/verify.rb /tmp/goosetest
 ```
 
 
@@ -137,7 +137,7 @@ Only `@DisplayName` and `@Disabled` are supported. `@Tag`, `@RepeatedTest`, unkn
 annotations, empty disabled reasons and malformed metadata fail discovery.
 
 ```sh
-python3 integration/fixtures/disabled/verify.py /tmp/goosetest
+ruby integration/fixtures/disabled/verify.rb /tmp/goosetest
 ```
 
 

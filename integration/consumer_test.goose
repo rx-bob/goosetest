@@ -16,7 +16,7 @@ import test_support.mirror;
 import test_support.selfhost;
 import test_support.syntax;
 
-fn test_pretty_goose_adoption_manifest(outer: goosetest::Test&) {
+fn test_goosefmt_adoption_manifest(outer: goosetest::Test&) {
     let scratch = selfhost_support::scratch(outer);
     let project = filesystem_support::project(scratch, "consumer");
     materialize(project);
@@ -43,17 +43,17 @@ fn materialize(project: u8[:]) {
     filesystem_support::directory(project, "integration");
     filesystem_support::directory(project, "test_support");
     filesystem_support::write(project, "src/lexer.goose",
-        embed_file("fixtures/pretty_goose/consumer/src/lexer.goose.data"));
+        embed_file("fixtures/goosefmt/consumer/src/lexer.goose.data"));
     filesystem_support::write(project, "src/formatter.goose",
-        embed_file("fixtures/pretty_goose/consumer/src/formatter.goose.data"));
+        embed_file("fixtures/goosefmt/consumer/src/formatter.goose.data"));
     filesystem_support::write(project, "test/lexer_test.goose",
-        embed_file("fixtures/pretty_goose/consumer/test/lexer_test.goose.data"));
+        embed_file("fixtures/goosefmt/consumer/test/lexer_test.goose.data"));
     filesystem_support::write(project, "test/formatter_test.goose",
-        embed_file("fixtures/pretty_goose/consumer/test/formatter_test.goose.data"));
+        embed_file("fixtures/goosefmt/consumer/test/formatter_test.goose.data"));
     filesystem_support::write(project, "integration/pipeline_test.goose",
-        embed_file("fixtures/pretty_goose/consumer/integration/pipeline_test.goose.data"));
+        embed_file("fixtures/goosefmt/consumer/integration/pipeline_test.goose.data"));
     filesystem_support::write(project, "test_support/contracts.goose",
-        embed_file("fixtures/pretty_goose/consumer/test_support/contracts.goose.data"));
+        embed_file("fixtures/goosefmt/consumer/test_support/contracts.goose.data"));
 }
 
 fn verify_manifest(outer: goosetest::Test&, manifest: discovery::Manifest&) {

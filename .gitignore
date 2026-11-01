@@ -6,3 +6,6 @@
 # Local CLI build outputs.
 /build/
 !examples/basic/goosetest_generated/*.goose
+
+# macOS Finder metadata.
+.DS_Store

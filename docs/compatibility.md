@@ -63,7 +63,7 @@ link those adapters. The compiler-contract fixture itself adds no native adapter
 
 ## Style baseline and formatter limitations
 
-The normative guide is `/Users/bob/repos/pretty-goose/docs/styleguide.md`.
+The normative guide is `/Users/bob/repos/goosefmt/docs/styleguide.md`.
 The root `.goosefmt.toml` adopts that repository's settings supported by the
 installed formatter: 4 spaces, 120 columns, 500 lines per file, at most 6 parameters
 and 3 return values, naming and all available formatting rules enabled.
@@ -110,7 +110,7 @@ failure contracts and self-hosting separately from these compiler probes.
 ## Reproduce the supported developer workflow
 
 Prerequisites on `PATH`: the pinned `goose` compiler, Apple command-line tools
-with `clang`, Python 3, `goosefmt`, and Task. Use an unprivileged user because
+with `clang`, Ruby, `goosefmt`, and Task. Use an unprivileged user because
 permission-denial checks must actually fail access. Native adapter support has
 been verified only on macOS arm64; do not infer Linux or Windows support from
 the runtime's standard-library-only design.
@@ -138,8 +138,8 @@ An explicit local package source is the verified installation method; see the
 checks exercise source resolution from different working directories. No remote
 repository source or package registry is required or claimed to be verified.
 
-The [pretty-goose adoption recipe](adopting_pretty_goose.md) describes the isolated
-consumer now included in verification. The real pretty-goose working tree remains
+The [goosefmt adoption recipe](adopting_goosefmt.md) describes the isolated
+consumer now included in verification. The real goosefmt working tree remains
 outside this implementation; its production snapshots are fixture data.
 
 [Silly adoption](adopting_silly.md) preserves subsystem URL/HTTP checks and keeps
@@ -192,10 +192,10 @@ byte-for-byte unchanged.
 Final `task test` passed all 171 self-hosted cases and all ten independent
 matrices. Final `task check` passed the four-case basic example and checked 314
 shipping/generated Goose files, including the supplemental function-line bound.
-The original pretty-goose checkout was inspected read-only: all 23 file hashes
+The original goosefmt checkout was inspected read-only: all 23 file hashes
 and its pre-existing Git status matched before and after this work, including
 its unchanged Taskfile. No original test command was run there. See the
-[adoption guide](adopting_pretty_goose.md) for provenance and the deliberately
+[adoption guide](adopting_goosefmt.md) for provenance and the deliberately
 limited package-boundary migration recipe.
 
 ## E2.S3 profile recovery verification — 2026-10-28
